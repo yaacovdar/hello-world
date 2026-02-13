@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hello World Toggle</title>
+    <style>
+        /* Making it look a bit more modern than 1995 */
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+            font-family: sans-serif;
+        }
+
+        #toggleBtn {
+            padding: 20px 50px;
+            font-size: 2rem;
+            font-weight: bold;
+            color: white;
+            background: linear-gradient(45deg, #ff512f, #dd2476);
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: transform 0.1s, filter 0.2s;
+        }
+
+        #toggleBtn:hover {
+            filter: brightness(1.1);
+        }
+
+        #toggleBtn:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+
+    <button id="toggleBtn" onclick="toggleText()">Hello</button>
+
+    <script>
+        function toggleText() {
+            const btn = document.getElementById('toggleBtn');
+            
+            // If it's Hello, make it World; otherwise, make it Hello.
+            if (btn.innerText === 'Hello') {
+                btn.innerText = 'World';
+                btn.style.background = 'linear-gradient(45deg, #00b09b, #96c93d)';
+            } else {
+                btn.innerText = 'Hello';
+                btn.style.background = 'linear-gradient(45deg, #ff512f, #dd2476)';
+            }
+        }
+    </script>
+
+</body>
+</html>
