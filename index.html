@@ -1,61 +1,256 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hello World Toggle</title>
+    <title>Little Learners - English Practice</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
     <style>
-        /* Making it look a bit more modern than 1995 */
         body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f0f2f5;
-            font-family: sans-serif;
+            font-family: 'Patrick Hand', cursive;
+            touch-action: manipulation;
+            background-color: #f0fdf4; /* Light mint */
         }
-
-        #toggleBtn {
-            padding: 20px 50px;
-            font-size: 2rem;
-            font-weight: bold;
-            color: white;
-            background: linear-gradient(45deg, #ff512f, #dd2476);
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-            transition: transform 0.1s, filter 0.2s;
+        .handwritten {
+            font-family: 'Patrick Hand', cursive;
         }
-
-        #toggleBtn:hover {
-            filter: brightness(1.1);
+        .card {
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            aspect-ratio: 1 / 1;
         }
-
-        #toggleBtn:active {
+        .card:active {
             transform: scale(0.95);
+        }
+        .faded {
+            opacity: 0.2;
+            pointer-events: none;
+            transform: scale(0.9);
+        }
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            z-index: 100;
+            pointer-events: none;
+        }
+        @keyframes fall {
+            to { transform: translateY(100vh) rotate(360deg); }
         }
     </style>
 </head>
-<body>
+<body class="overflow-hidden select-none">
 
-    <button id="toggleBtn" onclick="toggleText()">Hello</button>
+    <!-- Welcome / Start Overlay -->
+    <div id="start-overlay" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white p-6 text-center">
+        <h1 class="text-6xl mb-8 text-blue-500">Little Learners</h1>
+        <div class="text-8xl mb-8 animate-bounce">🎈</div>
+        <button id="start-btn" class="bg-yellow-400 hover:bg-yellow-500 text-white text-4xl px-12 py-6 rounded-full shadow-lg transform transition active:scale-95">
+            Press to Play!
+        </button>
+    </div>
+
+    <!-- Main Game UI -->
+    <div class="h-screen flex flex-col p-4 max-w-2xl mx-auto">
+        <!-- Target Word Display -->
+        <div class="flex-none text-center py-6">
+            <h2 id="target-word" class="text-7xl md:text-8xl font-bold tracking-wide" style="color: #4f46e5;">
+                ...
+            </h2>
+            <button id="repeat-btn" class="mt-4 bg-gray-100 p-3 rounded-full hover:bg-gray-200">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-600"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+            </button>
+        </div>
+
+        <!-- Cards Grid -->
+        <div id="cards-grid" class="flex-grow grid grid-cols-3 grid-rows-2 gap-4 pb-8">
+            <!-- Cards will be injected here -->
+        </div>
+    </div>
 
     <script>
-        function toggleText() {
-            const btn = document.getElementById('toggleBtn');
-            
-            // If it's Hello, make it World; otherwise, make it Hello.
-            if (btn.innerText === 'Hello') {
-                btn.innerText = 'World';
-                btn.style.background = 'linear-gradient(45deg, #00b09b, #96c93d)';
-            } else {
-                btn.innerText = 'Hello';
-                btn.style.background = 'linear-gradient(45deg, #ff512f, #dd2476)';
+        const vocabulary = [
+            { name: "One", emoji: "1️⃣", type: "number", color: "#e11d48" },
+            { name: "Two", emoji: "2️⃣", type: "number", color: "#ea580c" },
+            { name: "Three", emoji: "3️⃣", type: "number", color: "#ca8a04" },
+            { name: "Four", emoji: "4️⃣", type: "number", color: "#16a34a" },
+            { name: "Five", emoji: "5️⃣", type: "number", color: "#0891b2" },
+            { name: "Water", emoji: "💧", type: "object", color: "#2563eb" },
+            { name: "Food", emoji: "🍎", type: "object", color: "#dc2626" },
+            { name: "Red", emoji: "🟥", type: "color", color: "#ef4444" },
+            { name: "Blue", emoji: "🟦", type: "color", color: "#3b82f6" },
+            { name: "Yellow", emoji: "🟨", type: "color", color: "#eab308" },
+            { name: "Green", emoji: "🟩", type: "color", color: "#22c55e" },
+            { name: "Purple", emoji: "🟪", type: "color", color: "#a855f7" },
+            { name: "Pink", emoji: "🌸", type: "color", color: "#ec4899" },
+            { name: "Orange", emoji: "🟧", type: "color", color: "#f97316" },
+            { name: "Toilet", emoji: "🚽", type: "object", color: "#64748b" },
+            { name: "Happy", emoji: "😊", type: "emotion", color: "#f59e0b" },
+            { name: "Sad", emoji: "😢", type: "emotion", color: "#3b82f6" },
+            { name: "Car", emoji: "🚗", type: "object", color: "#ef4444" },
+            { name: "Cat", emoji: "🐱", type: "animal", color: "#f97316" },
+            { name: "Dog", emoji: "🐶", type: "animal", color: "#854d0e" },
+            { name: "Ball", emoji: "⚽", type: "object", color: "#1e293b" }
+        ];
+
+        const positivePhrases = [
+            "Yes! That is [item]!",
+            "Great job! You found the [item]!",
+            "Perfect! That's a [item].",
+            "Well done! This is the [item].",
+            "You are so smart! [item]!"
+        ];
+
+        const negativePhrases = [
+            "No, that's [wrong]. Where is the [item]?",
+            "Oops! That is [wrong]. Can you find the [item]?",
+            "That's the [wrong]. Look for the [item]!",
+        ];
+
+        const promptPhrases = [
+            "Where is the [item]?",
+            "Can you find the [item]?",
+            "Look for the [item]!",
+            "Touch the [item]!",
+            "Where is [item]?",
+            "Show me the [item]!"
+        ];
+
+        let currentTarget = null;
+        let isProcessing = false;
+        let voice = null;
+        let availableVoices = [];
+
+        // Initialize Speech
+        function initSpeech() {
+            const synth = window.speechSynthesis;
+            const loadVoices = () => {
+                const voices = synth.getVoices();
+                // Gather all English voices
+                availableVoices = voices.filter(v => v.lang.startsWith('en'));
+               
+                if (availableVoices.length === 0 && voices.length > 0) {
+                    availableVoices = [voices[0]];
+                }
+               
+                // Pick an initial voice if none selected
+                if (!voice && availableVoices.length > 0) {
+                    voice = availableVoices[Math.floor(Math.random() * availableVoices.length)];
+                }
+            };
+            if (synth.onvoiceschanged !== undefined) {
+                synth.onvoiceschanged = loadVoices;
+            }
+            loadVoices();
+        }
+
+        function speak(text) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.voice = voice;
+            utterance.pitch = 1.1;
+            utterance.rate = 0.8;  // Slower rate for better clarity for toddlers
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function createConfetti() {
+            for (let i = 0; i < 50; i++) {
+                const conf = document.createElement('div');
+                conf.className = 'confetti';
+                conf.style.left = Math.random() * 100 + 'vw';
+                conf.style.backgroundColor = `hsl(${Math.random() * 360}, 80%, 60%)`;
+                conf.style.top = '-10px';
+                conf.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+                conf.style.animation = `fall ${Math.random() * 2 + 1}s linear forwards`;
+                document.body.appendChild(conf);
+                setTimeout(() => conf.remove(), 3000);
             }
         }
-    </script>
 
+        function nextRound() {
+            isProcessing = false;
+           
+            // Rotate voice between rounds if multiple are available
+            if (availableVoices.length > 1) {
+                voice = availableVoices[Math.floor(Math.random() * availableVoices.length)];
+            }
+
+            // Pick a target
+            currentTarget = vocabulary[Math.floor(Math.random() * vocabulary.length)];
+           
+            // Pick 5 distinct distractors
+            let distractors = vocabulary
+                .filter(v => v.name !== currentTarget.name)
+                .sort(() => 0.5 - Math.random())
+                .slice(0, 5);
+
+            const options = [...distractors, currentTarget].sort(() => 0.5 - Math.random());
+
+            // Update UI
+            const wordEl = document.getElementById('target-word');
+            wordEl.textContent = currentTarget.name;
+            wordEl.style.color = currentTarget.color;
+
+            const grid = document.getElementById('cards-grid');
+            grid.innerHTML = '';
+
+            options.forEach(item => {
+                const btn = document.createElement('button');
+                btn.className = 'card bg-white rounded-3xl shadow-md border-4 border-gray-100 flex items-center justify-center text-6xl sm:text-7xl md:text-8xl p-4';
+                btn.innerHTML = item.emoji;
+                btn.onclick = () => handleChoice(item, btn);
+                grid.appendChild(btn);
+            });
+
+            // Voice out a varied prompt
+            const prompt = promptPhrases[Math.floor(Math.random() * promptPhrases.length)]
+                .replace('[item]', currentTarget.name);
+            speak(prompt);
+        }
+
+        function handleChoice(item, element) {
+            if (isProcessing) return;
+
+            if (item.name === currentTarget.name) {
+                isProcessing = true;
+                createConfetti();
+               
+                const phrase = positivePhrases[Math.floor(Math.random() * positivePhrases.length)]
+                    .replace('[item]', currentTarget.name);
+               
+                speak(phrase);
+               
+                element.classList.add('ring-8', 'ring-green-400', 'z-10');
+               
+                setTimeout(() => {
+                    nextRound();
+                }, 2500);
+            } else {
+                const phrase = negativePhrases[Math.floor(Math.random() * negativePhrases.length)]
+                    .replace('[wrong]', item.name)
+                    .replace('[item]', currentTarget.name);
+               
+                speak(phrase);
+                element.classList.add('faded');
+            }
+        }
+
+        // Event Listeners
+        document.getElementById('start-btn').onclick = () => {
+            document.getElementById('start-overlay').style.display = 'none';
+            initSpeech();
+            // Small delay to ensure voices are loaded on some mobile browsers
+            setTimeout(nextRound, 100);
+        };
+
+        document.getElementById('repeat-btn').onclick = () => {
+            if (currentTarget) speak(currentTarget.name);
+        };
+
+        // Pre-init voices
+        initSpeech();
+    </script>
 </body>
 </html>
