@@ -226,14 +226,14 @@
     </div>
 
     <div id="game-container">
-        <h1>What's this?</h1>
+        <h1 id="game-title">Magic Words</h1>
         <div id="card-container"></div>
         
         <div id="mic-status">
             <div id="mic-button">🎤</div>
             <div id="status-text">Ready...</div>
             <div id="restart-container">
-                <button id="restart-btn" class="game-btn">Restart Round 🔄</button>
+                <button id="restart-btn" class="game-btn">Try Again! 🔄</button>
             </div>
         </div>
     </div>
@@ -254,23 +254,23 @@
         ];
 
         const questionTemplates = [
-            "I'm looking at three interesting things. Could you please find the {0}, the {1}, or perhaps the {2}?",
-            "There are so many cool pictures here! Which one do you think is the {0}?",
-            "I wonder if you can help me find something. Could you point out where the {1} is hiding?",
-            "Take a look at these wonderful cards! Can you practice your big voice and say {2} for me?",
-            "I would really love to see the {0}! Do you think you can find it and say its name out loud?"
+            "Find the {0}, {1}, or {2}!",
+            "Can you say {0}?",
+            "Say {1}!",
+            "Where is the {2}?",
+            "Is it {0}, {1}, or {2}?"
         ];
 
         const nudgePhrases = [
-            "I haven't heard from you in a little while! Are you still there? Try saying the name of one of these words!",
-            "I'm still listening very carefully! Do you want to pick the {0}, the {1}, or the {2}?",
-            "All of these look so great! Which one is your favorite? Tell me the name of the one you like best!",
-            "You're doing such a great job practicing! Don't be shy, just try your best to say a word like {0}!"
+            "Try saying {0}!",
+            "I'm listening! Say {1}?",
+            "Pick one: {0}, {1}, or {2}!",
+            "Which one is it? {2}?"
         ];
 
         let synth = window.speechSynthesis;
         let availableVoices = [];
-        let voice = null;
+        let currentVoice = null;
         let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
         let currentOptions = [];
         let isSpeaking = false;
@@ -292,27 +292,21 @@
         const giftBox = document.getElementById('collection-bin');
         const micButton = document.getElementById('mic-button');
 
-        // Dynamic voice initialization
-        function initSpeech() {
-            const loadVoices = () => {
-                const voices = synth.getVoices();
-                availableVoices = voices.filter(v => v.lang.startsWith('en'));
-                
-                if (availableVoices.length === 0 && voices.length > 0) {
-                    availableVoices = [voices[0]];
-                }
-                
-                if (!voice && availableVoices.length > 0) {
-                    voice = availableVoices[Math.floor(Math.random() * availableVoices.length)];
+        // Pre-initialize voices and keep them in memory
+        function initVoices() {
+            const load = () => {
+                availableVoices = synth.getVoices().filter(v => v.lang.startsWith('en'));
+                if (availableVoices.length === 0 && synth.getVoices().length > 0) {
+                    availableVoices = [synth.getVoices()[0]];
                 }
             };
             if (synth.onvoiceschanged !== undefined) {
-                synth.onvoiceschanged = loadVoices;
+                synth.onvoiceschanged = load;
             }
-            loadVoices();
+            load();
         }
 
-        initSpeech();
+        initVoices();
 
         startBtn.addEventListener('click', () => {
             overlay.style.display = 'none';
@@ -328,10 +322,12 @@
         function startNewRound() {
             clearIdleTimer();
             nudgeCount = 0;
-            // Pick a new voice for each "page" to keep it interesting
+            
+            // Randomly pick a voice once per round from pre-loaded list
             if (availableVoices.length > 0) {
-                voice = availableVoices[Math.floor(Math.random() * availableVoices.length)];
+                currentVoice = availableVoices[Math.floor(Math.random() * availableVoices.length)];
             }
+            
             currentOptions = [...vocab].sort(() => 0.5 - Math.random()).slice(0, 3);
             renderCards();
             askQuestion();
@@ -342,7 +338,6 @@
             currentOptions.forEach((item, index) => {
                 const wrapper = document.createElement('div');
                 wrapper.className = 'card-wrapper';
-                wrapper.style.transitionDelay = `${index * 0.1}s`;
                 
                 const card = document.createElement('div');
                 card.className = 'card';
@@ -351,7 +346,7 @@
                 
                 const label = document.createElement('div');
                 label.className = 'card-label';
-                label.innerText = item.word;
+                label.innerText = item.word.toUpperCase();
 
                 wrapper.appendChild(card);
                 wrapper.appendChild(label);
@@ -369,15 +364,6 @@
             speak(text, () => startListening());
         }
 
-        function startIdleTimer() {
-            clearIdleTimer();
-            idleTimer = setTimeout(() => {
-                if (!isSpeaking) {
-                    playNudge();
-                }
-            }, TIMEOUT_MS);
-        }
-
         function clearIdleTimer() {
             if (idleTimer) {
                 clearTimeout(idleTimer);
@@ -387,7 +373,6 @@
 
         function playNudge() {
             nudgeCount++;
-            
             if (nudgeCount >= MAX_NUDGES) {
                 stopGameDueToSilence();
                 return;
@@ -399,7 +384,7 @@
                 .replace('{1}', currentOptions[1].word)
                 .replace('{2}', currentOptions[2].word);
             
-            statusText.innerText = "I'm still listening... 😊";
+            statusText.innerText = "Listening...";
             speak(text, () => startListening());
         }
 
@@ -407,22 +392,18 @@
             clearIdleTimer();
             recognition.stop();
             document.body.classList.remove('listening');
-            statusText.innerText = "Let's take a break! Click to try again.";
+            statusText.innerText = "Click the button to play!";
             micButton.style.display = 'none';
             restartContainer.style.display = 'block';
-            speak("I'll wait here for you! Press the button when you're ready to play again.");
+            speak("Ready to play again?");
         }
 
         function speak(text, callback) {
             isSpeaking = true;
             const utterance = new SpeechSynthesisUtterance(text);
+            if (currentVoice) utterance.voice = currentVoice;
             
-            // Use the selected voice from availableVoices
-            if (voice) {
-                utterance.voice = voice;
-            }
-            
-            utterance.rate = 0.9;
+            utterance.rate = 1.0; // Normal speed for shorter prompts
             utterance.pitch = 1.1;
             utterance.onend = () => {
                 isSpeaking = false;
@@ -434,32 +415,30 @@
         function startListening() {
             if (isSpeaking || nudgeCount >= MAX_NUDGES) return;
             document.body.classList.add('listening');
-            statusText.innerText = "Listening for you... 🎤";
+            statusText.innerText = "Go ahead, say it! 🎤";
             
-            startIdleTimer();
+            clearIdleTimer();
+            idleTimer = setTimeout(() => {
+                if (!isSpeaking) playNudge();
+            }, TIMEOUT_MS);
 
             try {
                 recognition.start();
-            } catch (e) {
-                console.log("Recognition active");
-            }
+            } catch (e) {}
         }
 
         recognition.onresult = (event) => {
             clearIdleTimer();
             document.body.classList.remove('listening');
             const result = event.results[0][0].transcript.toLowerCase();
-            
             const matchedItem = currentOptions.find(item => result.includes(item.word));
 
             if (matchedItem) {
                 handleSuccess(matchedItem);
             } else {
-                statusText.innerText = "I heard something else... Try again!";
+                statusText.innerText = "Say it again!";
                 setTimeout(() => {
-                    if (nudgeCount < MAX_NUDGES) {
-                        speak("Try saying one of the words shown!", () => startListening());
-                    }
+                    if (nudgeCount < MAX_NUDGES) startListening();
                 }, 800);
             }
         };
@@ -474,23 +453,22 @@
             if (event.error === 'no-speech') {
                 setTimeout(() => {
                     if (!isSpeaking && nudgeCount < MAX_NUDGES) startListening();
-                }, 500);
+                }, 400);
             }
         };
 
         function handleSuccess(item) {
             clearIdleTimer();
-            nudgeCount = 0; // Reset nudge count on success
+            nudgeCount = 0;
             const card = document.getElementById(`card-${item.word}`);
             if (!card) return;
 
             card.classList.add('active');
-            statusText.innerText = `Yes! ${item.word.toUpperCase()}! 🌟`;
+            statusText.innerText = `${item.word.toUpperCase()}! 🌟`;
 
             setTimeout(() => {
                 const cardRect = card.getBoundingClientRect();
                 const giftRect = giftBox.getBoundingClientRect();
-                
                 const deltaX = (giftRect.left + giftRect.width/2) - (cardRect.left + cardRect.width/2);
                 const deltaY = (giftRect.top + giftRect.height/2) - (cardRect.top + cardRect.height/2);
 
@@ -503,7 +481,7 @@
                     setTimeout(() => giftBox.classList.remove('bump'), 300);
                 }, 600);
 
-                speak(`Great! You found the ${item.word}!`, () => {
+                speak(`Yes, ${item.word}!`, () => {
                     setTimeout(startNewRound, 500);
                 });
             }, 500);
