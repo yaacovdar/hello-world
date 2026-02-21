@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Magic Words - English Practice</title>
+    <style>
+        :root {
+            --bg-color: #e0f2fe;
+            --card-color: #ffffff;
+            --accent-color: #ff6b6b;
+            --success-color: #4ade80;
+            --primary-blue: #3b82f6;
+            --gift-color: #fbbf24;
+        }
+
+        body {
+            font-family: 'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', cursive;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            touch-action: manipulation;
+            color: #1e293b;
+        }
+
+        #game-container {
+            text-align: center;
+            width: 95%;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            color: var(--primary-blue);
+            text-shadow: 2px 2px 0px white;
+        }
+
+        #card-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            perspective: 1000px;
+            min-height: 280px;
+            width: 100%;
+        }
+
+        .card-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .card {
+            width: 160px;
+            height: 220px;
+            background: var(--card-color);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 80px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border: 6px solid #fff;
+            cursor: pointer;
+            transition: transform 0.3s, border-color 0.3s, box-shadow 0.3s;
+            user-select: none;
+            position: relative;
+        }
+
+        .card-label {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-blue);
+            background: white;
+            padding: 4px 15px;
+            border-radius: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .card.active {
+            border-color: var(--accent-color);
+            transform: scale(1.05) translateY(-10px);
+            box-shadow: 0 20px 30px rgba(255, 107, 107, 0.2);
+        }
+
+        .card.collecting {
+            pointer-events: none;
+            z-index: 1000;
+            transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        #collection-bin {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 100px;
+            height: 100px;
+            background: var(--gift-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 50px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            border: 6px solid white;
+            transition: transform 0.3s;
+            z-index: 50;
+        }
+
+        #collection-bin.bump {
+            transform: scale(1.3) rotate(15deg);
+        }
+
+        #mic-status {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            height: 100px;
+        }
+
+        #mic-button {
+            width: 70px;
+            height: 70px;
+            background: #cbd5e1;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            transition: all 0.3s;
+            border: none;
+            position: relative;
+        }
+
+        .listening #mic-button {
+            background: var(--accent-color);
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .listening #mic-button::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 4px solid var(--accent-color);
+            animation: ripple 1.5s infinite;
+        }
+
+        @keyframes ripple {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+
+        #status-text {
+            font-size: 1.2rem;
+            color: #64748b;
+            font-weight: bold;
+        }
+
+        #start-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            gap: 2rem;
+        }
+
+        .hero-emoji { font-size: 100px; animation: bounce 2s infinite; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+
+        button#start-btn {
+            padding: 25px 60px;
+            font-size: 40px;
+            border-radius: 50px;
+            border: none;
+            background: var(--success-color);
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 10px 0 #16a34a;
+            font-family: inherit;
+            transition: all 0.1s;
+        }
+
+        button#start-btn:active {
+            transform: translateY(5px);
+            box-shadow: 0 5px 0 #16a34a;
+        }
+
+        @media (max-width: 600px) {
+            .card { width: 100px; height: 140px; font-size: 50px; }
+            .card-label { font-size: 1rem; }
+            h1 { font-size: 1.8rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="start-overlay">
+        <div class="hero-emoji">🎨</div>
+        <h1>Magic Words!</h1>
+        <button id="start-btn">Play! ▶️</button>
+    </div>
+
+    <div id="game-container">
+        <h1>What's this?</h1>
+        <div id="card-container"></div>
+        
+        <div id="mic-status">
+            <div id="mic-button">🎤</div>
+            <div id="status-text">Ready...</div>
+        </div>
+    </div>
+
+    <div id="collection-bin">🎁</div>
+
+    <script>
+        const vocab = [
+            { word: 'apple', emoji: '🍎' }, { word: 'banana', emoji: '🍌' }, { word: 'sun', emoji: '☀️' },
+            { word: 'moon', emoji: '🌙' }, { word: 'cat', emoji: '🐱' }, { word: 'dog', emoji: '🐶' },
+            { word: 'bird', emoji: '🐦' }, { word: 'fish', emoji: '🐟' }, { word: 'car', emoji: '🚗' },
+            { word: 'plane', emoji: '✈️' }, { word: 'ball', emoji: '⚽' }, { word: 'star', emoji: '⭐' },
+            { word: 'flower', emoji: '🌸' }, { word: 'tree', emoji: '🌳' }, { word: 'water', emoji: '💧' },
+            { word: 'milk', emoji: '🥛' }, { word: 'cookie', emoji: '🍪' }, { word: 'one', emoji: '1️⃣' },
+            { word: 'two', emoji: '2️⃣' }, { word: 'three', emoji: '3️⃣' }, { word: 'happy', emoji: '😊' },
+            { word: 'sad', emoji: '😢' }, { word: 'hot', emoji: '🔥' }, { word: 'cold', emoji: '❄️' }
+        ];
+
+        const questionTemplates = [
+            "Can you find the {0}, the {1}, or the {2}?",
+            "Which one is the {0}?",
+            "Tell me, where is the {1}?",
+            "Look! Can you say {2}?",
+            "I want the {0}! Can you find it?"
+        ];
+
+        const nudgePhrases = [
+            "Are you there? Try saying one of the words!",
+            "I'm listening! Is it the {0}, the {1}, or the {2}?",
+            "Which one do you like? Tell me the name!",
+            "Don't be shy! Say a word like {0}!"
+        ];
+
+        let synth = window.speechSynthesis;
+        let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        let currentOptions = [];
+        let isSpeaking = false;
+        let idleTimer = null;
+        const TIMEOUT_MS = 15000; // 15 seconds
+
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+
+        const startBtn = document.getElementById('start-btn');
+        const overlay = document.getElementById('start-overlay');
+        const cardContainer = document.getElementById('card-container');
+        const statusText = document.getElementById('status-text');
+        const giftBox = document.getElementById('collection-bin');
+
+        startBtn.addEventListener('click', () => {
+            overlay.style.display = 'none';
+            startNewRound();
+        });
+
+        function startNewRound() {
+            clearIdleTimer();
+            currentOptions = [...vocab].sort(() => 0.5 - Math.random()).slice(0, 3);
+            renderCards();
+            askQuestion();
+        }
+
+        function renderCards() {
+            cardContainer.innerHTML = '';
+            currentOptions.forEach((item, index) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'card-wrapper';
+                wrapper.style.transitionDelay = `${index * 0.1}s`;
+                
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = item.emoji;
+                card.id = `card-${item.word}`;
+                
+                const label = document.createElement('div');
+                label.className = 'card-label';
+                label.innerText = item.word;
+
+                wrapper.appendChild(card);
+                wrapper.appendChild(label);
+                cardContainer.appendChild(wrapper);
+            });
+        }
+
+        function askQuestion() {
+            const template = questionTemplates[Math.floor(Math.random() * questionTemplates.length)];
+            const text = template
+                .replace('{0}', currentOptions[0].word)
+                .replace('{1}', currentOptions[1].word)
+                .replace('{2}', currentOptions[2].word);
+            
+            speak(text, () => startListening());
+        }
+
+        function startIdleTimer() {
+            clearIdleTimer();
+            idleTimer = setTimeout(() => {
+                if (!isSpeaking) {
+                    playNudge();
+                }
+            }, TIMEOUT_MS);
+        }
+
+        function clearIdleTimer() {
+            if (idleTimer) {
+                clearTimeout(idleTimer);
+                idleTimer = null;
+            }
+        }
+
+        function playNudge() {
+            const phraseTemplate = nudgePhrases[Math.floor(Math.random() * nudgePhrases.length)];
+            const text = phraseTemplate
+                .replace('{0}', currentOptions[0].word)
+                .replace('{1}', currentOptions[1].word)
+                .replace('{2}', currentOptions[2].word);
+            
+            statusText.innerText = "Waiting for you... 😊";
+            speak(text, () => startListening());
+        }
+
+        function speak(text, callback) {
+            isSpeaking = true;
+            const utterance = new SpeechSynthesisUtterance(text);
+            const voices = synth.getVoices();
+            const preferredVoice = voices.find(v => v.name.includes('Google') && v.lang.includes('en-US')) || 
+                                  voices.find(v => v.lang.includes('en-US')) ||
+                                  voices[0];
+            
+            utterance.voice = preferredVoice;
+            utterance.rate = 0.9;
+            utterance.pitch = 1.1;
+            utterance.onend = () => {
+                isSpeaking = false;
+                if (callback) callback();
+            };
+            synth.speak(utterance);
+        }
+
+        function startListening() {
+            if (isSpeaking) return;
+            document.body.classList.add('listening');
+            statusText.innerText = "Listening for you... 🎤";
+            
+            startIdleTimer(); // Start the 15-second clock
+
+            try {
+                recognition.start();
+            } catch (e) {
+                console.log("Recognition error or already active");
+            }
+        }
+
+        recognition.onresult = (event) => {
+            clearIdleTimer();
+            document.body.classList.remove('listening');
+            const result = event.results[0][0].transcript.toLowerCase();
+            
+            const matchedItem = currentOptions.find(item => result.includes(item.word));
+
+            if (matchedItem) {
+                handleSuccess(matchedItem);
+            } else {
+                statusText.innerText = "I heard something else... Try again!";
+                setTimeout(() => {
+                    speak("Try saying one of the words shown!", () => startListening());
+                }, 800);
+            }
+        };
+
+        recognition.onspeechend = () => {
+            recognition.stop();
+            document.body.classList.remove('listening');
+        };
+
+        recognition.onerror = (event) => {
+            document.body.classList.remove('listening');
+            if (event.error === 'no-speech') {
+                // If it was just silence, the idleTimer is already running and will handle the 15s nudge.
+                // We restart listening immediately so the mic stays active.
+                setTimeout(() => {
+                    if (!isSpeaking) startListening();
+                }, 500);
+            }
+        };
+
+        function handleSuccess(item) {
+            clearIdleTimer();
+            const card = document.getElementById(`card-${item.word}`);
+            if (!card) return;
+
+            card.classList.add('active');
+            statusText.innerText = `Yes! ${item.word.toUpperCase()}! 🌟`;
+
+            setTimeout(() => {
+                const cardRect = card.getBoundingClientRect();
+                const giftRect = giftBox.getBoundingClientRect();
+                
+                const deltaX = (giftRect.left + giftRect.width/2) - (cardRect.left + cardRect.width/2);
+                const deltaY = (giftRect.top + giftRect.height/2) - (cardRect.top + cardRect.height/2);
+
+                card.classList.add('collecting');
+                card.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(0.1) rotate(720deg)`;
+                card.style.opacity = "0";
+
+                setTimeout(() => {
+                    giftBox.classList.add('bump');
+                    setTimeout(() => giftBox.classList.remove('bump'), 300);
+                }, 600);
+
+                speak(`Great! You found the ${item.word}!`, () => {
+                    setTimeout(startNewRound, 500);
+                });
+            }, 500);
+        }
+
+        window.speechSynthesis.onvoiceschanged = () => {};
+    </script>
+</body>
+</html>
