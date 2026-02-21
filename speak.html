@@ -172,6 +172,29 @@
             font-weight: bold;
         }
 
+        #restart-container {
+            display: none;
+            margin-top: 10px;
+        }
+
+        .game-btn {
+            padding: 15px 40px;
+            font-size: 24px;
+            border-radius: 50px;
+            border: none;
+            background: var(--success-color);
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #16a34a;
+            font-family: inherit;
+            transition: all 0.1s;
+        }
+
+        .game-btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 3px 0 #16a34a;
+        }
+
         #start-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -187,24 +210,6 @@
         .hero-emoji { font-size: 100px; animation: bounce 2s infinite; }
         @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
 
-        button#start-btn {
-            padding: 25px 60px;
-            font-size: 40px;
-            border-radius: 50px;
-            border: none;
-            background: var(--success-color);
-            color: white;
-            cursor: pointer;
-            box-shadow: 0 10px 0 #16a34a;
-            font-family: inherit;
-            transition: all 0.1s;
-        }
-
-        button#start-btn:active {
-            transform: translateY(5px);
-            box-shadow: 0 5px 0 #16a34a;
-        }
-
         @media (max-width: 600px) {
             .card { width: 100px; height: 140px; font-size: 50px; }
             .card-label { font-size: 1rem; }
@@ -217,7 +222,7 @@
     <div id="start-overlay">
         <div class="hero-emoji">🎨</div>
         <h1>Magic Words!</h1>
-        <button id="start-btn">Play! ▶️</button>
+        <button id="start-btn" class="game-btn">Play! ▶️</button>
     </div>
 
     <div id="game-container">
@@ -227,6 +232,9 @@
         <div id="mic-status">
             <div id="mic-button">🎤</div>
             <div id="status-text">Ready...</div>
+            <div id="restart-container">
+                <button id="restart-btn" class="game-btn">Restart Round 🔄</button>
+            </div>
         </div>
     </div>
 
@@ -241,48 +249,89 @@
             { word: 'flower', emoji: '🌸' }, { word: 'tree', emoji: '🌳' }, { word: 'water', emoji: '💧' },
             { word: 'milk', emoji: '🥛' }, { word: 'cookie', emoji: '🍪' }, { word: 'one', emoji: '1️⃣' },
             { word: 'two', emoji: '2️⃣' }, { word: 'three', emoji: '3️⃣' }, { word: 'happy', emoji: '😊' },
-            { word: 'sad', emoji: '😢' }, { word: 'hot', emoji: '🔥' }, { word: 'cold', emoji: '❄️' }
+            { word: 'sad', emoji: '😢' }, { word: 'hot', emoji: '🔥' }, { word: 'cold', emoji: '❄️' },
+            { word: 'pizza', emoji: '🍕' }, { word: 'hamburger', emoji: '🍔' }, { word: 'bread', emoji: '🍞' }
         ];
 
         const questionTemplates = [
-            "Can you find the {0}, the {1}, or the {2}?",
-            "Which one is the {0}?",
-            "Tell me, where is the {1}?",
-            "Look! Can you say {2}?",
-            "I want the {0}! Can you find it?"
+            "I'm looking at three interesting things. Could you please find the {0}, the {1}, or perhaps the {2}?",
+            "There are so many cool pictures here! Which one do you think is the {0}?",
+            "I wonder if you can help me find something. Could you point out where the {1} is hiding?",
+            "Take a look at these wonderful cards! Can you practice your big voice and say {2} for me?",
+            "I would really love to see the {0}! Do you think you can find it and say its name out loud?"
         ];
 
         const nudgePhrases = [
-            "Are you there? Try saying one of the words!",
-            "I'm listening! Is it the {0}, the {1}, or the {2}?",
-            "Which one do you like? Tell me the name!",
-            "Don't be shy! Say a word like {0}!"
+            "I haven't heard from you in a little while! Are you still there? Try saying the name of one of these words!",
+            "I'm still listening very carefully! Do you want to pick the {0}, the {1}, or the {2}?",
+            "All of these look so great! Which one is your favorite? Tell me the name of the one you like best!",
+            "You're doing such a great job practicing! Don't be shy, just try your best to say a word like {0}!"
         ];
 
         let synth = window.speechSynthesis;
+        let availableVoices = [];
+        let voice = null;
         let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
         let currentOptions = [];
         let isSpeaking = false;
         let idleTimer = null;
-        const TIMEOUT_MS = 15000; // 15 seconds
+        let nudgeCount = 0;
+        const MAX_NUDGES = 5;
+        const TIMEOUT_MS = 15000;
 
         recognition.continuous = false;
         recognition.interimResults = false;
         recognition.lang = 'en-US';
 
         const startBtn = document.getElementById('start-btn');
+        const restartBtn = document.getElementById('restart-btn');
         const overlay = document.getElementById('start-overlay');
+        const restartContainer = document.getElementById('restart-container');
         const cardContainer = document.getElementById('card-container');
         const statusText = document.getElementById('status-text');
         const giftBox = document.getElementById('collection-bin');
+        const micButton = document.getElementById('mic-button');
+
+        // Dynamic voice initialization
+        function initSpeech() {
+            const loadVoices = () => {
+                const voices = synth.getVoices();
+                availableVoices = voices.filter(v => v.lang.startsWith('en'));
+                
+                if (availableVoices.length === 0 && voices.length > 0) {
+                    availableVoices = [voices[0]];
+                }
+                
+                if (!voice && availableVoices.length > 0) {
+                    voice = availableVoices[Math.floor(Math.random() * availableVoices.length)];
+                }
+            };
+            if (synth.onvoiceschanged !== undefined) {
+                synth.onvoiceschanged = loadVoices;
+            }
+            loadVoices();
+        }
+
+        initSpeech();
 
         startBtn.addEventListener('click', () => {
             overlay.style.display = 'none';
             startNewRound();
         });
 
+        restartBtn.addEventListener('click', () => {
+            restartContainer.style.display = 'none';
+            micButton.style.display = 'flex';
+            startNewRound();
+        });
+
         function startNewRound() {
             clearIdleTimer();
+            nudgeCount = 0;
+            // Pick a new voice for each "page" to keep it interesting
+            if (availableVoices.length > 0) {
+                voice = availableVoices[Math.floor(Math.random() * availableVoices.length)];
+            }
             currentOptions = [...vocab].sort(() => 0.5 - Math.random()).slice(0, 3);
             renderCards();
             askQuestion();
@@ -337,25 +386,42 @@
         }
 
         function playNudge() {
+            nudgeCount++;
+            
+            if (nudgeCount >= MAX_NUDGES) {
+                stopGameDueToSilence();
+                return;
+            }
+
             const phraseTemplate = nudgePhrases[Math.floor(Math.random() * nudgePhrases.length)];
             const text = phraseTemplate
                 .replace('{0}', currentOptions[0].word)
                 .replace('{1}', currentOptions[1].word)
                 .replace('{2}', currentOptions[2].word);
             
-            statusText.innerText = "Waiting for you... 😊";
+            statusText.innerText = "I'm still listening... 😊";
             speak(text, () => startListening());
+        }
+
+        function stopGameDueToSilence() {
+            clearIdleTimer();
+            recognition.stop();
+            document.body.classList.remove('listening');
+            statusText.innerText = "Let's take a break! Click to try again.";
+            micButton.style.display = 'none';
+            restartContainer.style.display = 'block';
+            speak("I'll wait here for you! Press the button when you're ready to play again.");
         }
 
         function speak(text, callback) {
             isSpeaking = true;
             const utterance = new SpeechSynthesisUtterance(text);
-            const voices = synth.getVoices();
-            const preferredVoice = voices.find(v => v.name.includes('Google') && v.lang.includes('en-US')) || 
-                                  voices.find(v => v.lang.includes('en-US')) ||
-                                  voices[0];
             
-            utterance.voice = preferredVoice;
+            // Use the selected voice from availableVoices
+            if (voice) {
+                utterance.voice = voice;
+            }
+            
             utterance.rate = 0.9;
             utterance.pitch = 1.1;
             utterance.onend = () => {
@@ -366,16 +432,16 @@
         }
 
         function startListening() {
-            if (isSpeaking) return;
+            if (isSpeaking || nudgeCount >= MAX_NUDGES) return;
             document.body.classList.add('listening');
             statusText.innerText = "Listening for you... 🎤";
             
-            startIdleTimer(); // Start the 15-second clock
+            startIdleTimer();
 
             try {
                 recognition.start();
             } catch (e) {
-                console.log("Recognition error or already active");
+                console.log("Recognition active");
             }
         }
 
@@ -391,7 +457,9 @@
             } else {
                 statusText.innerText = "I heard something else... Try again!";
                 setTimeout(() => {
-                    speak("Try saying one of the words shown!", () => startListening());
+                    if (nudgeCount < MAX_NUDGES) {
+                        speak("Try saying one of the words shown!", () => startListening());
+                    }
                 }, 800);
             }
         };
@@ -404,16 +472,15 @@
         recognition.onerror = (event) => {
             document.body.classList.remove('listening');
             if (event.error === 'no-speech') {
-                // If it was just silence, the idleTimer is already running and will handle the 15s nudge.
-                // We restart listening immediately so the mic stays active.
                 setTimeout(() => {
-                    if (!isSpeaking) startListening();
+                    if (!isSpeaking && nudgeCount < MAX_NUDGES) startListening();
                 }, 500);
             }
         };
 
         function handleSuccess(item) {
             clearIdleTimer();
+            nudgeCount = 0; // Reset nudge count on success
             const card = document.getElementById(`card-${item.word}`);
             if (!card) return;
 
@@ -441,8 +508,6 @@
                 });
             }, 500);
         }
-
-        window.speechSynthesis.onvoiceschanged = () => {};
     </script>
 </body>
 </html>
