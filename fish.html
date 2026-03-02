@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Zen Aquarium</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #001a33;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        canvas {
+            display: block;
+            touch-action: none; /* Prevents scrolling while interacting */
+        }
+
+        #ui-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: rgba(255, 255, 255, 0.6);
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .hint {
+            font-size: 14px;
+            font-style: italic;
+        }
+
+        #interaction-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-overlay">
+        <h1 style="margin: 0; font-weight: 300; letter-spacing: 2px;">Zen Aquarium</h1>
+        <p class="hint">Tap to feed the fish</p>
+    </div>
+
+    <div id="interaction-layer"></div>
+    <canvas id="aquariumCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('aquariumCanvas');
+        const ctx = canvas.getContext('2d');
+        const interactionLayer = document.getElementById('interaction-layer');
+
+        let width, height;
+        let fishArray = [];
+        let foodArray = [];
+        let bubbles = [];
+
+        const COLORS = [
+            { body: '#FF6B6B', accent: '#FFE66D' }, // Red/Yellow
+            { body: '#4ECDC4', accent: '#F7FFF7' }, // Cyan/White
+            { body: '#FFD93D', accent: '#FF8400' }, // Yellow/Orange
+            { body: '#6C5CE7', accent: '#A29BFE' }, // Purple/Light Purple
+            { body: '#A8E6CF', accent: '#3B7A57' }, // Green/Dark Green
+            { body: '#FF8B94', accent: '#FFAAA5' }  // Pink/Peach
+        ];
+
+        // --- Configuration ---
+        const FISH_COUNT = 7;
+        const BUBBLE_COUNT = 20;
+        const FOOD_DRIFT_SPEED = 0.5;
+        const EAT_RADIUS = 30;
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+
+        class Bubble {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.x = Math.random() * width;
+                this.y = height + Math.random() * 100;
+                this.size = Math.random() * 4 + 1;
+                this.speed = Math.random() * 1 + 0.5;
+                this.wobble = Math.random() * Math.PI * 2;
+            }
+
+            update() {
+                this.y -= this.speed;
+                this.x += Math.sin(this.wobble) * 0.5;
+                this.wobble += 0.05;
+                if (this.y < -50) this.reset();
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+                ctx.fill();
+            }
+        }
+
+        class Food {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 0.5;
+                this.vy = FOOD_DRIFT_SPEED + Math.random() * 0.5;
+                this.size = 4;
+                this.isAtBottom = false;
+                this.life = 1.0; // Opacity for fading
+                this.settleTime = 5000; // 5 seconds
+                this.settleStart = null;
+                this.eaten = false;
+                this.flutter = Math.random() * Math.PI * 2;
+            }
+
+            update(delta) {
+                if (this.eaten) return;
+
+                if (!this.isAtBottom) {
+                    this.flutter += 0.1;
+                    this.x += this.vx + Math.sin(this.flutter) * 0.5;
+                    this.y += this.vy;
+
+                    if (this.y >= height - 10) {
+                        this.y = height - 10;
+                        this.isAtBottom = true;
+                        this.settleStart = Date.now();
+                    }
+                } else {
+                    const elapsed = Date.now() - this.settleStart;
+                    if (elapsed > this.settleTime) {
+                        this.life -= 0.01;
+                    }
+                }
+            }
+
+            draw() {
+                if (this.eaten || this.life <= 0) return;
+                ctx.globalAlpha = this.life;
+                ctx.fillStyle = '#D4A373';
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y);
+                ctx.lineTo(this.x + 3, this.y + 2);
+                ctx.lineTo(this.x, this.y + 4);
+                ctx.lineTo(this.x - 3, this.y + 2);
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        class Fish {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.angle = Math.random() * Math.PI * 2;
+                this.speed = 1 + Math.random() * 1.5;
+                this.turnSpeed = 0.05;
+                this.size = 20 + Math.random() * 20;
+                this.colors = COLORS[Math.floor(Math.random() * COLORS.length)];
+                
+                this.targetAngle = this.angle;
+                this.wiggle = 0;
+                this.wiggleSpeed = 0.1 + Math.random() * 0.1;
+                
+                this.eyeSize = this.size * 0.15;
+                this.mouthOpen = 0;
+            }
+
+            findFood() {
+                let closest = null;
+                let minDist = Infinity;
+
+                foodArray.forEach(f => {
+                    if (f.eaten || f.life <= 0) return;
+                    const dx = f.x - this.x;
+                    const dy = f.y - this.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    if (dist < 400 && dist < minDist) {
+                        minDist = dist;
+                        closest = f;
+                    }
+                });
+
+                return closest;
+            }
+
+            update() {
+                const food = this.findFood();
+
+                if (food) {
+                    // Seek food
+                    const targetIdx = Math.atan2(food.y - this.y, food.x - this.x);
+                    let diff = targetIdx - this.angle;
+                    while (diff < -Math.PI) diff += Math.PI * 2;
+                    while (diff > Math.PI) diff -= Math.PI * 2;
+                    this.angle += diff * 0.1;
+
+                    // Eat food if close
+                    const dist = Math.sqrt((food.x - this.x)**2 + (food.y - this.y)**2);
+                    if (dist < EAT_RADIUS) {
+                        food.eaten = true;
+                        this.mouthOpen = 10;
+                    }
+                } else {
+                    // Wandering AI
+                    if (Math.random() < 0.02) {
+                        this.targetAngle += (Math.random() - 0.5) * 2;
+                    }
+                    
+                    let diff = this.targetAngle - this.angle;
+                    while (diff < -Math.PI) diff += Math.PI * 2;
+                    while (diff > Math.PI) diff -= Math.PI * 2;
+                    this.angle += diff * this.turnSpeed;
+                }
+
+                // Bounds
+                if (this.x < -50) this.x = width + 50;
+                if (this.x > width + 50) this.x = -50;
+                if (this.y < -50) this.y = height + 50;
+                if (this.y > height + 50) this.y = -50;
+
+                // Move
+                this.x += Math.cos(this.angle) * this.speed;
+                this.y += Math.sin(this.angle) * this.speed;
+
+                this.wiggle += this.wiggleSpeed;
+                if (this.mouthOpen > 0) this.mouthOpen -= 0.5;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+
+                const wiggleOffset = Math.sin(this.wiggle) * 0.15;
+
+                // Tail
+                ctx.fillStyle = this.colors.accent;
+                ctx.beginPath();
+                ctx.moveTo(-this.size * 0.8, 0);
+                ctx.quadraticCurveTo(
+                    -this.size * 1.5, Math.sin(this.wiggle) * 15, 
+                    -this.size * 1.6, Math.sin(this.wiggle) * 20
+                );
+                ctx.lineTo(-this.size * 1.6, -Math.sin(this.wiggle) * 20);
+                ctx.quadraticCurveTo(
+                    -this.size * 1.5, -Math.sin(this.wiggle) * 15, 
+                    -this.size * 0.8, 0
+                );
+                ctx.fill();
+
+                // Body
+                ctx.fillStyle = this.colors.body;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, this.size, this.size * 0.6, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Fins
+                ctx.beginPath();
+                ctx.ellipse(-this.size * 0.2, this.size * 0.4, this.size * 0.3, this.size * 0.15, Math.PI / 4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(-this.size * 0.2, -this.size * 0.4, this.size * 0.3, this.size * 0.15, -Math.PI / 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Eye
+                ctx.fillStyle = 'white';
+                ctx.beginPath();
+                ctx.arc(this.size * 0.6, -this.size * 0.2, this.eyeSize, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = 'black';
+                ctx.beginPath();
+                ctx.arc(this.size * 0.7, -this.size * 0.2, this.eyeSize * 0.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Mouth
+                if (this.mouthOpen > 0) {
+                    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(this.size * 0.9, 0, this.mouthOpen * 0.5, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                ctx.restore();
+            }
+        }
+
+        // Initialize
+        for (let i = 0; i < FISH_COUNT; i++) {
+            fishArray.push(new Fish());
+        }
+
+        for (let i = 0; i < BUBBLE_COUNT; i++) {
+            bubbles.push(new Bubble());
+        }
+
+        function spawnFood(e) {
+            // Support both mouse and touch coordinates
+            const x = e.clientX || (e.touches && e.touches[0].clientX);
+            const y = e.clientY || (e.touches && e.touches[0].clientY);
+            
+            if (x !== undefined && y !== undefined) {
+                // Drop 2-3 flakes per click
+                for (let i = 0; i < 2; i++) {
+                    const offsetX = (Math.random() - 0.5) * 20;
+                    const offsetY = (Math.random() - 0.5) * 20;
+                    foodArray.push(new Food(x + offsetX, y + offsetY));
+                }
+            }
+        }
+
+        interactionLayer.addEventListener('pointerdown', spawnFood);
+
+        function animate() {
+            // Draw background gradient
+            const grad = ctx.createLinearGradient(0, 0, 0, height);
+            grad.addColorStop(0, '#004e92');
+            grad.addColorStop(1, '#000428');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, width, height);
+
+            // Update and Draw Bubbles
+            bubbles.forEach(b => {
+                b.update();
+                b.draw();
+            });
+
+            // Update and Draw Food
+            foodArray = foodArray.filter(f => !f.eaten && f.life > 0);
+            foodArray.forEach(f => {
+                f.update();
+                f.draw();
+            });
+
+            // Update and Draw Fish
+            fishArray.forEach(fish => {
+                fish.update();
+                fish.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        // Start animation once ready
+        window.onload = animate;
+    </script>
+</body>
+</html>
