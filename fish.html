@@ -17,7 +17,7 @@
 
         canvas {
             display: block;
-            touch-action: none; /* Prevents scrolling while interacting */
+            touch-action: none;
         }
 
         #ui-overlay {
@@ -48,7 +48,7 @@
 
     <div id="ui-overlay">
         <h1 style="margin: 0; font-weight: 300; letter-spacing: 2px;">Zen Aquarium</h1>
-        <p class="hint">Tap to feed the fish</p>
+        <p class="hint">Tap to feed. Watch out for the Big One.</p>
     </div>
 
     <div id="interaction-layer"></div>
@@ -63,19 +63,22 @@
         let fishArray = [];
         let foodArray = [];
         let bubbles = [];
+        let ripples = [];
+        let giantFish = null;
+        let submarine = null;
 
         const COLORS = [
-            { body: '#FF6B6B', accent: '#FFE66D' }, // Red/Yellow
-            { body: '#4ECDC4', accent: '#F7FFF7' }, // Cyan/White
-            { body: '#FFD93D', accent: '#FF8400' }, // Yellow/Orange
-            { body: '#6C5CE7', accent: '#A29BFE' }, // Purple/Light Purple
-            { body: '#A8E6CF', accent: '#3B7A57' }, // Green/Dark Green
-            { body: '#FF8B94', accent: '#FFAAA5' }  // Pink/Peach
+            { body: '#FF6B6B', accent: '#FFE66D' },
+            { body: '#4ECDC4', accent: '#F7FFF7' },
+            { body: '#FFD93D', accent: '#FF8400' },
+            { body: '#6C5CE7', accent: '#A29BFE' },
+            { body: '#A8E6CF', accent: '#3B7A57' },
+            { body: '#FF8B94', accent: '#FFAAA5' }
         ];
 
         // --- Configuration ---
-        const FISH_COUNT = 7;
-        const BUBBLE_COUNT = 20;
+        const FISH_COUNT = 8;
+        const BUBBLE_COUNT = 25;
         const FOOD_DRIFT_SPEED = 0.5;
         const EAT_RADIUS = 30;
 
@@ -89,30 +92,48 @@
         window.addEventListener('resize', resize);
         resize();
 
+        class Ripple {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.r = 0;
+                this.opacity = 0.6;
+            }
+            update() {
+                this.r += 2;
+                this.opacity -= 0.015;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(255, 255, 255, ${this.opacity})`;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        }
+
         class Bubble {
             constructor() {
                 this.reset();
             }
-
             reset() {
                 this.x = Math.random() * width;
                 this.y = height + Math.random() * 100;
                 this.size = Math.random() * 4 + 1;
                 this.speed = Math.random() * 1 + 0.5;
                 this.wobble = Math.random() * Math.PI * 2;
+                this.color = 'rgba(255, 255, 255, 0.2)';
             }
-
             update() {
                 this.y -= this.speed;
                 this.x += Math.sin(this.wobble) * 0.5;
                 this.wobble += 0.05;
                 if (this.y < -50) this.reset();
             }
-
             draw() {
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+                ctx.fillStyle = this.color;
                 ctx.fill();
             }
         }
@@ -123,23 +144,19 @@
                 this.y = y;
                 this.vx = (Math.random() - 0.5) * 0.5;
                 this.vy = FOOD_DRIFT_SPEED + Math.random() * 0.5;
-                this.size = 4;
                 this.isAtBottom = false;
-                this.life = 1.0; // Opacity for fading
-                this.settleTime = 5000; // 5 seconds
+                this.life = 1.0;
+                this.settleTime = 5000;
                 this.settleStart = null;
                 this.eaten = false;
                 this.flutter = Math.random() * Math.PI * 2;
             }
-
             update() {
                 if (this.eaten) return;
-
                 if (!this.isAtBottom) {
                     this.flutter += 0.1;
                     this.x += this.vx + Math.sin(this.flutter) * 0.5;
                     this.y += this.vy;
-
                     if (this.y >= height - 10) {
                         this.y = height - 10;
                         this.isAtBottom = true;
@@ -147,28 +164,36 @@
                     }
                 } else {
                     const elapsed = Date.now() - this.settleStart;
-                    if (elapsed > this.settleTime) {
-                        this.life -= 0.01;
-                    }
+                    if (elapsed > this.settleTime) this.life -= 0.01;
                 }
             }
-
             draw() {
                 if (this.eaten || this.life <= 0) return;
                 ctx.globalAlpha = this.life;
                 ctx.fillStyle = '#D4A373';
                 ctx.beginPath();
-                ctx.moveTo(this.x, this.y);
-                ctx.lineTo(this.x + 3, this.y + 2);
-                ctx.lineTo(this.x, this.y + 4);
-                ctx.lineTo(this.x - 3, this.y + 2);
+                ctx.rect(this.x - 2, this.y - 2, 4, 4);
                 ctx.fill();
                 ctx.globalAlpha = 1.0;
             }
         }
 
         class Fish {
-            constructor() {
+            constructor(isGiant = false) {
+                this.isGiant = isGiant;
+                this.reset();
+                if (isGiant) {
+                    this.size = 100;
+                    this.speed = 4;
+                    this.colors = { body: '#2c3e50', accent: '#e74c3c' };
+                    this.targetFish = null;
+                    this.state = 'entering'; // entering, hunting, exiting
+                    this.x = -200;
+                    this.y = height / 2;
+                }
+            }
+
+            reset() {
                 this.x = Math.random() * width;
                 this.y = Math.random() * height;
                 this.angle = Math.random() * Math.PI * 2;
@@ -176,107 +201,108 @@
                 this.turnSpeed = 0.05;
                 this.size = 20 + Math.random() * 20;
                 this.colors = COLORS[Math.floor(Math.random() * COLORS.length)];
-                
                 this.targetAngle = this.angle;
                 this.wiggle = 0;
                 this.wiggleSpeed = 0.1 + Math.random() * 0.1;
-                
                 this.eyeSize = this.size * 0.15;
                 this.mouthOpen = 0;
-
-                // --- Hunger State ---
-                // 0 = Full, 100 = Starving
                 this.hunger = Math.random() * 100;
                 this.hungerIncreaseRate = 0.01 + Math.random() * 0.02;
-                this.isSatisfied = false; // When true, fish ignores food until hungry again
+                this.isSatisfied = false;
+                this.isEaten = false;
             }
 
             findFood() {
-                // If the fish is satisfied, it won't look for food
-                if (this.isSatisfied) return null;
-                
-                // Only start looking for food if hunger crosses a threshold
-                if (this.hunger < 40) return null;
-
+                if (this.isSatisfied || this.hunger < 40) return null;
                 let closest = null;
                 let minDist = Infinity;
-
                 foodArray.forEach(f => {
                     if (f.eaten || f.life <= 0) return;
-                    const dx = f.x - this.x;
-                    const dy = f.y - this.y;
-                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    const dist = Math.hypot(f.x - this.x, f.y - this.y);
                     if (dist < 400 && dist < minDist) {
                         minDist = dist;
                         closest = f;
                     }
                 });
-
                 return closest;
             }
 
             update() {
-                // Update internal hunger
+                if (this.isGiant) {
+                    this.updateGiant();
+                    return;
+                }
+
                 this.hunger += this.hungerIncreaseRate;
                 if (this.hunger > 100) this.hunger = 100;
-
-                // If hunger is high enough, stop being "satisfied"
-                if (this.hunger > 60) {
-                    this.isSatisfied = false;
-                }
+                if (this.hunger > 60) this.isSatisfied = false;
 
                 const food = this.findFood();
-
                 if (food) {
-                    // Seek food
-                    const targetIdx = Math.atan2(food.y - this.y, food.x - this.x);
-                    let diff = targetIdx - this.angle;
-                    while (diff < -Math.PI) diff += Math.PI * 2;
-                    while (diff > Math.PI) diff -= Math.PI * 2;
-                    this.angle += diff * 0.1;
-
-                    // Eat food if close
-                    const dist = Math.sqrt((food.x - this.x)**2 + (food.y - this.y)**2);
-                    if (dist < EAT_RADIUS) {
+                    const targetAngle = Math.atan2(food.y - this.y, food.x - this.x);
+                    this.lerpAngle(targetAngle, 0.1);
+                    if (Math.hypot(food.x - this.x, food.y - this.y) < EAT_RADIUS) {
                         food.eaten = true;
-                        this.mouthOpen = 10;
-                        
-                        // Decrease hunger based on fish size 
-                        // Larger fish need more food to get full
+                        this.mouthOpen = 1; 
                         const hungerReduction = 600 / this.size;
                         this.hunger = Math.max(0, this.hunger - hungerReduction);
-
-                        // If very full, become satisfied and stop eating for a while
-                        if (this.hunger < 15) {
-                            this.isSatisfied = true;
-                        }
+                        if (this.hunger < 15) this.isSatisfied = true;
                     }
                 } else {
-                    // Wandering AI
-                    if (Math.random() < 0.02) {
-                        this.targetAngle += (Math.random() - 0.5) * 2;
-                    }
-                    
-                    let diff = this.targetAngle - this.angle;
-                    while (diff < -Math.PI) diff += Math.PI * 2;
-                    while (diff > Math.PI) diff -= Math.PI * 2;
-                    this.angle += diff * this.turnSpeed;
+                    if (Math.random() < 0.02) this.targetAngle += (Math.random() - 0.5) * 2;
+                    this.lerpAngle(this.targetAngle, this.turnSpeed);
                 }
 
-                // Bounds
+                this.x += Math.cos(this.angle) * (this.isSatisfied ? this.speed * 0.7 : this.speed);
+                this.y += Math.sin(this.angle) * (this.isSatisfied ? this.speed * 0.7 : this.speed);
+                this.handleBounds();
+                this.wiggle += this.wiggleSpeed;
+                if (this.mouthOpen > 0) this.mouthOpen -= 0.05;
+            }
+
+            updateGiant() {
+                if (this.state === 'entering') {
+                    this.angle = 0;
+                    this.x += this.speed;
+                    if (this.x > 100) {
+                        this.state = 'hunting';
+                        this.targetFish = fishArray[Math.floor(Math.random() * fishArray.length)];
+                    }
+                } else if (this.state === 'hunting') {
+                    if (!this.targetFish || this.targetFish.isEaten) {
+                        this.state = 'exiting';
+                        return;
+                    }
+                    const targetAngle = Math.atan2(this.targetFish.y - this.y, this.targetFish.x - this.x);
+                    this.lerpAngle(targetAngle, 0.08);
+                    this.x += Math.cos(this.angle) * this.speed;
+                    this.y += Math.sin(this.angle) * this.speed;
+
+                    if (Math.hypot(this.targetFish.x - this.x, this.targetFish.y - this.y) < 60) {
+                        this.targetFish.isEaten = true;
+                        this.mouthOpen = 1.5;
+                        this.state = 'exiting';
+                    }
+                } else {
+                    this.lerpAngle(0, 0.05);
+                    this.x += this.speed;
+                }
+                this.wiggle += 0.3;
+                if (this.mouthOpen > 0) this.mouthOpen -= 0.02;
+            }
+
+            lerpAngle(target, speed) {
+                let diff = target - this.angle;
+                while (diff < -Math.PI) diff += Math.PI * 2;
+                while (diff > Math.PI) diff -= Math.PI * 2;
+                this.angle += diff * speed;
+            }
+
+            handleBounds() {
                 if (this.x < -50) this.x = width + 50;
                 if (this.x > width + 50) this.x = -50;
                 if (this.y < -50) this.y = height + 50;
                 if (this.y > height + 50) this.y = -50;
-
-                // Move
-                // Satisfied fish swim a bit slower/lazier
-                const currentSpeed = this.isSatisfied ? this.speed * 0.7 : this.speed;
-                this.x += Math.cos(this.angle) * currentSpeed;
-                this.y += Math.sin(this.angle) * currentSpeed;
-
-                this.wiggle += this.wiggleSpeed;
-                if (this.mouthOpen > 0) this.mouthOpen -= 0.5;
             }
 
             draw() {
@@ -288,15 +314,10 @@
                 ctx.fillStyle = this.colors.accent;
                 ctx.beginPath();
                 ctx.moveTo(-this.size * 0.8, 0);
-                ctx.quadraticCurveTo(
-                    -this.size * 1.5, Math.sin(this.wiggle) * 15, 
-                    -this.size * 1.6, Math.sin(this.wiggle) * 20
-                );
-                ctx.lineTo(-this.size * 1.6, -Math.sin(this.wiggle) * 20);
-                ctx.quadraticCurveTo(
-                    -this.size * 1.5, -Math.sin(this.wiggle) * 15, 
-                    -this.size * 0.8, 0
-                );
+                const tailWiggle = Math.sin(this.wiggle) * (this.isGiant ? 40 : 20);
+                ctx.quadraticCurveTo(-this.size * 1.5, tailWiggle * 0.7, -this.size * 1.6, tailWiggle);
+                ctx.lineTo(-this.size * 1.6, -tailWiggle);
+                ctx.quadraticCurveTo(-this.size * 1.5, -tailWiggle * 0.7, -this.size * 0.8, 0);
                 ctx.fill();
 
                 // Body
@@ -323,12 +344,18 @@
                 ctx.arc(this.size * 0.7, -this.size * 0.2, this.eyeSize * 0.5, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Mouth
+                // Animated Mouth
                 if (this.mouthOpen > 0) {
-                    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-                    ctx.lineWidth = 2;
+                    ctx.fillStyle = '#1a0000';
                     ctx.beginPath();
-                    ctx.arc(this.size * 0.9, 0, this.mouthOpen * 0.5, 0, Math.PI * 2);
+                    const mHeight = this.size * 0.3 * this.mouthOpen;
+                    ctx.ellipse(this.size * 0.8, 0, this.size * 0.2, mHeight, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+                    ctx.beginPath();
+                    ctx.moveTo(this.size * 0.8, 0);
+                    ctx.lineTo(this.size, 0);
                     ctx.stroke();
                 }
 
@@ -336,20 +363,74 @@
             }
         }
 
-        // Initialize
-        for (let i = 0; i < FISH_COUNT; i++) {
-            fishArray.push(new Fish());
+        class Submarine {
+            constructor() {
+                this.x = width + 300;
+                this.y = height * 0.7;
+                this.speed = -1.5;
+            }
+            update() {
+                this.x += this.speed;
+            }
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.fillStyle = '#f1c40f';
+                // Hull
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 80, 40, 0, 0, Math.PI * 2);
+                ctx.fill();
+                // Tower
+                ctx.fillRect(-20, -55, 40, 30);
+                // Periscope
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = '#f1c40f';
+                ctx.beginPath();
+                ctx.moveTo(0, -55);
+                ctx.lineTo(0, -70);
+                ctx.lineTo(15, -70);
+                ctx.stroke();
+                // Windows
+                ctx.fillStyle = '#3498db';
+                for(let i=-1; i<=1; i++) {
+                    ctx.beginPath();
+                    ctx.arc(i*30, 0, 10, 0, Math.PI*2);
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
         }
 
-        for (let i = 0; i < BUBBLE_COUNT; i++) {
-            bubbles.push(new Bubble());
+        function init() {
+            fishArray = [];
+            for (let i = 0; i < FISH_COUNT; i++) fishArray.push(new Fish());
+            bubbles = [];
+            for (let i = 0; i < BUBBLE_COUNT; i++) bubbles.push(new Bubble());
+            scheduleGiantFish();
+            scheduleSubmarine();
+        }
+
+        function scheduleGiantFish() {
+            const delay = 10000 + Math.random() * 50000;
+            setTimeout(() => {
+                giantFish = new Fish(true);
+                scheduleGiantFish();
+            }, delay);
+        }
+
+        function scheduleSubmarine() {
+            const delay = 20000 + Math.random() * 40000;
+            setTimeout(() => {
+                submarine = new Submarine();
+                scheduleSubmarine();
+            }, delay);
         }
 
         function spawnFood(e) {
             const x = e.clientX || (e.touches && e.touches[0].clientX);
             const y = e.clientY || (e.touches && e.touches[0].clientY);
-            
             if (x !== undefined && y !== undefined) {
+                ripples.push(new Ripple(x, y));
                 for (let i = 0; i < 2; i++) {
                     const offsetX = (Math.random() - 0.5) * 20;
                     const offsetY = (Math.random() - 0.5) * 20;
@@ -367,9 +448,23 @@
             ctx.fillStyle = grad;
             ctx.fillRect(0, 0, width, height);
 
+            if (submarine) {
+                submarine.update();
+                submarine.draw();
+                if (submarine.x < -400) submarine = null;
+            }
+
             bubbles.forEach(b => {
+                if (giantFish) b.color = `hsla(${Date.now() % 360}, 70%, 70%, 0.3)`;
+                else b.color = 'rgba(255, 255, 255, 0.2)';
                 b.update();
                 b.draw();
+            });
+
+            ripples = ripples.filter(r => r.opacity > 0);
+            ripples.forEach(r => {
+                r.update();
+                r.draw();
             });
 
             foodArray = foodArray.filter(f => !f.eaten && f.life > 0);
@@ -378,15 +473,32 @@
                 f.draw();
             });
 
+            fishArray = fishArray.filter(f => !f.isEaten);
+            // Replace eaten fish slowly
+            if (fishArray.length < FISH_COUNT && Math.random() < 0.005) {
+                const f = new Fish();
+                f.x = -100;
+                fishArray.push(f);
+            }
+
             fishArray.forEach(fish => {
                 fish.update();
                 fish.draw();
             });
 
+            if (giantFish) {
+                giantFish.update();
+                giantFish.draw();
+                if (giantFish.x > width + 400) giantFish = null;
+            }
+
             requestAnimationFrame(animate);
         }
 
-        window.onload = animate;
+        window.onload = () => {
+            init();
+            animate();
+        };
     </script>
 </body>
 </html>
