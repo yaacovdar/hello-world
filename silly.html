@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Math Legion - Tactical Runner</title>
+    <style>
+        :root {
+            --blue-gate: rgba(59, 130, 246, 0.8);
+            --red-gate: rgba(239, 68, 68, 0.8);
+            --text-light: #f8fafc;
+            --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            touch-action: none;
+        }
+
+        body {
+            background-color: #0f172a;
+            color: var(--text-light);
+            font-family: var(--font-main);
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            height: 100%;
+            background: #1e293b;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.9);
+            z-index: 20;
+            text-align: center;
+            padding: 20px;
+            transition: opacity 0.3s ease;
+        }
+
+        .overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #shift-alert {
+            position: absolute;
+            top: 25%;
+            left: 0;
+            width: 100%;
+            color: #fbbf24;
+            font-size: 2rem;
+            font-weight: bold;
+            text-align: center;
+            text-shadow: 0 0 10px rgba(0,0,0,0.5);
+            pointer-events: none;
+            z-index: 15;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            background: linear-gradient(45deg, #3b82f6, #60a5fa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .score-display {
+            font-size: 1.5rem;
+            margin-bottom: 30px;
+            color: #94a3b8;
+        }
+
+        .btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.1s, background 0.2s;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn:hover { background: #2563eb; transform: scale(1.05); }
+        .btn:active { transform: scale(0.95); }
+
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .hud-score {
+            background: rgba(0,0,0,0.3);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .instructions {
+            margin-top: 20px;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            background: rgba(0,0,0,0.2);
+            padding: 15px;
+            border-radius: 10px;
+            line-height: 1.6;
+        }
+
+        .lane-labels {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .lane-label {
+            flex: 1;
+            text-align: center;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 1px;
+            transition: color 0.5s;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="hud">
+            <div class="hud-score">Dist: <span id="distance-val">0</span>m</div>
+        </div>
+
+        <div id="shift-alert">LANES SHIFTING!</div>
+
+        <div id="start-screen" class="overlay">
+            <h1>MATH LEGION</h1>
+            <p class="score-display">Adapt or perish.</p>
+            <button class="btn" id="start-btn">BATTLE START</button>
+            <div class="instructions">
+                🌾 <b>GROWTH</b>: Percentage-based army growth.<br>
+                👹 <b>CHAOS</b>: Enemies and penalties. <b>MUST DEFEND!</b><br>
+                💎 <b>EVOLUTION</b>: Rare but powerful multipliers.<br>
+                <br>
+                ⚠️ <b>WATCH OUT</b>: Lanes shift every 500 meters!
+            </div>
+        </div>
+
+        <div id="game-over-screen" class="overlay hidden">
+            <h1 id="fail-title" style="background: linear-gradient(45deg, #ef4444, #f87171); -webkit-background-clip: text;">DEFEATED</h1>
+            <p id="fail-reason" style="color: #f87171; margin-bottom: 10px;"></p>
+            <p class="score-display">Distance: <span id="final-distance">0</span>m</p>
+            <button class="btn" id="restart-btn">RETRY BATTLE</button>
+        </div>
+
+        <div class="lane-labels">
+            <div class="lane-label" id="label-0">---</div>
+            <div class="lane-label" id="label-1">---</div>
+            <div class="lane-label" id="label-2">---</div>
+        </div>
+
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const startScreen = document.getElementById('start-screen');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const startBtn = document.getElementById('start-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const distanceVal = document.getElementById('distance-val');
+        const finalDistance = document.getElementById('final-distance');
+        const failReason = document.getElementById('fail-reason');
+        const shiftAlert = document.getElementById('shift-alert');
+
+        const LANES = 3;
+        const LANE_WIDTH = () => canvas.width / LANES;
+        const PLAYER_SIZE = 40;
+        const INITIAL_SPEED = 4.5;
+        const MAX_SPEED = 14;
+
+        // Lane Roles
+        const ROLES = {
+            GROWTH: { name: 'Growth', color: 'rgba(34, 197, 94, 0.1)', textColor: '#4ade80' },
+            CHAOS: { name: 'Chaos', color: 'rgba(239, 68, 68, 0.1)', textColor: '#f87171' },
+            EVOLUTION: { name: 'Evolution', color: 'rgba(59, 130, 246, 0.1)', textColor: '#60a5fa' }
+        };
+
+        let laneRoles = [ROLES.GROWTH, ROLES.CHAOS, ROLES.EVOLUTION];
+        let gameActive = false;
+        let score = 10;
+        let distance = 0;
+        let speed = INITIAL_SPEED;
+        let currentLane = 1;
+        let targetX = 0;
+        let playerX = 0;
+        let entities = [];
+        let particles = [];
+        let bullets = [];
+        let lastShiftDist = 0;
+
+        // Spawner Timers
+        let lastSpawns = [0, 0, 0];
+
+        const compactFormatter = new Intl.NumberFormat('en-US', {
+            notation: 'compact',
+            compactDisplay: 'short',
+            maximumFractionDigits: 1
+        });
+
+        function formatNumber(num) {
+            return compactFormatter.format(Math.max(0, Math.floor(num)));
+        }
+
+        function resize() {
+            const container = document.getElementById('game-container');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            updateTargetX();
+            playerX = targetX;
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+
+        function updateTargetX() {
+            const lw = LANE_WIDTH();
+            targetX = (currentLane * lw) + (lw / 2);
+        }
+
+        function shuffleLanes() {
+            // Shuffle but ensure Chaos is always present in at least one lane
+            let options = [ROLES.GROWTH, ROLES.CHAOS, ROLES.EVOLUTION];
+            for (let i = options.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [options[i], options[j]] = [options[j], options[i]];
+            }
+            laneRoles = options;
+            
+            // Update labels
+            for (let i = 0; i < 3; i++) {
+                const label = document.getElementById(`label-${i}`);
+                label.innerText = laneRoles[i].name;
+                label.style.color = laneRoles[i].textColor;
+            }
+
+            // Flash alert
+            shiftAlert.style.opacity = '1';
+            setTimeout(() => { shiftAlert.style.opacity = '0'; }, 2000);
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (!gameActive) return;
+            if (e.key === 'ArrowLeft' && currentLane > 0) {
+                currentLane--; updateTargetX();
+            } else if (e.key === 'ArrowRight' && currentLane < 2) {
+                currentLane++; updateTargetX();
+            }
+        });
+
+        canvas.addEventListener('touchstart', (e) => {
+            if (!gameActive) return;
+            const touchX = e.touches[0].clientX - canvas.getBoundingClientRect().left;
+            if (touchX < canvas.width / 3 && currentLane > 0) currentLane--;
+            else if (touchX > (canvas.width / 3) * 2 && currentLane < 2) currentLane++;
+            updateTargetX();
+        });
+
+        class Entity {
+            constructor(type, lane, y, op = null, val = 0, isElite = false) {
+                this.type = type; 
+                this.lane = lane;
+                this.y = y;
+                this.width = LANE_WIDTH();
+                this.height = 70;
+                this.isCollected = false;
+                this.op = op;
+                this.val = val;
+                this.isPositive = (op === '+' || op === 'x');
+                this.isElite = isElite;
+                
+                if (type === 'enemy') {
+                    const baseH = Math.floor(score * 0.4) + 10;
+                    this.maxHealth = isElite ? baseH * 3 : baseH;
+                    this.health = this.maxHealth;
+                }
+            }
+
+            update() {
+                this.y += speed * (this.isElite ? 0.7 : 1);
+            }
+
+            draw() {
+                const x = this.lane * LANE_WIDTH();
+                if (this.type === 'gate') {
+                    ctx.fillStyle = this.isPositive ? 'rgba(59, 130, 246, 0.4)' : 'rgba(239, 68, 68, 0.4)';
+                    ctx.fillRect(x + 10, this.y, this.width - 20, this.height);
+                    ctx.strokeStyle = this.isPositive ? '#3b82f6' : '#ef4444';
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(x + 10, this.y, this.width - 20, this.height);
+                    ctx.fillStyle = '#fff';
+                    ctx.font = 'bold 20px var(--font-main)';
+                    ctx.textAlign = 'center';
+                    const symbol = this.op === 'x' ? '×' : (this.op === '/' ? '÷' : this.op);
+                    const valText = typeof this.val === 'string' ? this.val : formatNumber(this.val);
+                    ctx.fillText(`${symbol}${valText}`, x + this.width / 2, this.y + this.height / 2 + 8);
+                } else {
+                    const healthStr = formatNumber(this.health);
+                    ctx.font = 'bold 16px var(--font-main)';
+                    const hTextW = ctx.measureText(healthStr).width;
+                    const hBadgeW = Math.max(42, hTextW + 14);
+                    
+                    ctx.fillStyle = this.isElite ? '#fbbf24' : '#ef4444';
+                    ctx.beginPath();
+                    ctx.roundRect(x + this.width/2 - hBadgeW/2, this.y - 12, hBadgeW, 22, 6);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = this.isElite ? '#000' : 'white';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(healthStr, x + this.width/2, this.y + 5);
+
+                    const scale = (0.6 + (Math.max(0, this.health) / this.maxHealth) * 0.6) * (this.isElite ? 1.5 : 1);
+                    ctx.save();
+                    ctx.translate(x + this.width / 2, this.y + 40);
+                    ctx.scale(scale, scale);
+                    ctx.font = '42px serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(this.isElite ? '👑' : '👹', 0, 10);
+                    ctx.restore();
+                }
+            }
+        }
+
+        function spawnManager() {
+            const now = Date.now();
+            const adj = (ms) => ms / (speed / INITIAL_SPEED);
+
+            for (let i = 0; i < 3; i++) {
+                const role = laneRoles[i];
+                if (role === ROLES.GROWTH && now - lastSpawns[i] > adj(600)) {
+                    // Growth scales with current score: +5%
+                    const growthVal = Math.max(1, Math.floor(score * 0.05));
+                    entities.push(new Entity('gate', i, -100, '+', growthVal));
+                    lastSpawns[i] = now;
+                }
+                else if (role === ROLES.EVOLUTION && now - lastSpawns[i] > adj(4500)) {
+                    entities.push(new Entity('gate', i, -100, 'x', 2));
+                    lastSpawns[i] = now;
+                }
+                else if (role === ROLES.CHAOS && now - lastSpawns[i] > adj(1500)) {
+                    if (Math.random() > 0.3) {
+                        const isElite = Math.random() > 0.9;
+                        entities.push(new Entity('enemy', i, -100, null, 0, isElite));
+                    } else {
+                        const op = Math.random() > 0.5 ? '-' : '/';
+                        const val = op === '-' ? Math.floor(score * 0.1) + 5 : 2;
+                        entities.push(new Entity('gate', i, -100, op, val));
+                    }
+                    lastSpawns[i] = now;
+                }
+            }
+        }
+
+        function handleShooting() {
+            const playerY = canvas.height - 150;
+            let targetEnemy = null;
+            let minDist = Infinity;
+
+            entities.forEach(e => {
+                if (e.type === 'enemy' && e.lane === currentLane && e.y < playerY - 40) {
+                    const dist = playerY - e.y;
+                    if (dist < minDist) {
+                        minDist = dist;
+                        targetEnemy = e;
+                    }
+                }
+            });
+
+            if (targetEnemy) {
+                const damage = (score * 0.008) + 0.15; 
+                targetEnemy.health -= damage;
+
+                if (Date.now() % 3 === 0) {
+                    bullets.push({
+                        x: playerX + (Math.random() - 0.5) * 20,
+                        y: playerY - 20,
+                        targetY: targetEnemy.y + 40
+                    });
+                }
+
+                if (targetEnemy.health <= 0) {
+                    targetEnemy.isCollected = true;
+                    createExplosion(targetEnemy.lane * LANE_WIDTH() + LANE_WIDTH()/2, targetEnemy.y + 40, targetEnemy.isElite ? '#fbbf24' : '#facc15', 20);
+                    
+                    if (targetEnemy.isElite) {
+                        score *= 3; // Huge reward for elite
+                    } else {
+                        score += Math.max(1, Math.floor(score * 0.01));
+                    }
+                    entities = entities.filter(e => e !== targetEnemy);
+                }
+            }
+        }
+
+        function createExplosion(x, y, color, count = 8) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x, y, vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8, life: 1.0, color
+                });
+            }
+        }
+
+        function update() {
+            if (!gameActive) return;
+
+            distance += speed / 10; 
+            speed = Math.min(MAX_SPEED, INITIAL_SPEED + (distance / 2500));
+            distanceVal.innerText = formatNumber(distance);
+
+            // Shift Logic
+            if (distance - lastShiftDist > 500) {
+                shuffleLanes();
+                lastShiftDist = distance;
+            }
+
+            playerX += (targetX - playerX) * 0.22;
+
+            spawnManager();
+            handleShooting();
+
+            bullets.forEach((b, i) => {
+                b.y -= 28;
+                if (b.y < b.targetY) bullets.splice(i, 1);
+            });
+
+            entities.forEach((e, index) => {
+                e.update();
+
+                if (e.type === 'enemy' && e.y > canvas.height) {
+                    gameOver("Defenses breached!");
+                    return;
+                }
+
+                const playerY = canvas.height - 150;
+                if (!e.isCollected && e.lane === currentLane && 
+                    e.y + e.height > playerY && e.y < playerY + PLAYER_SIZE) {
+                    
+                    e.isCollected = true;
+                    if (e.type === 'gate') {
+                        if (e.op === '+') score += e.val;
+                        else if (e.op === '-') score -= e.val;
+                        else if (e.op === 'x') score *= e.val;
+                        else if (e.op === '/') score = Math.floor(score / e.val);
+                        createExplosion(playerX, playerY, e.isPositive ? '#3b82f6' : '#ef4444');
+                    } else {
+                        score -= Math.ceil(e.health);
+                        createExplosion(playerX, playerY, '#f97316', 12);
+                    }
+                    
+                    if (score <= 0) {
+                        gameOver("Army destroyed!");
+                        return;
+                    }
+                    entities.splice(index, 1);
+                }
+
+                if (e.y > canvas.height) entities.splice(index, 1);
+            });
+
+            particles.forEach((p, i) => {
+                p.x += p.vx; p.y += p.vy; p.life -= 0.04;
+                if (p.life <= 0) particles.splice(i, 1);
+            });
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const lw = LANE_WIDTH();
+            // Lane Role Coloring
+            for (let i = 0; i < 3; i++) {
+                ctx.fillStyle = laneRoles[i].color;
+                ctx.fillRect(i * lw, 0, lw, canvas.height);
+            }
+
+            ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+            ctx.setLineDash([15, 15]);
+            for (let i = 1; i < LANES; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * lw, 0); ctx.lineTo(i * lw, canvas.height);
+                ctx.stroke();
+            }
+            ctx.setLineDash([]);
+
+            entities.forEach(e => e.draw());
+
+            ctx.fillStyle = '#facc15';
+            bullets.forEach(b => {
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            particles.forEach(p => {
+                ctx.globalAlpha = p.life;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1.0;
+
+            const playerY = canvas.height - 150;
+            const clusterSize = Math.min(20, Math.ceil(score / 5));
+            ctx.font = '22px serif';
+            for (let i = 0; i < clusterSize; i++) {
+                const ox = (Math.sin(Date.now() / 200 + i) * 22);
+                const oy = (i * 7) + (Math.cos(Date.now() / 300 + i) * 3);
+                ctx.fillText('🏃', playerX + ox - 11, playerY + oy);
+            }
+
+            const scoreStr = formatNumber(score);
+            ctx.font = 'bold 18px var(--font-main)';
+            const textMetrics = ctx.measureText(scoreStr);
+            const badgeW = Math.max(60, textMetrics.width + 16);
+            const badgeH = 26;
+            
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.roundRect(playerX - badgeW / 2, playerY - 48, badgeW, badgeH, 8);
+            ctx.fill();
+            
+            ctx.fillStyle = '#0f172a';
+            ctx.textAlign = 'center';
+            ctx.fillText(scoreStr, playerX, playerY - 29);
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function initGame() {
+            score = 10; distance = 0; speed = INITIAL_SPEED;
+            currentLane = 1; updateTargetX(); playerX = targetX;
+            entities = []; particles = []; bullets = []; lastShiftDist = 0;
+            lastSpawns = [Date.now(), Date.now(), Date.now()];
+            shuffleLanes();
+            gameActive = true;
+            startScreen.classList.add('hidden');
+            gameOverScreen.classList.add('hidden');
+        }
+
+        function gameOver(reason) {
+            gameActive = false;
+            finalDistance.innerText = formatNumber(distance);
+            failReason.innerText = reason;
+            gameOverScreen.classList.remove('hidden');
+        }
+
+        startBtn.addEventListener('click', initGame);
+        restartBtn.addEventListener('click', initGame);
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
