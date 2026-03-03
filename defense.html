@@ -10,6 +10,7 @@
             --neon-pink: #ff00ea;
             --neon-purple: #9d00ff;
             --neon-orange: #ff9d00;
+            --neon-yellow: #ffff00;
             --bg-dark: #050510;
         }
 
@@ -67,16 +68,18 @@
             padding: 10px 20px;
             border: 1px solid var(--neon-blue);
             border-radius: 4px;
+            backdrop-filter: blur(5px);
         }
 
         .shield-container {
             width: 250px;
-            height: 20px;
+            height: 15px;
             background: rgba(255, 255, 255, 0.1);
-            border: 2px solid white;
+            border: 1px solid white;
             margin-top: 10px;
             position: relative;
             overflow: hidden;
+            border-radius: 10px;
         }
 
         #shield-fill {
@@ -86,29 +89,58 @@
             transition: width 0.3s ease;
         }
 
-        .powerup-btn {
+        .powerup-bar {
+            display: flex;
+            gap: 15px;
             pointer-events: auto;
-            align-self: flex-end;
-            background: var(--neon-purple);
-            border: none;
-            color: white;
-            padding: 15px 30px;
-            border-radius: 50px;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 0 20px var(--neon-purple);
-            text-transform: uppercase;
-            transition: transform 0.1s, opacity 0.3s;
+            align-self: center;
+            margin-bottom: 10px;
         }
 
-        .powerup-btn:active {
-            transform: scale(0.9);
+        .powerup-btn {
+            background: rgba(157, 0, 255, 0.2);
+            border: 2px solid var(--neon-purple);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.2s;
+            font-size: 0.8rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 120px;
+        }
+
+        .powerup-btn span {
+            font-size: 0.6rem;
+            opacity: 0.7;
+            margin-top: 4px;
+        }
+
+        .powerup-btn:active:not(:disabled) {
+            transform: scale(0.95);
         }
 
         .powerup-btn:disabled {
             opacity: 0.3;
             filter: grayscale(1);
             cursor: not-allowed;
+            border-color: #444;
+        }
+
+        .powerup-btn.ready {
+            background: var(--neon-purple);
+            box-shadow: 0 0 15px var(--neon-purple);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 10px var(--neon-purple); }
+            50% { transform: scale(1.05); box-shadow: 0 0 20px var(--neon-purple); }
+            100% { transform: scale(1); box-shadow: 0 0 10px var(--neon-purple); }
         }
 
         .overlay {
@@ -164,7 +196,7 @@
             margin-top: 20px;
             color: #aaa;
             font-size: 0.9rem;
-            max-width: 400px;
+            max-width: 500px;
             line-height: 1.6;
         }
     </style>
@@ -183,25 +215,38 @@
             <div class="stat-item">Wave: <span id="wave-val">1</span></div>
         </div>
 
-        <button id="jam-btn" class="powerup-btn">GPS Jammer (Space)</button>
+        <div class="powerup-bar">
+            <button id="heli-btn" class="powerup-btn">
+                Heli Squad
+                <span id="heli-timer">Ready</span>
+            </button>
+            <button id="shield-btn" class="powerup-btn">
+                Force Field
+                <span id="shield-timer">Ready</span>
+            </button>
+        </div>
     </div>
 
     <!-- Start Overlay -->
     <div id="start-overlay" class="overlay">
         <h1>Sky Shield</h1>
-        <p style="color: var(--neon-blue); font-weight: bold;">NEON DEFENSE</p>
+        <p style="color: var(--neon-blue); font-weight: bold; letter-spacing: 10px;">NEON DEFENSE</p>
         <div class="tutorial">
-            TAP HIGH: Launch Arrow Interceptor (Ballistics)<br>
-            TAP MID: Create Defense Bubble (Patriot/THAAD)<br>
-            AUTO-DOME: Targets low-altitude rockets automatically.<br>
-            <b>CAUTION:</b> Intercepted debris damages the city. Intercept high!
+            <b>DEFENSE REGIONS:</b><br>
+            TAP HIGH: Arrow Interceptor (Anti-Ballistic)<br>
+            TAP MID: Defense Bubbles (Anti-Rocket/UAV)<br><br>
+            <b>TACTICAL SUPPORT:</b><br>
+            HELI SQUAD: Auto-targets nearby threats.<br>
+            FORCE FIELD: Temporary city invincibility.<br>
+            <br>
+            <i>Caution: Intercepted debris can still harm the city!</i>
         </div>
         <button class="btn-start" onclick="startGame()">Initiate</button>
     </div>
 
     <!-- Game Over Overlay -->
     <div id="gameover-overlay" class="overlay hidden">
-        <h1 style="filter: drop-shadow(0 0 15px var(--neon-pink));">Shield Failed</h1>
+        <h1 style="filter: drop-shadow(0 0 15px var(--neon-pink));">City Darkened</h1>
         <p id="final-score" style="font-size: 1.5rem; margin: 20px 0;">Final Score: 0</p>
         <button class="btn-start" onclick="location.reload()">Re-Boot</button>
     </div>
@@ -213,7 +258,11 @@
     const scoreEl = document.getElementById('score-val');
     const waveEl = document.getElementById('wave-val');
     const shieldFill = document.getElementById('shield-fill');
-    const jamBtn = document.getElementById('jam-btn');
+    
+    const heliBtn = document.getElementById('heli-btn');
+    const heliTimerText = document.getElementById('heli-timer');
+    const shieldBtn = document.getElementById('shield-btn');
+    const shieldTimerText = document.getElementById('shield-timer');
 
     // Game Constants
     const COLORS = {
@@ -221,22 +270,29 @@
         rocket: '#ff3300',
         ballistic: '#ff00ff',
         uav: '#00ffaa',
+        drone: '#ffff00',
         arrow: '#00f2ff',
         patriot: '#9d00ff',
         ironDome: '#ffffff',
         city: '#0a0a20',
-        window: '#ffff00'
+        window: '#ffff00',
+        heli: '#00ff00',
+        forceField: '#00f2ff'
     };
 
     let width, height;
     let score = 0;
     let wave = 1;
     let shield = 100;
-    let gameState = 'START'; // START, PLAYING, GAMEOVER
+    let gameState = 'START';
     let frameCount = 0;
     let shakeIntensity = 0;
-    let jamActive = 0; // Frames remaining for jam
-    let jamCooldown = 0;
+
+    // Support States
+    let heliActive = 0; // Frames left
+    let heliCooldown = 0;
+    let forceFieldActive = 0;
+    let forceFieldCooldown = 0;
 
     // Entities
     let threats = [];
@@ -245,6 +301,7 @@
     let particles = [];
     let debris = [];
     let buildings = [];
+    let helis = [];
 
     function resize() {
         width = window.innerWidth;
@@ -265,10 +322,10 @@
                 y: height - h,
                 w: bWidth + 1,
                 h: h,
-                windows: Array.from({length: 10}, () => ({
+                windows: Array.from({length: 12}, () => ({
                     rx: Math.random() * 0.8 + 0.1,
                     ry: Math.random() * 0.8 + 0.1,
-                    on: Math.random() > 0.3
+                    on: Math.random() > 0.4
                 }))
             });
         }
@@ -278,10 +335,10 @@
         constructor(x, y, color, speedScale = 1) {
             this.x = x;
             this.y = y;
-            this.vx = (Math.random() - 0.5) * 10 * speedScale;
-            this.vy = (Math.random() - 0.5) * 10 * speedScale;
+            this.vx = (Math.random() - 0.5) * 12 * speedScale;
+            this.vy = (Math.random() - 0.5) * 12 * speedScale;
             this.life = 1.0;
-            this.decay = 0.02 + Math.random() * 0.03;
+            this.decay = 0.015 + Math.random() * 0.02;
             this.color = color;
         }
         update() {
@@ -302,10 +359,9 @@
         constructor(x, y, color) {
             this.x = x;
             this.y = y;
-            this.vx = (Math.random() - 0.5) * 4;
-            this.vy = Math.random() * 2;
-            this.gravity = 0.15;
-            this.life = 1.0;
+            this.vx = (Math.random() - 0.5) * 5;
+            this.vy = Math.random() * 1;
+            this.gravity = 0.1;
             this.color = color;
         }
         update() {
@@ -323,56 +379,117 @@
         }
     }
 
+    class Helicopter {
+        constructor() {
+            this.x = -50;
+            this.y = height * 0.4 + Math.random() * (height * 0.3);
+            this.targetX = width + 50;
+            this.speed = 3;
+            this.fireCooldown = 0;
+        }
+        update() {
+            this.x += this.speed;
+            if (this.fireCooldown > 0) this.fireCooldown--;
+            
+            if (this.fireCooldown <= 0) {
+                // Find nearest threat
+                let nearest = null;
+                let minDist = 400;
+                threats.forEach(t => {
+                    const d = Math.sqrt((t.x - this.x)**2 + (t.y - this.y)**2);
+                    if (d < minDist) {
+                        minDist = d;
+                        nearest = t;
+                    }
+                });
+
+                if (nearest) {
+                    interceptors.push(new Interceptor(nearest.x, nearest.y, 'ironDome', this.x, this.y));
+                    this.fireCooldown = 40;
+                }
+            }
+            return this.x > width + 50;
+        }
+        draw() {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.strokeStyle = COLORS.heli;
+            ctx.lineWidth = 2;
+            
+            // Neon Body
+            ctx.strokeRect(-15, -5, 30, 10);
+            // Rotor
+            const rOffset = Math.sin(frameCount * 0.5) * 20;
+            ctx.beginPath();
+            ctx.moveTo(-20, -10);
+            ctx.lineTo(20, -10);
+            ctx.stroke();
+            
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = COLORS.heli;
+            ctx.fillStyle = COLORS.heli;
+            ctx.fillRect(-5, -12, 10, 3);
+            ctx.restore();
+        }
+    }
+
     class Threat {
         constructor(type) {
-            this.type = type; // 'rocket', 'ballistic', 'uav'
-            this.x = Math.random() * width;
-            this.y = -50;
+            this.type = type;
+            this.isDrone = type === 'drone';
+            this.x = this.isDrone ? (Math.random() > 0.5 ? -30 : width + 30) : Math.random() * width;
+            this.y = this.isDrone ? (height * 0.2 + Math.random() * (height * 0.3)) : -50;
             this.targetX = Math.random() * width;
             this.targetY = height - 20;
-            this.life = 1;
             
             const dx = this.targetX - this.x;
             const dy = this.targetY - this.y;
             const dist = Math.sqrt(dx*dx + dy*dy);
             
-            let speed = 2 + (wave * 0.2);
+            let speed = 1.5 + (wave * 0.15);
             if (type === 'ballistic') speed *= 2.5;
             if (type === 'uav') speed *= 0.8;
+            if (type === 'drone') speed = 2.5;
 
             this.vx = (dx / dist) * speed;
             this.vy = (dy / dist) * speed;
             this.color = COLORS[type];
             this.trail = [];
-            this.angle = 0; // for UAV zig zag
+            this.angle = 0;
+            
+            // Drone specific
+            this.droneState = 'cruising'; // 'cruising', 'diving'
+            this.diveTimer = 120 + Math.random() * 200;
         }
 
         update() {
-            if (this.type === 'uav') {
-                if (jamActive > 0) {
-                    this.angle += 0.2;
-                    this.x += Math.cos(this.angle) * 5;
-                    this.y += Math.sin(this.angle) * 2;
+            if (this.type === 'drone') {
+                if (this.droneState === 'cruising') {
+                    this.x += (this.x < width/2 ? 1 : -1) * 2;
+                    this.y += Math.sin(frameCount * 0.05) * 1;
+                    this.diveTimer--;
+                    if (this.diveTimer <= 0) this.droneState = 'diving';
                 } else {
-                    this.angle += 0.05;
-                    this.x += Math.sin(this.angle) * 3;
+                    this.vy += 0.2;
                     this.y += this.vy;
                 }
+            } else if (this.type === 'uav') {
+                this.angle += 0.05;
+                this.x += Math.sin(this.angle) * 3;
+                this.y += this.vy;
             } else {
                 this.x += this.vx;
                 this.y += this.vy;
             }
 
             this.trail.push({x: this.x, y: this.y});
-            if (this.trail.length > 20) this.trail.shift();
+            if (this.trail.length > 15) this.trail.shift();
         }
 
         draw() {
-            // Draw Trail
             ctx.beginPath();
             ctx.strokeStyle = this.color;
             ctx.lineWidth = 2;
-            ctx.lineCap = 'round';
             for(let i=0; i<this.trail.length; i++) {
                 ctx.globalAlpha = i / this.trail.length;
                 const p = this.trail[i];
@@ -382,60 +499,73 @@
             ctx.stroke();
             ctx.globalAlpha = 1;
 
-            // Draw Head
             ctx.fillStyle = '#fff';
             ctx.shadowBlur = 10;
             ctx.shadowColor = this.color;
             ctx.beginPath();
-            ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+            if (this.type === 'drone') {
+                ctx.rect(this.x - 4, this.y - 4, 8, 8);
+            } else {
+                ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+            }
             ctx.fill();
             ctx.shadowBlur = 0;
         }
     }
 
     class Interceptor {
-        constructor(targetX, targetY, type) {
-            this.startX = width / 2;
-            if (type === 'ironDome') this.startX = (targetX < width/2) ? width * 0.2 : width * 0.8;
+        constructor(targetX, targetY, type, startX = null, startY = null) {
+            this.startX = startX !== null ? startX : (width / 2);
+            if (type === 'ironDome' && startX === null) {
+                this.startX = (targetX < width/2) ? width * 0.1 : width * 0.9;
+            }
             
             this.x = this.startX;
-            this.y = height - 50;
+            this.y = startY !== null ? startY : (height - 50);
             this.targetX = targetX;
             this.targetY = targetY;
-            this.type = type; // 'arrow', 'patriot', 'ironDome'
+            this.type = type;
             this.progress = 0;
             
-            let baseSpeed = 0.02;
-            if (type === 'arrow') baseSpeed = 0.04;
-            if (type === 'ironDome') baseSpeed = 0.03;
+            let baseSpeed = 0.025;
+            if (type === 'arrow') baseSpeed = 0.05;
+            if (type === 'ironDome') baseSpeed = 0.04;
             this.speed = baseSpeed;
-            
             this.color = COLORS[type];
         }
 
         update() {
             this.progress += this.speed;
+            const sy = (this.y === height - 50 || this.type === 'ironDome') ? this.y : (height - 50);
+            
+            // Linear lerp for simplicity and speed
             this.x = this.startX + (this.targetX - this.startX) * this.progress;
-            this.y = (height - 50) + (this.targetY - (height - 50)) * this.progress;
+            const startPointY = (height - 50); // Assumed ground launch if not specified
+            // If it's a heli launch, we use the specific startY
+            const actualStartY = (this.type === 'ironDome' && this.progress < 1) ? this.y : startPointY;
+
+            // Simple movement
+            this.y = actualStartY + (this.targetY - actualStartY) * this.progress;
             
             if (this.progress >= 1) {
                 createExplosion(this.targetX, this.targetY, this.type);
-                return true; // Finished
+                return true;
             }
             return false;
         }
 
         draw() {
             ctx.strokeStyle = this.color;
-            ctx.lineWidth = 3;
+            ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.moveTo(this.startX, height - 50);
+            // Start from where it was created
+            ctx.moveTo(this.startX, (this.type === 'ironDome' ? this.y : height - 50));
             ctx.lineTo(this.x, this.y);
             ctx.stroke();
             
             ctx.fillStyle = '#fff';
             ctx.beginPath();
-            ctx.arc(this.x, this.y, 4, 0, Math.PI * 2);
+            ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
             ctx.fill();
         }
     }
@@ -445,13 +575,13 @@
             this.x = x;
             this.y = y;
             this.radius = 0;
-            this.maxRadius = (type === 'patriot') ? 100 : 50;
+            this.maxRadius = (type === 'patriot') ? 90 : 45;
             this.life = 1.0;
             this.color = COLORS[type];
         }
         update() {
-            this.radius += (this.maxRadius - this.radius) * 0.2;
-            this.life -= 0.03;
+            this.radius += (this.maxRadius - this.radius) * 0.15;
+            this.life -= 0.025;
             return this.life <= 0;
         }
         draw() {
@@ -460,22 +590,14 @@
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
             ctx.fill();
-            
-            // Outer ring
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.radius * 1.2, 0, Math.PI * 2);
-            ctx.stroke();
             ctx.globalAlpha = 1;
         }
     }
 
     function createExplosion(x, y, type) {
         explosions.push(new Explosion(x, y, type));
-        shakeIntensity = (type === 'patriot') ? 15 : 8;
-        
-        for (let i = 0; i < 15; i++) {
+        shakeIntensity = (type === 'patriot') ? 12 : 6;
+        for (let i = 0; i < 12; i++) {
             particles.push(new Particle(x, y, COLORS[type]));
         }
     }
@@ -483,8 +605,9 @@
     function spawnThreat() {
         const r = Math.random();
         let type = 'rocket';
-        if (r > 0.8) type = 'uav';
-        if (r > 0.92) type = 'ballistic';
+        if (r > 0.65) type = 'uav';
+        if (r > 0.82) type = 'drone';
+        if (r > 0.93) type = 'ballistic';
         threats.push(new Threat(type));
     }
 
@@ -500,24 +623,10 @@
             clientY = e.clientY;
         }
 
-        // Region based defense
         if (clientY < height * 0.4) {
-            // High altitude -> Arrow
             interceptors.push(new Interceptor(clientX, clientY, 'arrow'));
-        } else if (clientY < height * 0.75) {
-            // Mid altitude -> Patriot
+        } else if (clientY < height * 0.8) {
             interceptors.push(new Interceptor(clientX, clientY, 'patriot'));
-        }
-    }
-
-    function triggerJam() {
-        if (jamCooldown > 0 || gameState !== 'PLAYING') return;
-        jamActive = 180; // 3 seconds at 60fps
-        jamCooldown = 600; // 10 second cooldown
-        shakeIntensity = 5;
-        // Visual feedback for jam
-        for(let i=0; i<50; i++) {
-            particles.push(new Particle(width/2, height/2, COLORS.uav, 2));
         }
     }
 
@@ -532,7 +641,9 @@
         explosions = [];
         particles = [];
         debris = [];
-        jamCooldown = 0;
+        helis = [];
+        heliCooldown = 0;
+        forceFieldCooldown = 0;
         resize();
     }
 
@@ -540,25 +651,34 @@
         if (gameState !== 'PLAYING') return;
 
         frameCount++;
-        if (jamCooldown > 0) jamCooldown--;
-        if (jamActive > 0) jamActive--;
+        
+        // Powerups timers
+        if (heliCooldown > 0) heliCooldown--;
+        if (forceFieldCooldown > 0) forceFieldCooldown--;
+        if (forceFieldActive > 0) forceFieldActive--;
 
-        jamBtn.disabled = jamCooldown > 0;
-        jamBtn.innerText = jamCooldown > 0 ? `Recharging (${Math.ceil(jamCooldown/60)}s)` : "GPS Jammer (Space)";
+        // Update UI Powerups
+        heliBtn.disabled = heliCooldown > 0;
+        heliBtn.className = heliCooldown <= 0 ? 'powerup-btn ready' : 'powerup-btn';
+        heliTimerText.innerText = heliCooldown > 0 ? `${Math.ceil(heliCooldown/60)}s` : 'READY';
 
-        // Wave management
-        const spawnRate = Math.max(10, 60 - (wave * 2));
+        shieldBtn.disabled = forceFieldCooldown > 0;
+        shieldBtn.className = forceFieldCooldown <= 0 ? 'powerup-btn ready' : 'powerup-btn';
+        shieldTimerText.innerText = forceFieldCooldown > 0 ? `${Math.ceil(forceFieldCooldown/60)}s` : 'READY';
+
+        // Wave management (Easier scaling)
+        const spawnRate = Math.max(15, 80 - (wave * 3));
         if (frameCount % spawnRate === 0) spawnThreat();
-        if (frameCount % 600 === 0) {
+        if (frameCount % 900 === 0) {
             wave++;
             waveEl.innerText = wave;
         }
 
         // Auto Iron Dome logic
-        if (frameCount % 45 === 0) {
-            const lowThreat = threats.find(t => t.y > height * 0.5 && t.y < height * 0.85);
+        if (frameCount % 60 === 0) {
+            const lowThreat = threats.find(t => t.y > height * 0.6 && t.y < height * 0.85);
             if (lowThreat) {
-                interceptors.push(new Interceptor(lowThreat.x + (lowThreat.vx * 20), lowThreat.y + (lowThreat.vy * 20), 'ironDome'));
+                interceptors.push(new Interceptor(lowThreat.x, lowThreat.y, 'ironDome'));
             }
         }
 
@@ -567,12 +687,19 @@
             const t = threats[i];
             t.update();
 
+            // Collision with Force Field
+            if (forceFieldActive > 0 && t.y > height - 120) {
+                createExplosion(t.x, t.y, 'forceField');
+                threats.splice(i, 1);
+                continue;
+            }
+
             // Check collision with city
-            if (t.y > height - 60) {
-                shield -= 15;
+            if (t.y > height - 55) {
+                shield -= 12;
                 createExplosion(t.x, t.y, 'rocket');
                 threats.splice(i, 1);
-                shakeIntensity = 25;
+                shakeIntensity = 20;
                 continue;
             }
 
@@ -581,14 +708,11 @@
                 const dx = t.x - e.x;
                 const dy = t.y - e.y;
                 const dist = Math.sqrt(dx*dx + dy*dy);
-                if (dist < e.radius + 10) {
-                    score += (t.type === 'ballistic' ? 50 : 10);
+                if (dist < e.radius + 15) {
+                    score += (t.type === 'ballistic' ? 50 : 20);
                     scoreEl.innerText = score;
-                    
-                    // Create Shrapnel
-                    const shrapnelCount = (t.type === 'ballistic' ? 8 : 4);
-                    for(let s=0; s<shrapnelCount; s++) debris.push(new Debris(t.x, t.y, t.color));
-                    
+                    const shrapnel = (t.type === 'ballistic' || t.isDrone ? 6 : 3);
+                    for(let s=0; s<shrapnel; s++) debris.push(new Debris(t.x, t.y, t.color));
                     threats.splice(i, 1);
                     break;
                 }
@@ -599,33 +723,38 @@
         for (let i = debris.length - 1; i >= 0; i--) {
             const d = debris[i];
             d.update();
+            
+            if (forceFieldActive > 0 && d.y > height - 100) {
+                debris.splice(i, 1);
+                continue;
+            }
+
             if (d.y > height - 40) {
-                // Hits city
-                shield -= 0.5;
+                shield -= 0.2; // Reduced debris damage
                 debris.splice(i, 1);
             } else if (d.x < 0 || d.x > width) {
                 debris.splice(i, 1);
             }
         }
 
-        // Update interceptors
+        // Update helis
+        for (let i = helis.length - 1; i >= 0; i--) {
+            if (helis[i].update()) helis.splice(i, 1);
+        }
+
+        // Update other entities
         for (let i = interceptors.length - 1; i >= 0; i--) {
             if (interceptors[i].update()) interceptors.splice(i, 1);
         }
-
-        // Update explosions
         for (let i = explosions.length - 1; i >= 0; i--) {
             if (explosions[i].update()) explosions.splice(i, 1);
         }
-
-        // Update particles
         for (let i = particles.length - 1; i >= 0; i--) {
             particles[i].update();
             if (particles[i].life <= 0) particles.splice(i, 1);
         }
 
-        // UI
-        shieldFill.style.width = shield + '%';
+        shieldFill.style.width = Math.max(0, shield) + '%';
         if (shield <= 0) {
             gameState = 'GAMEOVER';
             document.getElementById('gameover-overlay').classList.remove('hidden');
@@ -644,39 +773,39 @@
             ctx.translate((Math.random() - 0.5) * shakeIntensity, (Math.random() - 0.5) * shakeIntensity);
         }
 
-        // City Silhouette
+        // City
         buildings.forEach(b => {
             ctx.fillStyle = COLORS.city;
             ctx.fillRect(b.x, b.y, b.w, b.h);
-            
-            // Windows
             b.windows.forEach(w => {
                 if (w.on) {
                     ctx.fillStyle = COLORS.window;
-                    ctx.globalAlpha = 0.3 + Math.sin(frameCount * 0.05) * 0.2;
-                    ctx.fillRect(b.x + b.w * w.rx, b.y + b.h * w.ry, 3, 3);
+                    ctx.globalAlpha = 0.2 + Math.sin(frameCount * 0.05) * 0.1;
+                    ctx.fillRect(b.x + b.w * w.rx, b.y + b.h * w.ry, 2, 2);
                 }
             });
             ctx.globalAlpha = 1;
         });
 
-        // GPS Jammer Overlay
-        if (jamActive > 0) {
-            ctx.strokeStyle = COLORS.uav;
-            ctx.lineWidth = 2;
-            ctx.globalAlpha = (jamActive % 20 < 10) ? 0.2 : 0.05;
-            for(let i=0; i<5; i++) {
-                ctx.beginPath();
-                ctx.arc(width/2, height/2, (frameCount * 5 + i * 100) % width, 0, Math.PI*2);
-                ctx.stroke();
-            }
+        // Force Field Visual
+        if (forceFieldActive > 0) {
+            ctx.strokeStyle = COLORS.forceField;
+            ctx.lineWidth = 4;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = COLORS.forceField;
+            ctx.globalAlpha = 0.3 + Math.sin(frameCount * 0.2) * 0.2;
+            ctx.beginPath();
+            ctx.moveTo(0, height - 100);
+            ctx.lineTo(width, height - 100);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
             ctx.globalAlpha = 1;
         }
 
-        // Entities
         ctx.globalCompositeOperation = 'lighter';
         threats.forEach(t => t.draw());
         interceptors.forEach(i => i.draw());
+        helis.forEach(h => h.draw());
         explosions.forEach(e => e.draw());
         particles.forEach(p => p.draw());
         debris.forEach(d => d.draw());
@@ -691,22 +820,29 @@
         requestAnimationFrame(loop);
     }
 
-    // Events
+    // Powerup activations
+    heliBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (heliCooldown <= 0) {
+            helis.push(new Helicopter());
+            heliCooldown = 600; // 10s
+        }
+    });
+
+    shieldBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (forceFieldCooldown <= 0) {
+            forceFieldActive = 300; // 5s
+            forceFieldCooldown = 1200; // 20s
+        }
+    });
+
     window.addEventListener('resize', resize);
     window.addEventListener('mousedown', handleInput);
     window.addEventListener('touchstart', handleInput);
-    window.addEventListener('keydown', (e) => {
-        if (e.code === 'Space') triggerJam();
-    });
-    jamBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        triggerJam();
-    });
 
-    // Init
     resize();
     loop();
-
 </script>
 </body>
 </html>
