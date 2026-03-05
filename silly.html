@@ -46,6 +46,7 @@
             display: block;
             width: 100%;
             height: 100%;
+            cursor: pointer;
         }
 
         .overlay {
@@ -184,14 +185,14 @@
 
         <div id="start-screen" class="overlay">
             <h1>MATH LEGION</h1>
-            <p class="score-display">Adapt or perish.</p>
+            <p class="score-display">Step-by-step navigation.</p>
             <button class="btn" id="start-btn">BATTLE START</button>
             <div class="instructions">
                 🌾 <b>GROWTH</b>: Percentage-based army growth.<br>
                 👹 <b>CHAOS</b>: Enemies and penalties. <b>DEFEND!</b><br>
                 💎 <b>EVOLUTION</b>: Rare but powerful multipliers.<br>
                 <br>
-                ⚠️ <b>WARNING</b>: Lanes shift every 500 meters!
+                <b>NEW CONTROLS:</b> Tap a lane to move 1 step toward it!
             </div>
         </div>
 
@@ -297,13 +298,31 @@
             else if (e.key === 'ArrowRight' && currentLane < 2) { currentLane++; updateTargetX(); }
         });
 
-        canvas.addEventListener('touchstart', (e) => {
+        /**
+         * UPDATED: Incremental Movement Control
+         * If clicking a lane to the left of the player, move left by 1.
+         * If clicking a lane to the right of the player, move right by 1.
+         */
+        function handleInput(clientX) {
             if (!gameActive) return;
-            const touchX = e.touches[0].clientX - canvas.getBoundingClientRect().left;
-            if (touchX < canvas.width / 3 && currentLane > 0) currentLane--;
-            else if (touchX > (canvas.width / 3) * 2 && currentLane < 2) currentLane++;
-            updateTargetX();
-        });
+            const rect = canvas.getBoundingClientRect();
+            const x = clientX - rect.left;
+            const clickedLane = Math.floor((x / canvas.width) * 3);
+            
+            if (clickedLane < currentLane && currentLane > 0) {
+                currentLane--;
+                updateTargetX();
+            } else if (clickedLane > currentLane && currentLane < 2) {
+                currentLane++;
+                updateTargetX();
+            }
+        }
+
+        canvas.addEventListener('mousedown', (e) => handleInput(e.clientX));
+        canvas.addEventListener('touchstart', (e) => {
+            handleInput(e.touches[0].clientX);
+            e.preventDefault();
+        }, { passive: false });
 
         class Entity {
             constructor(type, lane, y, op = null, val = 0, isElite = false) {
@@ -332,16 +351,12 @@
             draw() {
                 const x = this.lane * LANE_WIDTH();
                 if (this.type === 'gate') {
-                    // Draw Block
                     ctx.fillStyle = this.isPositive ? 'rgba(37, 99, 235, 0.85)' : 'rgba(220, 38, 38, 0.85)';
                     ctx.fillRect(x + 5, this.y, this.width - 10, this.height);
-                    
-                    // Thicker border for clarity
                     ctx.strokeStyle = this.isPositive ? '#60a5fa' : '#f87171';
                     ctx.lineWidth = 4;
                     ctx.strokeRect(x + 5, this.y, this.width - 10, this.height);
 
-                    // Emoji Symbol Logic
                     let emojiOp = '';
                     switch(this.op) {
                         case '+': emojiOp = '➕'; break;
@@ -352,12 +367,8 @@
 
                     ctx.fillStyle = '#fff';
                     ctx.textAlign = 'center';
-                    
-                    // Draw Operator Emoji
                     ctx.font = '24px serif';
                     ctx.fillText(emojiOp, x + this.width / 2, this.y + 35);
-                    
-                    // Draw Value
                     ctx.font = 'bold 24px var(--font-main)';
                     const valText = typeof this.val === 'string' ? this.val : formatNumber(this.val);
                     ctx.fillText(valText, x + this.width / 2, this.y + 65);
@@ -367,7 +378,6 @@
                     const hTextW = ctx.measureText(healthStr).width;
                     const hBadgeW = Math.max(50, hTextW + 16);
                     
-                    // Health badge
                     ctx.fillStyle = this.isElite ? '#fbbf24' : '#ef4444';
                     ctx.beginPath();
                     ctx.roundRect(x + this.width/2 - hBadgeW/2, this.y - 15, hBadgeW, 24, 6);
@@ -383,7 +393,6 @@
                     ctx.scale(scale, scale);
                     ctx.font = '48px serif';
                     ctx.textAlign = 'center';
-                    // Boss is a Dragon
                     ctx.fillText(this.isElite ? '🐉' : '👹', 0, 10);
                     ctx.restore();
                 }
