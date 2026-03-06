@@ -152,7 +152,7 @@
             background: var(--parental-bg);
             padding: 20px;
             overflow-y: auto;
-            justify-content: flex-start; /* Start from top to allow scrolling */
+            justify-content: flex-start;
             height: 100%;
             width: 100%;
             display: none;
@@ -323,7 +323,7 @@
             height: 125%;
             border: 5px dashed var(--primary);
             border-radius: 50%;
-            animation: spin 4s linear infinite; /* Slowed down from 2s to 4s */
+            animation: spin 4s linear infinite;
         }
 
         @keyframes spin {
@@ -481,7 +481,7 @@
                 title: "Playground",
                 words: [
                     { word: "Monkey bars", url: "https://images.unsplash.com/vector-1757332570676-facced078968?q=80&w=1160&auto=format&fit=crop" },
-                    { word: "Rope bridge", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRkHNmvzylme92LXRzJNtdxMTK6SJeq7ThVQ&s" },
+                    { word: "Rope bridge", url: "https://media.istockphoto.com/id/1006459800/photo/child-crossing-a-bridge-of-ropes.jpg?s=612x612&w=0&k=20&c=u6xBBbbU0qTmeE8Tt8RzB5TIVS8vwEEB2OJtY-NjWm8=" },
                     { word: "Climbing frame", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRod-c9zdPr5uwqEZxCBwHkzqHyB3rrMxPYPQ&s" },
                     { word: "Seesaw", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTj4Yw4wG2mxsr2p8D65wF5CBECXkjV-IVJqA&s" },
                     { word: "Springy", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSnY2Z70Pv_IeIUtEqMbK-Xc8hy-c7_9tvH4Q&s" },
@@ -671,7 +671,6 @@
             const root = document.getElementById('debug-content-root');
             root.innerHTML = '';
 
-            // Ensure we iterate through all defined levels in DATA
             Object.keys(DATA).sort((a, b) => a - b).forEach(levelKey => {
                 const level = DATA[levelKey];
                 const section = document.createElement('div');
@@ -938,7 +937,14 @@
         function skipQuestion() {
             stopRepeatTimer();
             if (recognition) recognition.stop();
-            nextQuestion(false); 
+            
+            // Generate a fresh random exercise for the current slot
+            // This replaces the "counted without a star" bug by essentially "rerolling" the challenge
+            const currentLevelWords = DATA[currentLevel].words;
+            const newTarget = currentLevelWords[Math.floor(Math.random() * currentLevelWords.length)];
+            lessonQuestions[currentQuestionIndex] = createRandomExercise(newTarget, currentLevelWords);
+            
+            renderQuestion();
         }
 
         function checkAnswer(isCorrect) {
@@ -955,7 +961,7 @@
 
                 setTimeout(() => {
                     overlay.style.display = 'none';
-                    nextQuestion(false); 
+                    nextQuestion(); 
                 }, 1500);
             } else {
                 speak("Oops, try again!");
@@ -963,12 +969,7 @@
             }
         }
 
-        function nextQuestion(autoAddStar = false) {
-            if (autoAddStar) {
-                const star = document.getElementById(`star-${currentQuestionIndex}`);
-                if (star) star.classList.add('filled');
-            }
-            
+        function nextQuestion() {
             currentQuestionIndex++;
             if (currentQuestionIndex >= 15) {
                 showScreen('success-screen');
