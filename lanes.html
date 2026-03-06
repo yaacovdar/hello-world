@@ -178,7 +178,7 @@
             <h1>MATH LEGION</h1>
             <p class="stat-line">Grow the swarm. Defend the path.</p>
             <button class="btn" id="start-btn">BATTLE START</button>
-            <div class="record-text" id="start-records">Records loading...</div>
+            <div class="record-text" id="start-records">Records: Dist 0 | Army 0 | Time 00:00</div>
         </div>
 
         <div id="game-over-screen" class="overlay hidden">
@@ -191,7 +191,7 @@
                 <div class="stat-line">Time: <b id="final-time">00:00</b></div>
             </div>
 
-            <div class="record-text" id="end-records">Bests: Dist 0 | Army 0 | Time 0s</div>
+            <div class="record-text" id="end-records">Bests: Dist 0 | Army 0 | Time 00:00</div>
             
             <button class="btn" id="restart-btn">RETRY BATTLE</button>
         </div>
@@ -199,19 +199,8 @@
         <canvas id="gameCanvas"></canvas>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Firebase Config and Initialization
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'math-legion-final';
-
-        let userId = null;
+    <script>
+        // Records kept in memory for the current session
         let records = { distance: 0, army: 0, time: 0 };
         let bannerShownThisRun = false;
 
@@ -235,21 +224,6 @@
             document.getElementById('start-records').innerText = str;
             document.getElementById('end-records').innerText = str;
         }
-
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                userId = user.uid;
-                const docRef = doc(db, 'artifacts', appId, 'users', userId, 'records', 'main');
-                const snap = await getDoc(docRef);
-                if (snap.exists()) {
-                    records = snap.data();
-                } else {
-                    await setDoc(docRef, records);
-                }
-                updateRecordsUI();
-            }
-        });
-        signInAnonymously(auth);
 
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
@@ -309,7 +283,7 @@
             setTimeout(() => alert.style.opacity = '0', 2000);
         }
 
-        // Restore keyboard controls
+        // Keyboard controls restored
         window.addEventListener('keydown', (e) => {
             if (!gameActive) return;
             if (e.key === 'ArrowLeft' && currentLane > 0) {
@@ -350,8 +324,8 @@
                 this.speedMult = role.speedMult;
                 this.forceType = forceType;
                 
-                // Random x-offset for phalanx parts to prevent a perfect line
-                this.phalanxXOffset = forceType === 'phalanx' ? (Math.random() - 0.5) * 15 : 0;
+                // Fixed randomized offset for phalanx parts, no jitter
+                this.phalanxXOffset = forceType === 'phalanx' ? (Math.random() - 0.5) * 20 : 0;
 
                 if (role === ROLES.GROWTH) {
                     this.type = 'gate'; this.op = '+';
@@ -560,16 +534,12 @@
             document.getElementById('final-army').innerText = formatVal(peakArmy);
             document.getElementById('final-time').innerText = formatT(runTime);
             
-            if (userId) {
-                const update = {
-                    distance: Math.max(records.distance, distance),
-                    army: Math.max(records.army, peakArmy),
-                    time: Math.max(records.time, Math.floor(runTime / 1000))
-                };
-                records = update;
-                await setDoc(doc(db, 'artifacts', appId, 'users', userId, 'records', 'main'), records);
-                updateRecordsUI();
-            }
+            // Update records in memory
+            records.distance = Math.max(records.distance, distance);
+            records.army = Math.max(records.army, peakArmy);
+            records.time = Math.max(records.time, Math.floor(runTime / 1000));
+            updateRecordsUI();
+
             document.getElementById('game-over-screen').classList.remove('hidden');
         }
 
@@ -587,6 +557,8 @@
 
         document.getElementById('start-btn').addEventListener('click', start);
         document.getElementById('restart-btn').addEventListener('click', start);
+        updateRecordsUI();
+
         function loop() { update(); draw(); requestAnimationFrame(loop); }
         loop();
     </script>
