@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English Adventure - Kids Learning App</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4FACFE;
+            --secondary: #00F2FE;
+            --accent: #FFEB3B;
+            --success: #4CAF50;
+            --danger: #FF5252;
+            --text-dark: #333;
+            --bg-color: #F0F9FF;
+            --skip-blue: #BAE6FD;
+            --parental-bg: #E0E7FF;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Fredoka', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- UI COMPONENTS --- */
+        #game-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        header {
+            width: 100%;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            z-index: 10;
+        }
+
+        .back-btn {
+            background: #f0f0f0;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+
+        .back-btn:active { transform: scale(0.9); }
+
+        /* --- PROGRESS STARS --- */
+        .stars-container {
+            display: flex;
+            gap: 4px;
+            flex-wrap: nowrap;
+            justify-content: center;
+            max-width: 90%;
+            margin: 0 10px;
+        }
+
+        .star {
+            font-size: 26px;
+            color: #eee;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            line-height: 1;
+        }
+
+        .star.filled {
+            color: #FFD700;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+            transform: scale(1.1);
+            animation: pop 0.4s ease-out;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.5); }
+            50% { transform: scale(1.4); }
+            100% { transform: scale(1.1); }
+        }
+
+        /* --- SCREENS --- */
+        .screen {
+            display: none;
+            width: 100%;
+            height: 100%;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .screen.active { display: flex; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- LEVEL SELECTION --- */
+        .grid-menu {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            width: 95%;
+            max-width: 900px;
+            padding: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 25px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.08);
+            cursor: pointer;
+            transition: all 0.3s;
+            border-bottom: 6px solid #ccc;
+        }
+
+        .card:hover { transform: translateY(-5px); }
+        .card:active { transform: translateY(2px); border-bottom-width: 2px; }
+
+        .level-card { border-color: var(--primary); }
+        .sublevel-card { border-color: var(--secondary); }
+
+        /* --- PARENTAL DASHBOARD --- */
+        #debug-screen {
+            background: var(--parental-bg);
+            padding: 20px;
+            overflow-y: auto;
+            justify-content: flex-start; /* Start from top to allow scrolling */
+            height: 100%;
+            width: 100%;
+            display: none;
+        }
+
+        #debug-screen.active {
+            display: flex;
+        }
+
+        .debug-level-section {
+            width: 100%;
+            max-width: 1000px;
+            margin-bottom: 30px;
+            background: white;
+            padding: 25px;
+            border-radius: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        .debug-level-section h2 {
+            margin-top: 0;
+            color: var(--primary);
+            border-bottom: 2px solid var(--bg-color);
+            padding-bottom: 10px;
+        }
+
+        .debug-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .debug-word-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            border: 2px solid #f1f5f9;
+            border-radius: 18px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #fff;
+        }
+
+        .debug-word-card:hover {
+            background: #f0f9ff;
+            border-color: var(--primary);
+            transform: scale(1.03);
+        }
+
+        .debug-img {
+            width: 90px;
+            height: 90px;
+            object-fit: cover;
+            border-radius: 12px;
+            margin-bottom: 8px;
+        }
+
+        .debug-emoji {
+            font-size: 50px;
+            margin-bottom: 8px;
+            height: 90px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* --- GAMEPLAY UI --- */
+        .instruction {
+            font-size: 1.8rem;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 10px;
+            color: var(--primary);
+            padding: 0 15px;
+        }
+
+        .exercise-text-prompt {
+            font-size: 3rem;
+            color: var(--success);
+            margin: 5px 0 25px 0;
+            font-weight: 700;
+            text-transform: capitalize;
+            text-align: center;
+        }
+
+        .interaction-area {
+            width: 100%;
+            max-width: 850px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .option-img-container {
+            position: relative;
+            width: 180px;
+            height: 180px;
+            border-radius: 24px;
+            overflow: hidden;
+            border: 6px solid white;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.12);
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .option-img-container:hover { 
+            transform: scale(1.05);
+            border-color: var(--primary);
+        }
+
+        .option-img-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .emoji-box {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 70px;
+            background: #fff;
+        }
+
+        .img-label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 8px 0;
+            text-align: center;
+            color: white;
+            font-size: 1.4rem;
+            font-weight: bold;
+            -webkit-text-stroke: 1.5px #333;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            background: linear-gradient(transparent, rgba(0,0,0,0.4));
+            pointer-events: none;
+        }
+
+        /* --- MICROPHONE BUTTON --- */
+        .mic-btn {
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            background: var(--primary);
+            border: none;
+            color: white;
+            font-size: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+            margin-top: 20px;
+        }
+
+        .mic-btn.listening::after {
+            content: '';
+            position: absolute;
+            width: 125%;
+            height: 125%;
+            border: 5px dashed var(--primary);
+            border-radius: 50%;
+            animation: spin 4s linear infinite; /* Slowed down from 2s to 4s */
+        }
+
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+
+        /* --- BUTTONS --- */
+        .skip-btn {
+            background: var(--skip-blue);
+            color: #0369A1;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 30px;
+            transition: transform 0.2s, background 0.2s;
+            width: auto;
+            min-width: 120px;
+            box-shadow: 0 4px 0 #93C5FD;
+        }
+
+        .skip-btn:active {
+            transform: translateY(2px);
+            box-shadow: none;
+        }
+
+        .parental-btn {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: #cbd5e1;
+            color: #475569;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            cursor: pointer;
+            opacity: 0.7;
+        }
+
+        .parental-btn:hover { opacity: 1; background: #94a3b8; }
+
+        /* --- FEEDBACK OVERLAY --- */
+        #feedback-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 100;
+        }
+
+        .feedback-text {
+            font-size: 5rem;
+            font-weight: bold;
+            color: var(--success);
+            text-shadow: 3px 3px 0 white;
+            animation: bounce 0.6s infinite alternate;
+        }
+
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-25px); }
+        }
+
+        /* --- RESPONSIVE ADJUSTMENTS --- */
+        @media (max-width: 600px) {
+            .option-img-container { width: 140px; height: 140px; }
+            .emoji-box { font-size: 50px; }
+            .instruction { font-size: 1.4rem; }
+            .exercise-text-prompt { font-size: 2.2rem; }
+            .stars-container { 
+                flex-wrap: wrap;
+                max-width: 320px; 
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header id="app-header" style="display:none;">
+        <button class="back-btn" onclick="goBack()">⬅ Back</button>
+        <div class="stars-container" id="stars-bar"></div>
+        <div style="width: 80px;" class="header-spacer"></div> 
+    </header>
+
+    <div id="game-container">
+        
+        <!-- Welcome Screen -->
+        <div id="welcome-screen" class="screen active">
+            <h1 style="font-size: 3rem; color: var(--primary); margin-bottom: 20px; text-align: center;">English Adventure! 🌟</h1>
+            <p style="font-size: 1.2rem; margin-bottom: 30px; color: #777;">Ready to learn and play?</p>
+            <div class="grid-menu" id="level-menu"></div>
+            <button class="parental-btn" onclick="showDebug()">⚙ Parental Dashboard</button>
+        </div>
+
+        <!-- Sublevel Selection -->
+        <div id="sublevel-screen" class="screen">
+            <h2 id="level-title" style="margin-bottom: 30px; color: var(--primary);">Select a Lesson</h2>
+            <div class="grid-menu" id="sublevel-menu"></div>
+        </div>
+
+        <!-- Gameplay Screen -->
+        <div id="game-screen" class="screen">
+            <div class="instruction" id="question-text">Look and listen!</div>
+            <div id="exercise-info" class="exercise-text-prompt" style="display: none;"></div>
+            <div class="interaction-area" id="interaction-root"></div>
+            <div id="status-message" style="margin-top: 20px; font-weight: bold; color: #666; font-size: 1.1rem; min-height: 1.5em;"></div>
+        </div>
+
+        <!-- Parental / Debug Screen -->
+        <div id="debug-screen" class="screen">
+            <h1 style="color: #1e293b; margin-top: 20px; margin-bottom: 10px;">Parental Overview</h1>
+            <p style="margin-bottom: 30px; color: #64748b;">Click any item to hear the voice.</p>
+            <div id="debug-content-root" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+                <!-- Generated by JS -->
+            </div>
+        </div>
+
+        <!-- Success Screen -->
+        <div id="success-screen" class="screen">
+            <h1 style="font-size: 4rem; color: #FFD700;">AMAZING! 🏆</h1>
+            <p style="font-size: 1.8rem;">You are an English Star!</p>
+            <button class="card level-card" style="margin-top: 40px; padding: 25px 50px; font-size: 1.8rem;" onclick="goHome()">Play More!</button>
+        </div>
+
+    </div>
+
+    <!-- Feedback Overlay -->
+    <div id="feedback-overlay">
+        <div class="feedback-text" id="feedback-message">GREAT!</div>
+    </div>
+
+    <script>
+        /** * DATA DEFINITIONS */
+        const DATA = {
+            1: {
+                title: "Basics",
+                words: [
+                    { word: "Apple", emoji: "🍎" }, { word: "Dog", emoji: "🐶" }, { word: "Cat", emoji: "🐱" },
+                    { word: "Sun", emoji: "☀️" }, { word: "Moon", emoji: "🌙" }, { word: "Bird", emoji: "🐦" },
+                    { word: "Water", emoji: "💧" }, { word: "Bread", emoji: "🍞" }, { word: "Milk", emoji: "🥛" },
+                    { word: "Hello", emoji: "👋", social: true, response: "Hello" }
+                ]
+            },
+            2: {
+                title: "Playground",
+                words: [
+                    { word: "Monkey bars", url: "https://images.unsplash.com/vector-1757332570676-facced078968?q=80&w=1160&auto=format&fit=crop" },
+                    { word: "Rope bridge", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRkHNmvzylme92LXRzJNtdxMTK6SJeq7ThVQ&s" },
+                    { word: "Climbing frame", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRod-c9zdPr5uwqEZxCBwHkzqHyB3rrMxPYPQ&s" },
+                    { word: "Seesaw", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTj4Yw4wG2mxsr2p8D65wF5CBECXkjV-IVJqA&s" },
+                    { word: "Springy", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSnY2Z70Pv_IeIUtEqMbK-Xc8hy-c7_9tvH4Q&s" },
+                    { word: "Roundabout", url: "https://fibran.co.il/wp-content/uploads/2018/01/C-2447-foto1-1.jpg" },
+                    { word: "Sandpit", url: "https://upload.wikimedia.org/wikipedia/commons/7/74/Sandpit.jpg" },
+                    { word: "Swing", emoji: "🛝" },
+                    { word: "Jump", emoji: "🏃" },
+                    { word: "Play", emoji: "🎈" }
+                ]
+            },
+            3: {
+                title: "School",
+                words: [
+                    { word: "Protractor", url: "https://www.artdepot.co.il/16991-thickbox_default/%D7%9E%D7%93-%D7%96%D7%95%D7%95%D7%99%D7%AA-180-10-%D7%A1%D7%9E.jpg" },
+                    { word: "Compass", url: "https://picassoart.co.il/wp-content/uploads/2024/09/%D7%A1%D7%98-%D7%9E%D7%97%D7%95%D7%92%D7%94-STAEDTLER-%D7%9E%D7%90%D7%A8%D7%99%D7%9A.webp" },
+                    { word: "Whiteboard", url: "https://d3m9l0v76dty0.cloudfront.net/system/photos/6300072/large/beae27c0f2f7efd16d9d373de1173d5b.jpg" },
+                    { word: "Exercise book", url: "https://www.holisticfit.co.il/wp-content/uploads/2019/11/book2.jpg" },
+                    { word: "Gluestick", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTciAlKfgYbf97aiA4tmFwyT7Mlxdk2ADHqDw&s" },
+                    { word: "White Glue", url: "https://www.kravitz.co.il/cdn/shop/files/0609040.jpg?v=1717334825" },
+                    { word: "Colouring pencils", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRsGo4kEhv_yB5f0dFLeVPNeTO51K3UO9-v8g&s" },
+                    { word: "Pencil case", emoji: "👝" },
+                    { word: "Teacher", emoji: "👩‍🏫" },
+                    { word: "School bag", emoji: "🎒" }
+                ]
+            },
+            4: {
+                title: "Feelings",
+                words: [
+                    { word: "Proud", url: "https://storage.hidabroot.org/articles_new/371700_tumb_730X500.webp" },
+                    { word: "Confident", url: "https://www.shaharcohen.co.il/wp-content/uploads/2018/09/%D7%91%D7%99%D7%98%D7%97%D7%95%D7%9F-%D7%A2%D7%A6%D7%9E%D7%99-2.jpg" },
+                    { word: "Stuck", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS0QyZU8mjqWU9B1j6PHIlfa2NQFNEd3m59oA&s" },
+                    { word: "Embarrassed", url: "https://img.haarets.co.il/bs/0000017f-e0b4-d568-ad7f-f3ffd21f0000/44/ed/a1f65e5743e7e23b5dee992725fc/214241096.jpg?precrop=2200,1282,x0,y0&width=420&height=244&cmsprod" },
+                    { word: "Happy", emoji: "😊" },
+                    { word: "Sad", emoji: "😢" },
+                    { word: "Angry", emoji: "😠" },
+                    { word: "Together", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT6JdD8YJ5_gx62VabkzLg67mtKxKgVghWzGg&s" },
+                    { word: "Alone", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRSdvXZEA6OxXd0Lka76fuTVCSpmNQD8rT24w&s" },
+                    { word: "Sleepy", emoji: "😴" }
+                ]
+            },
+            5: {
+                title: "Actions",
+                words: [
+                    { word: "Line up", url: "https://i0.wp.com/blog.kolzchut.org.il/wp/wp-content/uploads/2021/04/53583181_l-1-scaled.jpg?fit=2560%2C2560&ssl=1" },
+                    { word: "Hands up", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT-5yi4ilAnk2dURlRe8sGy0x4SuoSZyydFQA&s" },
+                    { word: "Understand", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRAopj_QQFpkk1UtCYyuBdDjY8GsDxvpe582w&s" },
+                    { word: "English", url: "https://www.gan-li.co.il/images/itempics/2232_030820221718501.jpg" },
+                    { word: "History", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQmU_B7bxVo0knirxCMIGKLrJ5csX7CpM8W5A&s" },
+                    { word: "Listen", emoji: "👂" },
+                    { word: "Speak", emoji: "🗣️" },
+                    { word: "Write", emoji: "✍️" },
+                    { word: "Read", emoji: "📖" },
+                    { word: "Finished", emoji: "✅" }
+                ]
+            },
+            6: {
+                title: "Colours",
+                words: [
+                    { word: "Purple", emoji: "🟪" }, { word: "Orange", emoji: "🟧" }, { word: "Pink", emoji: "🩷" },
+                    { word: "Black", emoji: "⬛" }, { word: "Yellow", emoji: "🟨" }, { word: "Blue", emoji: "🟦" },
+                    { word: "Brown", emoji: "🟫" }, { word: "Red", emoji: "🟥" }, { word: "White", emoji: "⬜" },
+                    { word: "Green", emoji: "🟩" }, { word: "Gold", emoji: "🟡" }, { word: "Grey", emoji: "🩶" }
+                ]
+            },
+            7: {
+                title: "Animals",
+                words: [
+                    { word: "Goat", emoji: "🐐" }, { word: "Panda", emoji: "🐼" }, { word: "Pig", emoji: "🐷" },
+                    { word: "Lion", emoji: "🦁" }, { word: "Hippo", emoji: "🦛" }, { word: "Shark", emoji: "🦈" },
+                    { word: "Whale", emoji: "🐋" }, { word: "Hen", emoji: "🐔" }, { word: "Butterfly", emoji: "🦋" },
+                    { word: "Tiger", emoji: "🐅" }, { word: "Elephant", emoji: "🐘" }, { word: "Dolphin", emoji: "🐬" },
+                    { word: "Zebra", emoji: "🦓" }, { word: "Snake", emoji: "🐍" }, { word: "Wolf", emoji: "🐺" },
+                    { word: "Duck", emoji: "🦆" }, { word: "Bear", emoji: "🐻" }, { word: "Sheep", emoji: "🐑" },
+                    { word: "Rabbit", emoji: "🐰" }, { word: "Monkey", emoji: "🐒" }, { word: "Giraffe", emoji: "🦒" },
+                    { word: "Cow", emoji: "🐄" }, { word: "Ant", emoji: "🐜" }, { word: "Parrot", emoji: "🦜" }
+                ]
+            }
+        };
+
+        const AFFIRMATIONS = [
+            "Good job!", "Amazing!", "Well done!", "You're a star!", 
+            "Excellent!", "Brilliant!", "Fantastic!", "Keep it up!", 
+            "Super!", "Wonderful!"
+        ];
+
+        let currentLevel = null;
+        let currentSublevel = null;
+        let currentQuestionIndex = 0;
+        let lessonQuestions = [];
+        let voices = [];
+        let recognition = null;
+        let repeatTimer = null; 
+
+        window.onload = () => {
+            initSpeech();
+            renderLevelMenu();
+            initStars();
+        };
+
+        function initStars() {
+            const container = document.getElementById('stars-bar');
+            container.innerHTML = '';
+            for (let i = 0; i < 15; i++) {
+                const star = document.createElement('span');
+                star.className = 'star';
+                star.innerHTML = '★';
+                star.id = `star-${i}`;
+                container.appendChild(star);
+            }
+        }
+
+        function initSpeech() {
+            window.speechSynthesis.onvoiceschanged = () => {
+                voices = window.speechSynthesis.getVoices().filter(v => v.lang.startsWith('en'));
+            };
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (SpeechRecognition) {
+                recognition = new SpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'en-US';
+            }
+        }
+
+        function speak(text, rate = 0.8) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            if (voices.length > 0) {
+                utterance.voice = voices[Math.floor(Math.random() * voices.length)];
+            }
+            utterance.rate = rate;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function startRepeatTimer(textToRepeat) {
+            stopRepeatTimer();
+            repeatTimer = setInterval(() => {
+                speak(textToRepeat);
+            }, 8000); 
+        }
+
+        function stopRepeatTimer() {
+            if (repeatTimer) {
+                clearInterval(repeatTimer);
+                repeatTimer = null;
+            }
+        }
+
+        function renderLevelMenu() {
+            const menu = document.getElementById('level-menu');
+            menu.innerHTML = '';
+            const levelKeys = Object.keys(DATA).sort((a, b) => a - b);
+            levelKeys.forEach(levelKey => {
+                const card = document.createElement('div');
+                card.className = 'card level-card';
+                card.innerHTML = `<h3>Level ${levelKey}</h3><p>${DATA[levelKey].title}</p>`;
+                card.onclick = () => selectLevel(levelKey);
+                menu.appendChild(card);
+            });
+        }
+
+        function selectLevel(lvl) {
+            currentLevel = parseInt(lvl);
+            showScreen('sublevel-screen');
+            document.getElementById('level-title').innerText = `Level ${lvl}: ${DATA[lvl].title}`;
+            const menu = document.getElementById('sublevel-menu');
+            menu.innerHTML = '';
+            for (let i = 1; i <= 3; i++) {
+                const card = document.createElement('div');
+                card.className = 'card sublevel-card';
+                card.innerHTML = `<h3>Lesson ${lvl}.${i}</h3>`;
+                card.onclick = () => startLesson(lvl, i);
+                menu.appendChild(card);
+            }
+        }
+
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+            const header = document.getElementById('app-header');
+            header.style.display = (screenId === 'game-screen' || screenId === 'sublevel-screen' || screenId === 'debug-screen') ? 'flex' : 'none';
+            if (screenId !== 'game-screen') stopRepeatTimer();
+        }
+
+        function showDebug() {
+            showScreen('debug-screen');
+            const root = document.getElementById('debug-content-root');
+            root.innerHTML = '';
+
+            // Ensure we iterate through all defined levels in DATA
+            Object.keys(DATA).sort((a, b) => a - b).forEach(levelKey => {
+                const level = DATA[levelKey];
+                const section = document.createElement('div');
+                section.className = 'debug-level-section';
+                section.innerHTML = `<h2>Level ${levelKey}: ${level.title}</h2>`;
+                
+                const grid = document.createElement('div');
+                grid.className = 'debug-grid';
+                
+                level.words.forEach(item => {
+                    const wordCard = document.createElement('div');
+                    wordCard.className = 'debug-word-card';
+                    wordCard.onclick = () => speak(item.word);
+                    
+                    if (item.url) {
+                        wordCard.innerHTML = `<img class="debug-img" src="${item.url}" onerror="this.src='https://via.placeholder.com/90?text=Error'">`;
+                    } else {
+                        wordCard.innerHTML = `<div class="debug-emoji">${item.emoji}</div>`;
+                    }
+                    
+                    const label = document.createElement('span');
+                    label.style.fontWeight = 'bold';
+                    label.style.marginTop = '5px';
+                    label.innerText = item.word;
+                    wordCard.appendChild(label);
+                    
+                    grid.appendChild(wordCard);
+                });
+                
+                section.appendChild(grid);
+                root.appendChild(section);
+            });
+        }
+
+        function goBack() {
+            const active = document.querySelector('.screen.active').id;
+            if (active === 'sublevel-screen' || active === 'debug-screen') showScreen('welcome-screen');
+            else if (active === 'game-screen') showScreen('sublevel-screen');
+        }
+
+        function goHome() {
+            showScreen('welcome-screen');
+        }
+
+        function startLesson(lvl, sub) {
+            currentSublevel = sub;
+            currentQuestionIndex = 0;
+            initStars();
+            lessonQuestions = generateLessonQuestions(lvl);
+            showScreen('game-screen');
+            renderQuestion();
+        }
+
+        function generateLessonQuestions(lvl) {
+            const currentLevelWords = DATA[lvl].words;
+            let reviewPool = [];
+            for (let i = 1; i < lvl; i++) reviewPool = [...reviewPool, ...DATA[i].words];
+
+            const questions = [];
+            for (let i = 0; i < 10; i++) {
+                const target = currentLevelWords[i % currentLevelWords.length];
+                questions.push(createRandomExercise(target, currentLevelWords));
+            }
+            if (reviewPool.length > 0) {
+                for (let i = 0; i < 5; i++) {
+                    const target = reviewPool[Math.floor(Math.random() * reviewPool.length)];
+                    questions.push(createRandomExercise(target, reviewPool));
+                }
+            } else {
+                for (let i = 0; i < 5; i++) {
+                    const target = currentLevelWords[Math.floor(Math.random() * currentLevelWords.length)];
+                    questions.push(createRandomExercise(target, currentLevelWords));
+                }
+            }
+            return questions.sort(() => Math.random() - 0.5);
+        }
+
+        function createRandomExercise(target, pool) {
+            const types = ['audioMatch', 'repeat', 'social', 'counting', 'sayWord'];
+            let type = types[Math.floor(Math.random() * types.length)];
+            if (target.social) type = 'social';
+            return { type, target, options: generateOptions(target, pool) };
+        }
+
+        function generateOptions(target, pool) {
+            const options = [target];
+            const others = pool.filter(w => w.word !== target.word);
+            while (options.length < 3 && others.length > 0) {
+                options.push(others.splice(Math.floor(Math.random() * others.length), 1)[0]);
+            }
+            return options.sort(() => Math.random() - 0.5);
+        }
+
+        function renderQuestion() {
+            const q = lessonQuestions[currentQuestionIndex];
+            const root = document.getElementById('interaction-root');
+            const qText = document.getElementById('question-text');
+            const info = document.getElementById('exercise-info');
+            const status = document.getElementById('status-message');
+            
+            root.innerHTML = '';
+            status.innerText = '';
+            info.style.display = 'none';
+
+            let isSpeechExercise = false;
+
+            switch(q.type) {
+                case 'audioMatch':
+                    qText.innerText = "Tap the picture you hear!";
+                    info.innerText = q.target.word; 
+                    info.style.display = 'block';
+                    speak(q.target.word);
+                    startRepeatTimer(q.target.word); 
+                    q.options.forEach(opt => {
+                        root.appendChild(createImageOption(opt, () => checkAnswer(opt.word === q.target.word), false));
+                    });
+                    break;
+                
+                case 'repeat':
+                    isSpeechExercise = true;
+                    qText.innerText = `Can you say...`;
+                    info.innerText = q.target.word;
+                    info.style.display = 'block';
+                    root.appendChild(createImageOption(q.target, () => speak(q.target.word), false));
+                    root.appendChild(createMicButton(q.target.word));
+                    speak(`Can you say ${q.target.word}?`);
+                    startRepeatTimer(`Can you say ${q.target.word}?`);
+                    break;
+
+                case 'sayWord': 
+                    isSpeechExercise = true;
+                    qText.innerText = `Repeat after me:`;
+                    info.innerText = q.target.word;
+                    info.style.display = 'block';
+                    root.appendChild(createImageOption(q.target, () => speak(q.target.word), false));
+                    root.appendChild(createMicButton(q.target.word));
+                    const sayMsg = `Repeat after me: ${q.target.word}`;
+                    speak(sayMsg);
+                    startRepeatTimer(sayMsg);
+                    break;
+
+                case 'social':
+                    qText.innerText = `Listen and respond!`;
+                    info.innerText = q.target.word; 
+                    info.style.display = 'block';
+                    speak(q.target.word);
+                    startRepeatTimer(q.target.word); 
+                    q.options.forEach(opt => {
+                        const btn = createImageOption(opt, () => checkAnswer(opt.word === q.target.word), false);
+                        root.appendChild(btn);
+                    });
+                    break;
+
+                case 'counting':
+                    isSpeechExercise = true;
+                    let min = 2, max = 10;
+                    if (currentLevel === 1) { min = 2; max = 3; }
+                    else if (currentLevel === 2) { min = 3; max = 5; }
+                    else { min = 5; max = 10; }
+                    const num = Math.floor(Math.random() * (max - min + 1)) + min;
+
+                    qText.innerText = `Count out loud!`;
+                    const countArray = Array.from({length: num}, (_, i) => i + 1);
+                    const countString = countArray.join(" ");
+                    info.style.display = 'block';
+                    info.innerText = countString;
+                    root.appendChild(createMicButton(countString));
+                    const countSpeech = `Please count from 1 to ${num}`;
+                    speak(countSpeech);
+                    startRepeatTimer(countSpeech);
+                    break;
+            }
+
+            if (isSpeechExercise) {
+                const skipBtn = document.createElement('button');
+                skipBtn.className = 'skip-btn';
+                skipBtn.innerText = "Skip ➡";
+                skipBtn.onclick = () => skipQuestion();
+                
+                const skipContainer = document.createElement('div');
+                skipContainer.style.width = '100%';
+                skipContainer.style.display = 'flex';
+                skipContainer.style.justifyContent = 'center';
+                skipContainer.appendChild(skipBtn);
+                root.appendChild(skipContainer);
+            }
+        }
+
+        function createImageOption(data, callback, noLabel = false) {
+            const div = document.createElement('div');
+            div.className = 'option-img-container';
+            
+            if (data.url) {
+                div.innerHTML = `<img src="${data.url}" onerror="this.src='https://via.placeholder.com/200?text=Image'">`;
+            } else if (data.emoji) {
+                div.innerHTML = `<div class="emoji-box">${data.emoji}</div>`;
+            } else {
+                div.innerHTML = `<div class="emoji-box" style="font-size: 20px;">${data.word}</div>`;
+            }
+
+            if (!noLabel) {
+                const label = document.createElement('div');
+                label.className = 'img-label';
+                label.innerText = data.social ? data.response : data.word;
+                div.appendChild(label);
+            }
+
+            if (callback) div.onclick = callback;
+            return div;
+        }
+
+        function createMicButton(targetText) {
+            const btn = document.createElement('button');
+            btn.className = 'mic-btn';
+            btn.innerHTML = '🎤';
+            btn.onclick = () => handleSpeechInput(btn, targetText);
+            return btn;
+        }
+
+        function handleSpeechInput(btn, target) {
+            if (!recognition) return;
+            stopRepeatTimer(); 
+            btn.classList.add('listening');
+            recognition.start();
+            const timeout = setTimeout(() => {
+                recognition.stop();
+                btn.classList.remove('listening');
+                document.getElementById('status-message').innerText = "Didn't hear anything. Try again!";
+                startRepeatTimer(target); 
+            }, 6000);
+
+            recognition.onresult = (event) => {
+                clearTimeout(timeout);
+                btn.classList.remove('listening');
+                const result = event.results[0][0].transcript.toLowerCase();
+                if (isSimilar(result, target.toLowerCase())) {
+                    checkAnswer(true);
+                } else {
+                    document.getElementById('status-message').innerText = `You said "${result}". Try again!`;
+                    speak("Try saying it again!");
+                    startRepeatTimer(target); 
+                }
+            };
+            recognition.onerror = () => {
+                clearTimeout(timeout);
+                btn.classList.remove('listening');
+                startRepeatTimer(target);
+            };
+        }
+
+        function isSimilar(s1, s2) {
+            const normalize = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+            const c1 = normalize(s1);
+            const c2 = normalize(s2);
+            if (c1 === c2) return true;
+            if (c1.includes(c2) || c2.includes(c1)) return true;
+            const w1 = s1.split(" ");
+            const w2 = s2.split(" ");
+            let matches = 0;
+            w2.forEach(word => { if(w1.includes(word)) matches++; });
+            return (matches / w2.length) >= 0.75;
+        }
+
+        function skipQuestion() {
+            stopRepeatTimer();
+            if (recognition) recognition.stop();
+            nextQuestion(false); 
+        }
+
+        function checkAnswer(isCorrect) {
+            if (isCorrect) {
+                stopRepeatTimer(); 
+                const overlay = document.getElementById('feedback-overlay');
+                const affirmation = AFFIRMATIONS[Math.floor(Math.random() * AFFIRMATIONS.length)];
+                document.getElementById('feedback-message').innerText = affirmation;
+                overlay.style.display = 'flex';
+                speak(affirmation, 1.0);
+                
+                const star = document.getElementById(`star-${currentQuestionIndex}`);
+                if (star) star.classList.add('filled');
+
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                    nextQuestion(false); 
+                }, 1500);
+            } else {
+                speak("Oops, try again!");
+                document.getElementById('status-message').innerText = "Not quite! Try once more.";
+            }
+        }
+
+        function nextQuestion(autoAddStar = false) {
+            if (autoAddStar) {
+                const star = document.getElementById(`star-${currentQuestionIndex}`);
+                if (star) star.classList.add('filled');
+            }
+            
+            currentQuestionIndex++;
+            if (currentQuestionIndex >= 15) {
+                showScreen('success-screen');
+                speak("Great job! You finished the lesson!", 0.9);
+            } else {
+                renderQuestion();
+            }
+        }
+    </script>
+</body>
+</html>
