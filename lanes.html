@@ -532,6 +532,7 @@
                 this.currentLane = 1;
                 this.targetX = 0;
                 this.playerX = 0;
+                // Consistent initialization to prevent rendering crash before first 'start' call
                 this.laneRoles = [ROLES.GROWTH, ROLES.EVOLUTION, ROLES.CHAOS];
                 this.entities = [];
                 this.particles = [];
@@ -557,14 +558,17 @@
                 this.bullets = [];
                 this.lastShiftDist = 0;
                 
-                // Desynchronize lanes by adding phase offsets to lastSpawns
+                // Shuffle lanes BEFORE marking active or allowing frames to render 
+                // to ensure state consistency for Renderer
+                this.shuffleLanes(true);
+                
+                // Desynchronize lanes with phase offsets
                 this.lastSpawns = new Array(this.numLanes).fill(0).map((_, i) => performance.now() + (i * 450));
                 
                 this.bannerShownThisRun = false;
                 this.fireTimer = 0;
                 this.elapsedTime = 0;
                 
-                this.shuffleLanes(true);
                 this.updateTargetX();
                 this.playerX = this.targetX;
                 this.active = true;
@@ -574,9 +578,8 @@
             shuffleLanes(silent = false) {
                 let pool = [];
                 if (this.isChallenge) {
-                    // Sequence ensures Growth is always between two Chaos lanes
+                    // Growth between two Chaos lanes
                     pool = [ROLES.EVOLUTION, ROLES.CHAOS, ROLES.GROWTH, ROLES.CHAOS];
-                    // Randomly shift the sequence to prevent start-up predictability
                     const shift = Math.floor(Math.random() * pool.length);
                     for(let i = 0; i < shift; i++) pool.push(pool.shift());
                 } else {
@@ -588,6 +591,7 @@
                 }
                 
                 this.laneRoles = pool;
+                this.numLanes = pool.length; // Keep numLanes tied directly to length
                 if (!silent) this.ui.triggerAlert('shift');
             }
 
@@ -742,21 +746,28 @@
 
             draw(engine) {
                 const ctx = this.ctx;
-                const lw = this.canvas.width / engine.numLanes;
                 const theme = CONFIG.THEME;
+                
+                // DERIVE lane count from current roles to prevent sync errors (reading undefined .color)
+                const actualLanes = engine.laneRoles.length;
+                if (actualLanes === 0) return;
+                const lw = this.canvas.width / actualLanes;
 
                 ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
                 ctx.fillStyle = theme.COLORS.BACKGROUND;
                 ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-                for (let i = 0; i < engine.numLanes; i++) {
-                    ctx.fillStyle = engine.laneRoles[i].color;
-                    ctx.fillRect(i * lw, 0, lw, this.canvas.height);
+                for (let i = 0; i < actualLanes; i++) {
+                    const role = engine.laneRoles[i];
+                    if (role) {
+                        ctx.fillStyle = role.color;
+                        ctx.fillRect(i * lw, 0, lw, this.canvas.height);
+                    }
                 }
 
                 ctx.strokeStyle = theme.COLORS.GRID;
                 ctx.setLineDash(theme.STYLES.GRID_DASH);
-                for (let i = 1; i < engine.numLanes; i++) {
+                for (let i = 1; i < actualLanes; i++) {
                     ctx.beginPath(); ctx.moveTo(i * lw, 0); ctx.lineTo(i * lw, this.canvas.height); ctx.stroke();
                 }
                 ctx.setLineDash([]);
