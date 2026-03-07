@@ -148,8 +148,8 @@
         }
 
         .btn-alt {
-            background: #8b5cf6;
-            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+            background: #7f1d1d; /* Dark Scary Red */
+            box-shadow: 0 4px 15px rgba(127, 29, 29, 0.4);
         }
 
         .btn:hover { transform: scale(1.05); opacity: 0.9; }
@@ -208,7 +208,7 @@
             
             <div style="margin-top: 25px;">
                 <div class="record-text" id="record-classic">Classic Best: 0m</div>
-                <div class="record-text" id="record-challenge" style="color: #a78bfa;">Challenge Best: 0m</div>
+                <div class="record-text" id="record-challenge" style="color: #ef4444;">Challenge Best: 0m</div>
             </div>
         </div>
 
@@ -219,7 +219,7 @@
             <div class="final-stats-box">
                 <div class="stat-line">Distance: <b id="final-dist">0</b>m</div>
                 <div class="record-text" id="record-classic-end">Classic Best: 0m</div>
-                <div class="record-text" id="record-challenge-end" style="color: #a78bfa;">Challenge Best: 0m</div>
+                <div class="record-text" id="record-challenge-end" style="color: #ef4444;">Challenge Best: 0m</div>
             </div>
             
             <div class="btn-container">
@@ -320,10 +320,6 @@
             EVOLUTION: { color: 'rgba(59, 130, 246, 0.15)', speedMult: 0.4 }
         };
 
-        /**
-         * SaveManager
-         * Handles persistence for both game modes
-         */
         class SaveManager {
             constructor() {
                 this.STORAGE_KEY = 'legion_tactical_v2_save';
@@ -358,10 +354,6 @@
             getRecords() { return this.data; }
         }
 
-        /**
-         * UIManager
-         * Orchestrates the complex multi-button menu system
-         */
         class UIManager {
             constructor() {
                 this.elements = {
@@ -421,9 +413,6 @@
             }
         }
 
-        /**
-         * Entity Base Model
-         */
         class Entity {
             constructor(role, lane, y, type) {
                 this.role = role;
@@ -528,10 +517,6 @@
             }
         }
 
-        /**
-         * GameEngine
-         * Re-engineered to handle dynamic lane counts and modes
-         */
         class GameEngine {
             constructor(canvas, uiManager, saveManager) {
                 this.canvas = canvas;
@@ -547,7 +532,7 @@
                 this.currentLane = 1;
                 this.targetX = 0;
                 this.playerX = 0;
-                this.laneRoles = [];
+                this.laneRoles = [ROLES.GROWTH, ROLES.EVOLUTION, ROLES.CHAOS];
                 this.entities = [];
                 this.particles = [];
                 this.bullets = [];
@@ -571,7 +556,10 @@
                 this.particles = [];
                 this.bullets = [];
                 this.lastShiftDist = 0;
-                this.lastSpawns = new Array(this.numLanes).fill(performance.now());
+                
+                // Desynchronize lanes by adding phase offsets to lastSpawns
+                this.lastSpawns = new Array(this.numLanes).fill(0).map((_, i) => performance.now() + (i * 450));
+                
                 this.bannerShownThisRun = false;
                 this.fireTimer = 0;
                 this.elapsedTime = 0;
@@ -586,15 +574,17 @@
             shuffleLanes(silent = false) {
                 let pool = [];
                 if (this.isChallenge) {
-                    pool = [ROLES.GROWTH, ROLES.EVOLUTION, ROLES.CHAOS, ROLES.CHAOS];
+                    // Sequence ensures Growth is always between two Chaos lanes
+                    pool = [ROLES.EVOLUTION, ROLES.CHAOS, ROLES.GROWTH, ROLES.CHAOS];
+                    // Randomly shift the sequence to prevent start-up predictability
+                    const shift = Math.floor(Math.random() * pool.length);
+                    for(let i = 0; i < shift; i++) pool.push(pool.shift());
                 } else {
                     pool = [ROLES.GROWTH, ROLES.EVOLUTION, ROLES.CHAOS];
-                }
-                
-                // Shuffle logic
-                for (let i = pool.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [pool[i], pool[j]] = [pool[j], pool[i]];
+                    for (let i = pool.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [pool[i], pool[j]] = [pool[j], pool[i]];
+                    }
                 }
                 
                 this.laneRoles = pool;
@@ -885,9 +875,6 @@
             }
         }
 
-        /**
-         * Orchestration
-         */
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const save = new SaveManager();
@@ -906,7 +893,6 @@
         });
         window.dispatchEvent(new Event('resize'));
 
-        // Input Bindings
         document.getElementById('start-classic-btn').addEventListener('click', () => game.start(false));
         document.getElementById('start-challenge-btn').addEventListener('click', () => game.start(true));
         document.getElementById('restart-classic-btn').addEventListener('click', () => game.start(false));
