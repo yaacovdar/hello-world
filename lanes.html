@@ -62,7 +62,7 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background: rgba(15, 23, 42, 0.9);
+            background: rgba(15, 23, 42, 0.95);
             z-index: 20;
             text-align: center;
             padding: 20px;
@@ -91,7 +91,6 @@
         #record-banner { top: 15%; color: #10b981; font-size: 1.8rem; transform: scale(0.8); }
         #record-banner.show { opacity: 1; transform: scale(1); }
 
-        /* Typography & Theming */
         h1 {
             font-size: 3rem;
             margin-bottom: 10px;
@@ -102,16 +101,11 @@
             background-clip: text;
         }
 
-        .title-primary {
-            background-image: linear-gradient(45deg, #3b82f6, #60a5fa);
-        }
-
-        .title-danger {
-            background-image: linear-gradient(45deg, #ef4444, #f87171);
-        }
+        .title-primary { background-image: linear-gradient(45deg, #3b82f6, #60a5fa); }
+        .title-danger { background-image: linear-gradient(45deg, #ef4444, #f87171); }
 
         .stat-line {
-            font-size: 1.1rem;
+            font-size: 1rem;
             margin-bottom: 8px;
             color: #94a3b8;
         }
@@ -125,26 +119,40 @@
         .record-text {
             font-size: 0.85rem;
             color: #10b981;
-            margin-bottom: 20px;
+            margin-bottom: 5px;
             font-weight: bold;
             opacity: 0.9;
+        }
+
+        .btn-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 80%;
+            margin-top: 20px;
         }
 
         .btn {
             background: #3b82f6;
             color: white;
             border: none;
-            padding: 15px 40px;
-            font-size: 1.2rem;
+            padding: 15px 20px;
+            font-size: 1rem;
             font-weight: bold;
             border-radius: 50px;
             cursor: pointer;
             transition: transform 0.1s, background 0.2s;
-            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
-            margin-top: 10px;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
-        .btn:hover { background: #2563eb; transform: scale(1.05); }
+        .btn-alt {
+            background: #8b5cf6;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+        }
+
+        .btn:hover { transform: scale(1.05); opacity: 0.9; }
         .btn:active { transform: scale(0.95); }
 
         #hud {
@@ -172,7 +180,7 @@
             background: rgba(255,255,255,0.05);
             padding: 20px;
             border-radius: 15px;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             width: 85%;
         }
     </style>
@@ -192,8 +200,16 @@
         <div id="start-screen" class="overlay">
             <h1 id="game-title" class="title-primary">LEGION!</h1>
             <p class="stat-line">Capture energy. Defend the path.</p>
-            <button class="btn" id="start-btn">BATTLE START</button>
-            <div class="record-text" id="start-records">Records: Max Distance 0m</div>
+            
+            <div class="btn-container">
+                <button class="btn" id="start-classic-btn">Classic Mode</button>
+                <button class="btn btn-alt" id="start-challenge-btn">Extra Challenge</button>
+            </div>
+            
+            <div style="margin-top: 25px;">
+                <div class="record-text" id="record-classic">Classic Best: 0m</div>
+                <div class="record-text" id="record-challenge" style="color: #a78bfa;">Challenge Best: 0m</div>
+            </div>
         </div>
 
         <div id="game-over-screen" class="overlay hidden">
@@ -202,10 +218,14 @@
             
             <div class="final-stats-box">
                 <div class="stat-line">Distance: <b id="final-dist">0</b>m</div>
-                <div class="record-text" id="end-records">Best Distance: 0m</div>
+                <div class="record-text" id="record-classic-end">Classic Best: 0m</div>
+                <div class="record-text" id="record-challenge-end" style="color: #a78bfa;">Challenge Best: 0m</div>
             </div>
             
-            <button class="btn" id="restart-btn">RETRY BATTLE</button>
+            <div class="btn-container">
+                <button class="btn" id="restart-classic-btn">Retry Classic</button>
+                <button class="btn btn-alt" id="restart-challenge-btn">Retry Challenge</button>
+            </div>
         </div>
 
         <canvas id="gameCanvas"></canvas>
@@ -217,7 +237,6 @@
          */
         const CONFIG = {
             GAME: {
-                LANES: 3,
                 LANE_SHIFT_INTERVAL: 500,
                 RECORD_BANNER_DURATION: 5000,
             },
@@ -275,14 +294,12 @@
                 PHALANX_SPACING: 60,
                 HEALTH_BAR_MAGNITUDE: 0.55,
                 HEALTH_BAR_HEIGHT: 8,
-                // Probability Configs
                 CHANCE_PHALANX: 0.2,
                 CHANCE_PERCENTAGE_GATE: 0.4,
                 CHANCE_SECRET_GATE: 0.55,
                 CHANCE_SWARM: 0.5,
                 CHANCE_ELITE_BASE: 0.12,
                 CHANCE_CHAOS_GATE_NEGATIVE: 0.5,
-                // Difficulty scaling
                 DIFFICULTY_BASE_PROB: 0.4,
                 DIFFICULTY_SCALING_FACTOR: 1.5,
             },
@@ -305,26 +322,27 @@
 
         /**
          * SaveManager
-         * Handles persistence and session records (Single Source of Truth)
+         * Handles persistence for both game modes
          */
         class SaveManager {
             constructor() {
-                this.STORAGE_KEY = 'legion_tactical_runner_save';
+                this.STORAGE_KEY = 'legion_tactical_v2_save';
                 this.data = this.load();
             }
 
             load() {
                 try {
                     const saved = localStorage.getItem(this.STORAGE_KEY);
-                    return saved ? JSON.parse(saved) : { distance: 0 };
+                    return saved ? JSON.parse(saved) : { classic: 0, challenge: 0 };
                 } catch (e) {
-                    return { distance: 0 };
+                    return { classic: 0, challenge: 0 };
                 }
             }
 
-            updateDistance(dist) {
-                if (dist > this.data.distance) {
-                    this.data.distance = dist;
+            updateDistance(dist, isChallenge) {
+                const key = isChallenge ? 'challenge' : 'classic';
+                if (dist > this.data[key]) {
+                    this.data[key] = dist;
                     this.persist();
                     return true;
                 }
@@ -337,14 +355,12 @@
                 } catch (e) {}
             }
 
-            getRecords() {
-                return this.data;
-            }
+            getRecords() { return this.data; }
         }
 
         /**
          * UIManager
-         * Centralizes all DOM manipulation and UI state refreshing
+         * Orchestrates the complex multi-button menu system
          */
         class UIManager {
             constructor() {
@@ -356,10 +372,10 @@
                     gameOverScreen: document.getElementById('game-over-screen'),
                     failReason: document.getElementById('fail-reason'),
                     finalDist: document.getElementById('final-dist'),
-                    startRecords: document.getElementById('start-records'),
-                    endRecords: document.getElementById('end-records'),
-                    startBtn: document.getElementById('start-btn'),
-                    restartBtn: document.getElementById('restart-btn'),
+                    recordClassic: document.getElementById('record-classic'),
+                    recordChallenge: document.getElementById('record-challenge'),
+                    recordClassicEnd: document.getElementById('record-classic-end'),
+                    recordChallengeEnd: document.getElementById('record-challenge-end'),
                 };
             }
 
@@ -386,9 +402,12 @@
             }
 
             refreshRecords(records) {
-                const str = `Best: ${Math.floor(records.distance)}m`;
-                this.elements.startRecords.innerText = str;
-                this.elements.endRecords.innerText = str;
+                const c = `Classic Best: ${Math.floor(records.classic)}m`;
+                const x = `Challenge Best: ${Math.floor(records.challenge)}m`;
+                this.elements.recordClassic.innerText = c;
+                this.elements.recordChallenge.innerText = x;
+                this.elements.recordClassicEnd.innerText = c;
+                this.elements.recordChallengeEnd.innerText = x;
             }
 
             triggerAlert(type) {
@@ -438,7 +457,6 @@
                 this.type = 'evolutionGate'; 
                 this.health = score * 1.75;
                 this.maxHealth = this.health;
-                this.isSecret = Math.random() < CONFIG.ENTITIES.CHANCE_SECRET_GATE;
             }
         }
 
@@ -462,9 +480,6 @@
             }
         }
 
-        /**
-         * Swarm Model
-         */
         class Swarm {
             constructor() {
                 this.offsets = [];
@@ -484,15 +499,11 @@
             }
         }
 
-        /**
-         * EntityFactory
-         */
         class EntityFactory {
             static createEntities(role, lane, score, distance) {
                 const spawnY = -100;
                 if (role === ROLES.GROWTH) {
-                    const isPercentage = Math.random() < CONFIG.ENTITIES.CHANCE_PERCENTAGE_GATE;
-                    const val = isPercentage ? Math.ceil(score * 0.012) : 1;
+                    const val = Math.random() < CONFIG.ENTITIES.CHANCE_PERCENTAGE_GATE ? Math.ceil(score * 0.012) : 1;
                     return [new Gate(role, lane, spawnY, '+', val, true)];
                 } else if (role === ROLES.EVOLUTION) {
                     return [new EvolutionGate(role, lane, spawnY, score)];
@@ -507,8 +518,8 @@
                     } else {
                         if (Math.random() < diffProb) return [new Enemy(role, lane, spawnY, score, distance)];
                         else {
-                            const isNegative = Math.random() < CONFIG.ENTITIES.CHANCE_CHAOS_GATE_NEGATIVE;
-                            const op = isNegative ? '-' : '/';
+                            const isNeg = Math.random() < CONFIG.ENTITIES.CHANCE_CHAOS_GATE_NEGATIVE;
+                            const op = isNeg ? '-' : '/';
                             const val = op === '-' ? Math.floor(score * 0.2) + 10 : 2;
                             return [new Gate(role, lane, spawnY, op, val, false)];
                         }
@@ -519,6 +530,7 @@
 
         /**
          * GameEngine
+         * Re-engineered to handle dynamic lane counts and modes
          */
         class GameEngine {
             constructor(canvas, uiManager, saveManager) {
@@ -526,40 +538,44 @@
                 this.ui = uiManager;
                 this.saveManager = saveManager;
                 this.active = false;
-                this.score = CONFIG.PLAYER.START_SCORE;
-                this.peakScoreThisRun = CONFIG.PLAYER.START_SCORE;
+                this.isChallenge = false;
+                this.numLanes = 3;
+                this.score = 10;
+                this.peakScoreThisRun = 10;
                 this.distance = 0;
-                this.speed = CONFIG.PHYSICS.INITIAL_SPEED;
+                this.speed = 3.5;
                 this.currentLane = 1;
                 this.targetX = 0;
                 this.playerX = 0;
-                this.laneRoles = [ROLES.GROWTH, ROLES.CHAOS, ROLES.EVOLUTION];
+                this.laneRoles = [];
                 this.entities = [];
                 this.particles = [];
                 this.bullets = [];
                 this.lastShiftDist = 0;
-                this.lastSpawns = [0, 0, 0];
+                this.lastSpawns = [];
                 this.bannerShownThisRun = false;
                 this.fireTimer = 0;
                 this.swarm = new Swarm();
                 this.elapsedTime = 0; 
             }
 
-            start() {
+            start(isChallenge = false) {
+                this.isChallenge = isChallenge;
+                this.numLanes = isChallenge ? 4 : 3;
                 this.score = CONFIG.PLAYER.START_SCORE;
                 this.peakScoreThisRun = CONFIG.PLAYER.START_SCORE;
                 this.distance = 0;
                 this.speed = CONFIG.PHYSICS.INITIAL_SPEED;
-                this.currentLane = 1;
+                this.currentLane = Math.floor(this.numLanes / 2);
                 this.entities = [];
                 this.particles = [];
                 this.bullets = [];
                 this.lastShiftDist = 0;
-                this.lastSpawns = [performance.now(), performance.now(), performance.now()];
+                this.lastSpawns = new Array(this.numLanes).fill(performance.now());
                 this.bannerShownThisRun = false;
                 this.fireTimer = 0;
                 this.elapsedTime = 0;
-                // Silent shuffle at start prevents alert from showing
+                
                 this.shuffleLanes(true);
                 this.updateTargetX();
                 this.playerX = this.targetX;
@@ -568,42 +584,50 @@
             }
 
             shuffleLanes(silent = false) {
-                let options = [ROLES.GROWTH, ROLES.CHAOS, ROLES.EVOLUTION];
-                for (let i = options.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [options[i], options[j]] = [options[j], options[i]];
+                let pool = [];
+                if (this.isChallenge) {
+                    pool = [ROLES.GROWTH, ROLES.EVOLUTION, ROLES.CHAOS, ROLES.CHAOS];
+                } else {
+                    pool = [ROLES.GROWTH, ROLES.EVOLUTION, ROLES.CHAOS];
                 }
-                this.laneRoles = options;
+                
+                // Shuffle logic
+                for (let i = pool.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [pool[i], pool[j]] = [pool[j], pool[i]];
+                }
+                
+                this.laneRoles = pool;
                 if (!silent) this.ui.triggerAlert('shift');
             }
 
             getLaneFromCoords(clientX) {
                 const rect = this.canvas.getBoundingClientRect();
-                return Math.floor(((clientX - rect.left) / rect.width) * CONFIG.GAME.LANES);
+                return Math.floor(((clientX - rect.left) / rect.width) * this.numLanes);
             }
 
             moveToLane(targetLane) {
                 if (!this.active) return;
                 if (targetLane < this.currentLane && this.currentLane > 0) this.currentLane--;
-                else if (targetLane > this.currentLane && this.currentLane < CONFIG.GAME.LANES - 1) this.currentLane++;
+                else if (targetLane > this.currentLane && this.currentLane < this.numLanes - 1) this.currentLane++;
                 this.updateTargetX();
             }
 
             updateTargetX() {
-                const lw = this.canvas.width / CONFIG.GAME.LANES;
+                const lw = this.canvas.width / this.numLanes;
                 this.targetX = (this.currentLane * lw) + (lw / 2);
             }
 
             update(dt) {
                 if (!this.active) return;
-                
                 this.elapsedTime += dt;
                 this.distance += this.speed * dt * 5; 
                 this.speed = Math.min(CONFIG.PHYSICS.MAX_SPEED, CONFIG.PHYSICS.INITIAL_SPEED + (this.distance / CONFIG.PHYSICS.SPEED_SCALING));
                 this.peakScoreThisRun = Math.max(this.peakScoreThisRun, this.score);
                 
-                const bestDist = this.saveManager.getRecords().distance;
-                if (!this.bannerShownThisRun && this.distance > bestDist && bestDist > 0) {
+                const rec = this.saveManager.getRecords();
+                const best = this.isChallenge ? rec.challenge : rec.classic;
+                if (!this.bannerShownThisRun && this.distance > best && best > 0) {
                     this.bannerShownThisRun = true;
                     this.ui.triggerAlert('record');
                 }
@@ -622,7 +646,7 @@
 
             spawnManager() {
                 const now = performance.now();
-                for (let i = 0; i < CONFIG.GAME.LANES; i++) {
+                for (let i = 0; i < this.numLanes; i++) {
                     const role = this.laneRoles[i];
                     const interval = (role === ROLES.EVOLUTION ? 5500 : (role === ROLES.GROWTH ? 700 : 1800)) / ( (this.speed * role.speedMult) / CONFIG.PHYSICS.INITIAL_SPEED);
                     if (now - this.lastSpawns[i] > interval) {
@@ -654,7 +678,7 @@
                             target.isCollected = true;
                             for (let i = 0; i < 12; i++) {
                                 this.particles.push({ 
-                                    x: target.lane * (this.canvas.width / CONFIG.GAME.LANES) + (this.canvas.width / CONFIG.GAME.LANES / 2), 
+                                    x: target.lane * (this.canvas.width / this.numLanes) + (this.canvas.width / this.numLanes / 2), 
                                     y: target.y + 40, vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8, life: 1, color: '#ef4444' 
                                 });
                             }
@@ -709,52 +733,47 @@
 
             endGame(reason) {
                 this.active = false;
-                this.saveManager.updateDistance(this.distance);
+                this.saveManager.updateDistance(this.distance, this.isChallenge);
                 this.ui.showGameOver(this.distance, reason, this.saveManager.getRecords());
             }
         }
 
-        /**
-         * Renderer
-         */
         class Renderer {
             constructor(canvas, ctx) {
                 this.canvas = canvas;
                 this.ctx = ctx;
-                
                 this.STRATEGIES = {
-                    gate: (ctx, entity, lw, engine) => this.drawStandardGate(ctx, entity, lw),
-                    evolutionGate: (ctx, entity, lw, engine) => this.drawEvolutionGate(ctx, entity, lw),
-                    enemy: (ctx, entity, lw, engine) => this.drawEnemy(ctx, entity, lw, engine),
+                    gate: (ctx, e, lw) => this.drawStandardGate(ctx, e, lw),
+                    evolutionGate: (ctx, e, lw) => this.drawEvolutionGate(ctx, e, lw),
+                    enemy: (ctx, e, lw, engine) => this.drawEnemy(ctx, e, lw, engine),
                     player: (ctx, engine) => this.drawPlayer(ctx, engine)
                 };
             }
 
             draw(engine) {
                 const ctx = this.ctx;
-                const canvas = this.canvas;
-                const lw = canvas.width / CONFIG.GAME.LANES;
+                const lw = this.canvas.width / engine.numLanes;
                 const theme = CONFIG.THEME;
 
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
                 ctx.fillStyle = theme.COLORS.BACKGROUND;
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-                for (let i = 0; i < CONFIG.GAME.LANES; i++) {
+                for (let i = 0; i < engine.numLanes; i++) {
                     ctx.fillStyle = engine.laneRoles[i].color;
-                    ctx.fillRect(i * lw, 0, lw, canvas.height);
+                    ctx.fillRect(i * lw, 0, lw, this.canvas.height);
                 }
 
                 ctx.strokeStyle = theme.COLORS.GRID;
                 ctx.setLineDash(theme.STYLES.GRID_DASH);
-                for (let i = 1; i < CONFIG.GAME.LANES; i++) {
-                    ctx.beginPath(); ctx.moveTo(i * lw, 0); ctx.lineTo(i * lw, canvas.height); ctx.stroke();
+                for (let i = 1; i < engine.numLanes; i++) {
+                    ctx.beginPath(); ctx.moveTo(i * lw, 0); ctx.lineTo(i * lw, this.canvas.height); ctx.stroke();
                 }
                 ctx.setLineDash([]);
 
                 engine.entities.forEach(e => {
-                    const strategy = this.STRATEGIES[e.type];
-                    if (strategy) strategy(ctx, e, lw, engine);
+                    const s = this.STRATEGIES[e.type];
+                    if (s) s(ctx, e, lw, engine);
                 });
 
                 ctx.fillStyle = theme.COLORS.BULLET;
@@ -779,51 +798,43 @@
             drawStandardGate(ctx, e, lw) {
                 const x = e.lane * lw;
                 const theme = CONFIG.THEME;
-                
                 if (e.role === ROLES.GROWTH) {
-                    const gateWidth = lw * 0.6;
-                    const gateOffset = (lw - gateWidth) / 2;
-                    const gateColor = e.isPositive ? 'rgba(37, 99, 235, 0.9)' : 'rgba(220, 38, 38, 0.9)';
-                    const strokeColor = e.isPositive ? '#60a5fa' : '#f87171';
-                    
-                    this._drawGateShell(ctx, x + gateOffset - 10, e.y, gateWidth + 20, e.height, 25, gateColor, strokeColor);
+                    const gateW = lw * 0.6;
+                    const off = (lw - gateW) / 2;
+                    this._drawGateShell(ctx, x + off - 10, e.y, gateW + 20, e.height, 25, 'rgba(37, 99, 235, 0.9)', '#60a5fa');
                     ctx.fillStyle = theme.COLORS.TEXT_WHITE; ctx.textAlign = 'center';
                     ctx.font = theme.FONTS.GATE;
                     ctx.fillText(e.isPercentage ? CONFIG.ASSETS.POWERUP.repeat(3) : CONFIG.ASSETS.POWERUP, x + lw / 2, e.y + 45);
                 } else { 
                     ctx.fillStyle = theme.COLORS.TEXT_WHITE; ctx.textAlign = 'center';
-                    const isGreater = e.op === '/';
-                    ctx.font = isGreater ? theme.FONTS.CHAOS_EMOJI_LARGE : theme.FONTS.CHAOS_EMOJI;
-                    ctx.fillText(CONFIG.ASSETS.HAZARD, x + lw / 2, e.y + (isGreater ? 60 : 50));
+                    const isX = e.op === '/';
+                    ctx.font = isX ? theme.FONTS.CHAOS_EMOJI_LARGE : theme.FONTS.CHAOS_EMOJI;
+                    ctx.fillText(CONFIG.ASSETS.HAZARD, x + lw / 2, e.y + (isX ? 60 : 50));
                 }
             }
 
             drawEvolutionGate(ctx, e, lw) {
                 const x = e.lane * lw;
                 const theme = CONFIG.THEME;
-                const isLocked = !e.isUnlocked;
+                const isL = !e.isUnlocked;
+                const gateW = lw * 0.6;
+                const off = (lw - gateW) / 2;
                 
-                const gateWidth = lw * 0.6;
-                const gateOffset = (lw - gateWidth) / 2;
-                const gateColor = isLocked ? theme.COLORS.LOCKED_GATE_BG : 'rgba(37, 99, 235, 0.9)';
-                const strokeColor = isLocked ? theme.COLORS.LOCKED_GATE_STROKE : '#60a5fa';
-                
-                this._drawGateShell(ctx, x + gateOffset - 10, e.y, gateWidth + 20, e.height, 25, gateColor, strokeColor);
+                this._drawGateShell(ctx, x + off - 10, e.y, gateW + 20, e.height, 25, isL ? theme.COLORS.LOCKED_GATE_BG : 'rgba(37, 99, 235, 0.9)', isL ? theme.COLORS.LOCKED_GATE_STROKE : '#60a5fa');
                 ctx.fillStyle = theme.COLORS.TEXT_WHITE; ctx.textAlign = 'center';
 
-                if (isLocked) {
-                    // Lock size is now perfectly consistent - no scaling transforms applied
+                if (isL) {
                     ctx.font = theme.FONTS.LOCKED;
                     ctx.fillText(CONFIG.ASSETS.LOCKED, x + lw / 2, e.y + 35);
-                    const barW = (gateWidth) - 20, barH = 8, barX = x + gateOffset + 10, barY = e.y + 58;
+                    const barW = gateW - 20, barH = 8, barX = x + off + 10, barY = e.y + 58;
                     ctx.fillStyle = theme.COLORS.BAR_BG;
                     ctx.beginPath(); ctx.roundRect(barX, barY, barW, barH, 4); ctx.fill();
                     ctx.fillStyle = theme.COLORS.TEXT_WHITE;
                     ctx.beginPath(); ctx.roundRect(barX, barY, barW * (e.health / e.maxHealth), barH, 4); ctx.fill();
                 } else {
                     ctx.font = theme.FONTS.GATE;
-                    const batteryStr = e.val > 3 ? CONFIG.ASSETS.BATTERY.repeat(3) : (e.val > 2 ? CONFIG.ASSETS.BATTERY.repeat(2) : CONFIG.ASSETS.BATTERY);
-                    ctx.fillText(batteryStr, x + lw / 2, e.y + 45);
+                    const bat = e.val > 3 ? CONFIG.ASSETS.BATTERY.repeat(3) : (e.val > 2 ? CONFIG.ASSETS.BATTERY.repeat(2) : CONFIG.ASSETS.BATTERY);
+                    ctx.fillText(bat, x + lw / 2, e.y + 45);
                 }
             }
 
@@ -831,7 +842,6 @@
                 const x = e.lane * lw;
                 const theme = CONFIG.THEME;
                 const barW = lw * CONFIG.ENTITIES.HEALTH_BAR_MAGNITUDE, barH = CONFIG.ENTITIES.HEALTH_BAR_HEIGHT, barX = x + lw/2 - barW/2, barY = e.y - 15;
-                
                 ctx.fillStyle = theme.COLORS.BAR_BG;
                 ctx.beginPath(); ctx.roundRect(barX, barY, barW, barH, 4); ctx.fill();
                 ctx.fillStyle = theme.COLORS.HEALTH_ENEMY;
@@ -839,10 +849,10 @@
                 
                 if (e.isSwarm) {
                     ctx.font = theme.FONTS.SWARM_ENEMY;
-                    const timeFactor = engine.elapsedTime * 6.67; 
-                    e.swarmOffsets.forEach((off, i) => {
-                        const jx = Math.sin(timeFactor + i) * 3, jy = Math.cos(timeFactor + i) * 3;
-                        ctx.fillText(CONFIG.ASSETS.ENEMY, x + lw/2 + off.x + jx, e.y + 40 + off.y + jy);
+                    const tf = engine.elapsedTime * 6.67; 
+                    e.swarmOffsets.forEach((o, i) => {
+                        const jx = Math.sin(tf + i) * 3, jy = Math.cos(tf + i) * 3;
+                        ctx.fillText(CONFIG.ASSETS.ENEMY, x + lw/2 + o.x + jx, e.y + 40 + o.y + jy);
                     });
                 } else if (e.forceType === 'phalanx') {
                     ctx.font = theme.FONTS.ENEMY_PHALANX;
@@ -859,17 +869,14 @@
             drawPlayer(ctx, engine) {
                 const theme = CONFIG.THEME;
                 const pY = this.canvas.height - CONFIG.PLAYER.Y_OFFSET;
-                const swarmCount = engine.swarm.getActiveCount(engine.score);
-                
+                const sc = engine.swarm.getActiveCount(engine.score);
                 ctx.font = theme.FONTS.PLAYER; ctx.textAlign = 'center';
-                for (let i = 0; i < swarmCount; i++) {
+                for (let i = 0; i < sc; i++) {
                     const pos = engine.swarm.getMemberPosition(i, engine.playerX, pY, engine.elapsedTime);
                     ctx.fillText(CONFIG.ASSETS.PLAYER, pos.x, pos.y);
                 }
-                
                 const barW = CONFIG.PLAYER.HEALTH_BAR_WIDTH, barH = CONFIG.PLAYER.HEALTH_BAR_HEIGHT;
                 const barX = engine.playerX - barW / 2, barY = pY - 35;
-                
                 ctx.fillStyle = theme.COLORS.BAR_BG_SOLID;
                 ctx.beginPath(); ctx.roundRect(barX, barY, barW, barH, 5); ctx.fill();
                 ctx.fillStyle = theme.COLORS.HEALTH_PLAYER;
@@ -883,9 +890,9 @@
          */
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const saveManager = new SaveManager();
-        const uiManager = new UIManager();
-        const game = new GameEngine(canvas, uiManager, saveManager);
+        const save = new SaveManager();
+        const ui = new UIManager();
+        const game = new GameEngine(canvas, ui, save);
         const renderer = new Renderer(canvas, ctx);
 
         window.addEventListener('resize', () => {
@@ -898,8 +905,13 @@
             }
         });
         window.dispatchEvent(new Event('resize'));
-        uiManager.elements.startBtn.addEventListener('click', () => game.start());
-        uiManager.elements.restartBtn.addEventListener('click', () => game.start());
+
+        // Input Bindings
+        document.getElementById('start-classic-btn').addEventListener('click', () => game.start(false));
+        document.getElementById('start-challenge-btn').addEventListener('click', () => game.start(true));
+        document.getElementById('restart-classic-btn').addEventListener('click', () => game.start(false));
+        document.getElementById('restart-challenge-btn').addEventListener('click', () => game.start(true));
+
         window.addEventListener('keydown', (e) => {
             if (e.key === 'ArrowLeft') game.moveToLane(game.currentLane - 1);
             if (e.key === 'ArrowRight') game.moveToLane(game.currentLane + 1);
@@ -919,7 +931,7 @@
             requestAnimationFrame(loop);
         }
 
-        uiManager.showStart(saveManager.getRecords());
+        ui.showStart(save.getRecords());
         requestAnimationFrame(loop);
     </script>
 </body>
