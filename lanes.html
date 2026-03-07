@@ -8,6 +8,8 @@
         :root {
             --blue-gate: rgba(37, 99, 235, 0.9);
             --red-gate: rgba(220, 38, 38, 0.9);
+            --health-green: #22c55e;
+            --health-red: #ef4444;
             --text-light: #f8fafc;
             --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
@@ -142,14 +144,12 @@
 
         .hud-stats {
             background: rgba(0,0,0,0.5);
-            padding: 8px 20px;
+            padding: 8px 25px;
             border-radius: 30px;
-            font-size: 0.9rem;
+            font-size: 1rem;
             font-weight: bold;
             backdrop-filter: blur(10px);
             border: 2px solid rgba(255,255,255,0.2);
-            display: flex;
-            gap: 15px;
         }
 
         .final-stats-box {
@@ -167,7 +167,6 @@
         <div id="hud">
             <div class="hud-stats">
                 <span>DIST: <b id="dist-hud">0</b>m</span>
-                <span>TIME: <b id="time-hud">00:00</b></span>
             </div>
         </div>
 
@@ -176,9 +175,9 @@
 
         <div id="start-screen" class="overlay">
             <h1>MATH LEGION</h1>
-            <p class="stat-line">Grow the swarm. Defend the path.</p>
+            <p class="stat-line">Capture energy. Defend the path.</p>
             <button class="btn" id="start-btn">BATTLE START</button>
-            <div class="record-text" id="start-records">Records: Dist 0 | Army 0 | Time 00:00</div>
+            <div class="record-text" id="start-records">Records: Max Distance 0m</div>
         </div>
 
         <div id="game-over-screen" class="overlay hidden">
@@ -187,11 +186,8 @@
             
             <div class="final-stats-box">
                 <div class="stat-line">Distance: <b id="final-dist">0</b>m</div>
-                <div class="stat-line">Peak Army: <b id="final-army">0</b></div>
-                <div class="stat-line">Time: <b id="final-time">00:00</b></div>
+                <div class="record-text" id="end-records">Best Distance: 0m</div>
             </div>
-
-            <div class="record-text" id="end-records">Bests: Dist 0 | Army 0 | Time 00:00</div>
             
             <button class="btn" id="restart-btn">RETRY BATTLE</button>
         </div>
@@ -200,27 +196,12 @@
     </div>
 
     <script>
-        // Records kept in memory for the current session
-        let records = { distance: 0, army: 0, time: 0 };
+        // Records kept in memory for the session
+        let records = { distance: 0 };
         let bannerShownThisRun = false;
 
-        const compactFormatter = new Intl.NumberFormat('en-US', { notation: 'compact', compactDisplay: 'short', maximumFractionDigits: 1 });
-
-        function formatVal(num) {
-            num = Math.max(0, Math.floor(num));
-            if (num >= 1e15) return num.toExponential(2);
-            return compactFormatter.format(num);
-        }
-
-        function formatT(ms) {
-            const totalSec = Math.floor(ms / 1000);
-            const m = Math.floor(totalSec / 60);
-            const s = totalSec % 60;
-            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-        }
-
         function updateRecordsUI() {
-            const str = `Bests: Dist ${formatVal(records.distance)} | Army ${formatVal(records.army)} | Time ${formatT(records.time * 1000)}`;
+            const str = `Best: ${Math.floor(records.distance)}m`;
             document.getElementById('start-records').innerText = str;
             document.getElementById('end-records').innerText = str;
         }
@@ -228,13 +209,12 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const distHUD = document.getElementById('dist-hud');
-        const timeHUD = document.getElementById('time-hud');
         const recordBanner = document.getElementById('record-banner');
 
         const LANES = 3;
         const INITIAL_SPEED = 3.5;
         const MAX_SPEED = 14;
-        const PLAYER_SIZE = 40; // Collision box height
+        const PLAYER_SIZE = 40; 
 
         const ROLES = {
             GROWTH: { color: 'rgba(34, 197, 94, 0.15)', speedMult: 1.6 },
@@ -245,17 +225,14 @@
         let laneRoles = [ROLES.GROWTH, ROLES.CHAOS, ROLES.EVOLUTION];
         let gameActive = false;
         let score = 10;
-        let peakArmy = 10;
+        let peakScoreThisRun = 10; // For normalizing the player health bar
         let distance = 0;
         let speed = INITIAL_SPEED;
         let currentLane = 1;
-        let startTime = 0;
-        let runTime = 0;
         let targetX = 0, playerX = 0;
         let entities = [], particles = [], bullets = [];
         let lastShiftDist = 0, lastSpawns = [0, 0, 0];
 
-        // Organic Swarm for Player
         const playerSwarm = [];
         for (let i = 0; i < 50; i++) playerSwarm.push({ x: (Math.random() - 0.5) * 55, y: Math.random() * 45 });
 
@@ -283,16 +260,10 @@
             setTimeout(() => alert.style.opacity = '0', 2000);
         }
 
-        // Keyboard controls restored
         window.addEventListener('keydown', (e) => {
             if (!gameActive) return;
-            if (e.key === 'ArrowLeft' && currentLane > 0) {
-                currentLane--;
-                updateTargetX();
-            } else if (e.key === 'ArrowRight' && currentLane < 2) {
-                currentLane++;
-                updateTargetX();
-            }
+            if (e.key === 'ArrowLeft' && currentLane > 0) { currentLane--; updateTargetX(); }
+            else if (e.key === 'ArrowRight' && currentLane < 2) { currentLane++; updateTargetX(); }
         });
 
         canvas.addEventListener('mousedown', (e) => {
@@ -323,13 +294,12 @@
                 this.isUnlocked = true;
                 this.speedMult = role.speedMult;
                 this.forceType = forceType;
-                
-                // Fixed randomized offset for phalanx parts, no jitter
                 this.phalanxXOffset = forceType === 'phalanx' ? (Math.random() - 0.5) * 20 : 0;
 
                 if (role === ROLES.GROWTH) {
                     this.type = 'gate'; this.op = '+';
-                    this.val = Math.random() > 0.4 ? 1 : Math.ceil(score * 0.012);
+                    this.isPercentage = Math.random() < 0.4;
+                    this.val = this.isPercentage ? Math.ceil(score * 0.012) : 1;
                     this.isPositive = true;
                 } else if (role === ROLES.EVOLUTION) {
                     this.type = 'gate'; this.op = 'x';
@@ -364,45 +334,75 @@
 
             draw() {
                 const x = this.lane * this.width;
+                const radius = 25; // Visual roundness for "oval" look
+
                 if (this.type === 'gate') {
                     const isLocked = !this.isUnlocked && this.role === ROLES.EVOLUTION;
-                    ctx.fillStyle = isLocked ? 'rgba(71, 85, 105, 0.9)' : (this.isPositive ? 'rgba(37, 99, 235, 0.9)' : 'rgba(220, 38, 38, 0.9)');
-                    ctx.fillRect(x + 5, this.y, this.width - 10, this.height);
-                    ctx.strokeStyle = isLocked ? '#94a3b8' : (this.isPositive ? '#60a5fa' : '#f87171');
-                    ctx.lineWidth = 4; ctx.strokeRect(x + 5, this.y, this.width - 10, this.height);
+                    const gateColor = isLocked ? 'rgba(71, 85, 105, 0.9)' : (this.isPositive ? 'rgba(37, 99, 235, 0.9)' : 'rgba(220, 38, 38, 0.9)');
+                    const strokeColor = isLocked ? '#94a3b8' : (this.isPositive ? '#60a5fa' : '#f87171');
+                    
+                    // Draw Rounded Gate Body
+                    ctx.beginPath();
+                    ctx.roundRect(x + 10, this.y, this.width - 20, this.height, radius);
+                    ctx.fillStyle = gateColor;
+                    ctx.fill();
+                    ctx.strokeStyle = strokeColor;
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+
                     if (isLocked) {
-                        ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = 'bold 16px var(--font-main)';
-                        ctx.fillText('🔒 LOCKED', x + this.width / 2, this.y + 25);
-                        ctx.font = 'bold 18px var(--font-main)';
-                        ctx.fillText(this.isSecret ? "???" : `+${Math.round((this.val-1)*100)}%`, x + this.width / 2, this.y + 48);
-                        ctx.fillStyle = '#1e293b'; ctx.fillRect(x + 20, this.y + 60, this.width - 40, 8);
-                        ctx.fillStyle = '#60a5fa'; ctx.fillRect(x + 20, this.y + 60, (this.width - 40) * (this.health / this.maxHealth), 8);
-                    } else {
-                        let sym = this.op === '+' ? '➕' : (this.op === '-' ? '➖' : (this.op === 'x' ? '✖️' : '➗'));
-                        ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = '22px serif';
-                        ctx.fillText(sym, x + this.width / 2, this.y + 35);
-                        ctx.font = 'bold 24px var(--font-main)';
-                        ctx.fillText(this.op === 'x' ? `+${Math.round((this.val-1)*100)}%` : formatVal(this.val), x + this.width / 2, this.y + 65);
+                        ctx.font = 'bold 20px var(--font-main)';
+                        ctx.fillText(this.isSecret ? "???" : "🔒", x + this.width / 2, this.y + 35);
+                        // Mini Health Bar for unlocking - also rounded
+                        const barX = x + 25;
+                        const barY = this.y + 58;
+                        const barW = this.width - 50;
+                        const barH = 8;
+                        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+                        ctx.beginPath();
+                        ctx.roundRect(barX, barY, barW, barH, 4);
+                        ctx.fill();
+                        ctx.fillStyle = '#fff';
+                        ctx.beginPath();
+                        ctx.roundRect(barX, barY, barW * (this.health / this.maxHealth), barH, 4);
+                        ctx.fill();
+                    } else if (this.role === ROLES.GROWTH) {
+                        ctx.font = '26px serif';
+                        ctx.fillText(this.isPercentage ? "⚡⚡⚡" : "⚡", x + this.width / 2, this.y + 45);
+                    } else if (this.role === ROLES.EVOLUTION) {
+                        ctx.font = '26px serif';
+                        const battery = this.val > 3 ? "🔋🔋🔋" : (this.val > 2 ? "🔋🔋" : "🔋");
+                        ctx.fillText(battery, x + this.width / 2, this.y + 45);
+                    } else { 
+                        ctx.font = '24px serif';
+                        ctx.fillText(this.op === '-' ? "➖" : "➗", x + this.width / 2, this.y + 45);
                     }
-                } else {
-                    const hStr = formatVal(this.health);
-                    ctx.font = '900 18px var(--font-main)';
-                    const hW = ctx.measureText(hStr).width;
-                    const bW = Math.max(50, hW + 16);
-                    ctx.fillStyle = this.isElite ? '#fbbf24' : '#ef4444';
-                    ctx.beginPath(); ctx.roundRect(x + this.width/2 - bW/2, this.y - 15, bW, 24, 6); ctx.fill();
-                    ctx.fillStyle = this.isElite ? '#000' : 'white';
-                    ctx.textAlign = 'center'; ctx.fillText(hStr, x + this.width/2, this.y + 3);
+                } else { 
+                    // Enemy Health bar - Rounded
+                    const barW = this.width * 0.55;
+                    const barH = 8;
+                    const barX = x + this.width/2 - barW/2;
+                    const barY = this.y - 15;
+                    
+                    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                    ctx.beginPath();
+                    ctx.roundRect(barX, barY, barW, barH, 4);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = '#ef4444';
+                    ctx.beginPath();
+                    ctx.roundRect(barX, barY, barW * (this.health / this.maxHealth), barH, 4);
+                    ctx.fill();
                     
                     if (this.isSwarm) {
                         ctx.font = '18px serif';
                         this.swarmOffsets.forEach((off, i) => {
-                            const jx = Math.sin(Date.now() / 150 + i) * 3;
-                            const jy = Math.cos(Date.now() / 150 + i) * 3;
+                            const jx = Math.sin(Date.now() / 150 + i) * 3, jy = Math.cos(Date.now() / 150 + i) * 3;
                             ctx.fillText('👹', x + this.width/2 + off.x + jx, this.y + 40 + off.y + jy);
                         });
                     } else if (this.forceType === 'phalanx') {
-                        // Phalanx type: Smaller (24px), fixed randomized offset, no jitter
                         ctx.font = '24px serif';
                         ctx.fillText('👹', x + this.width/2 + this.phalanxXOffset, this.y + 45);
                     } else {
@@ -423,8 +423,7 @@
                 const interval = (role === ROLES.EVOLUTION ? 5500 : (role === ROLES.GROWTH ? 700 : 1800)) / ( (speed * role.speedMult) / INITIAL_SPEED);
                 if (now - lastSpawns[i] > interval) {
                     if (role === ROLES.CHAOS && Math.random() > 0.8) {
-                        const size = 10;
-                        for (let k = 0; k < size; k++) entities.push(new Entity(role, i, -100 - (k * 60), 'phalanx'));
+                        for (let k = 0; k < 10; k++) entities.push(new Entity(role, i, -100 - (k * 60), 'phalanx'));
                     } else {
                         entities.push(new Entity(role, i, -100));
                     }
@@ -448,7 +447,7 @@
                 if (target.health <= 0) {
                     if (target.type === 'enemy') {
                         target.isCollected = true;
-                        particles.push(...Array(15).fill(0).map(() => ({ x: target.lane * (canvas.width / LANES) + (canvas.width / LANES / 2), y: target.y + 40, vx: (Math.random() - 0.5) * 10, vy: (Math.random() - 0.5) * 10, life: 1, color: target.isElite ? '#fbbf24' : '#facc15' })));
+                        particles.push(...Array(12).fill(0).map(() => ({ x: target.lane * (canvas.width / LANES) + (canvas.width / LANES / 2), y: target.y + 40, vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8, life: 1, color: '#ef4444' })));
                         score *= target.isElite ? 2.5 : 1.012;
                         entities = entities.filter(ent => ent !== target);
                     } else { target.isUnlocked = true; }
@@ -458,15 +457,12 @@
 
         function update() {
             if (!gameActive) return;
-            runTime = Date.now() - startTime;
             distance += speed / 12;
             speed = Math.min(MAX_SPEED, INITIAL_SPEED + (distance / 3500));
-            peakArmy = Math.max(peakArmy, score);
-            distHUD.innerText = formatVal(distance);
-            timeHUD.innerText = formatT(runTime);
+            peakScoreThisRun = Math.max(peakScoreThisRun, score);
+            distHUD.innerText = Math.floor(distance);
             
-            // Record Banner Logic (Triggers exactly once per run)
-            if (!bannerShownThisRun && (distance > records.distance || score > records.army || (runTime / 1000) > records.time)) {
+            if (!bannerShownThisRun && distance > records.distance) {
                 bannerShownThisRun = true;
                 recordBanner.classList.add('show');
                 setTimeout(() => recordBanner.classList.remove('show'), 5000);
@@ -501,10 +497,10 @@
 
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#1e293b'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, canvas.width, canvas.height); // Background darken
             const lw = canvas.width / LANES;
             for (let i = 0; i < 3; i++) { ctx.fillStyle = laneRoles[i].color; ctx.fillRect(i * lw, 0, lw, canvas.height); }
-            ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.setLineDash([15, 15]);
+            ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.setLineDash([15, 15]);
             for (let i = 1; i < LANES; i++) { ctx.beginPath(); ctx.moveTo(i * lw, 0); ctx.lineTo(i * lw, canvas.height); ctx.stroke(); }
             ctx.setLineDash([]);
             entities.forEach(e => e.draw());
@@ -519,33 +515,39 @@
                 const jx = Math.sin(Date.now() / 180 + i) * 4, jy = Math.cos(Date.now() / 180 + i) * 4;
                 ctx.fillText('🏃', playerX + off.x + jx - 12, pY + off.y + jy);
             }
-            const sS = formatVal(score);
-            ctx.font = '900 20px var(--font-main)';
-            const tM = ctx.measureText(sS);
-            const bW = Math.max(70, tM.width + 20);
-            ctx.fillStyle = 'white'; ctx.beginPath(); ctx.roundRect(playerX - bW / 2, pY - 55, bW, 30, 10); ctx.fill();
-            ctx.fillStyle = '#0f172a'; ctx.textAlign = 'center'; ctx.fillText(sS, playerX, pY - 33);
+            
+            // Player Health Bar - Normalized and Rounded
+            const barW = 100;
+            const barH = 10;
+            const barX = playerX - barW / 2;
+            const barY = pY - 35;
+            
+            ctx.fillStyle = 'rgba(0,0,0,0.6)';
+            ctx.beginPath();
+            ctx.roundRect(barX, barY, barW, barH, 5);
+            ctx.fill();
+            
+            ctx.fillStyle = '#22c55e';
+            ctx.beginPath();
+            ctx.roundRect(barX, barY, barW * (score / peakScoreThisRun), barH, 5);
+            ctx.fill();
+            
+            ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
         }
 
         async function endGame(reason) {
             gameActive = false;
             document.getElementById('fail-reason').innerText = reason;
-            document.getElementById('final-dist').innerText = formatVal(distance);
-            document.getElementById('final-army').innerText = formatVal(peakArmy);
-            document.getElementById('final-time').innerText = formatT(runTime);
-            
-            // Update records in memory
+            document.getElementById('final-dist').innerText = Math.floor(distance);
             records.distance = Math.max(records.distance, distance);
-            records.army = Math.max(records.army, peakArmy);
-            records.time = Math.max(records.time, Math.floor(runTime / 1000));
             updateRecordsUI();
-
             document.getElementById('game-over-screen').classList.remove('hidden');
         }
 
         function start() {
-            score = 10; peakArmy = 10; distance = 0; speed = INITIAL_SPEED;
-            runTime = 0; startTime = Date.now();
+            score = 10; peakScoreThisRun = 10; distance = 0; speed = INITIAL_SPEED;
             currentLane = 1; updateTargetX(); playerX = targetX;
             entities = []; particles = []; bullets = []; lastShiftDist = 0;
             bannerShownThisRun = false;
