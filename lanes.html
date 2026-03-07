@@ -226,16 +226,18 @@
                 SWARM_COUNT: 50,
                 COLLISION_HEIGHT: 40,
                 Y_OFFSET: 150,
-                LERP_SPEED: 0.25,
+                LERP_FACTOR: 15, // Adjusted for dt
                 HEALTH_BAR_WIDTH: 100,
                 HEALTH_BAR_HEIGHT: 10,
+                FIRE_RATE: 0.05, // Lower is faster
             },
             PHYSICS: {
                 INITIAL_SPEED: 3.5,
                 MAX_SPEED: 14,
                 SPEED_SCALING: 3500,
                 BULLET_SPEED: 32,
-                PARTICLE_DECAY: 0.04,
+                PARTICLE_DECAY: 2.4, // Adjusted for dt
+                FPS_BASELINE: 60, // Baseline for scaling factor
             },
             ENTITIES: {
                 GATE_HEIGHT: 80,
@@ -296,8 +298,9 @@
                 this.height = CONFIG.ENTITIES.GATE_HEIGHT;
             }
 
-            update(speed) {
-                this.y += speed * this.speedMult;
+            update(dt, speed) {
+                // Scaling by FPS_BASELINE to maintain similar movement to previous 60fps fixed logic
+                this.y += speed * this.speedMult * dt * CONFIG.PHYSICS.FPS_BASELINE;
             }
         }
 
@@ -312,7 +315,6 @@
                 this.val = val;
                 this.isPositive = isPositive;
                 this.isUnlocked = isUnlocked;
-                // Determine if it's a "big" percentage upgrade for rendering purposes
                 this.isPercentage = (role === ROLES.GROWTH && val > 1) || (op === 'x');
             }
         }
@@ -376,6 +378,7 @@
                 this.lastShiftDist = 0;
                 this.lastSpawns = [0, 0, 0];
                 this.bannerShownThisRun = false;
+                this.fireTimer = 0;
                 
                 this.playerSwarm = [];
                 for (let i = 0; i < CONFIG.PLAYER.SWARM_COUNT; i++) {
@@ -395,6 +398,7 @@
                 this.lastShiftDist = 0;
                 this.lastSpawns = [Date.now(), Date.now(), Date.now()];
                 this.bannerShownThisRun = false;
+                this.fireTimer = 0;
                 this.shuffleLanes();
                 this.updateTargetX();
                 this.playerX = this.targetX;
@@ -432,10 +436,11 @@
                 this.targetX = (this.currentLane * lw) + (lw / 2);
             }
 
-            update() {
+            update(dt) {
                 if (!this.active) return;
 
-                this.distance += this.speed / 12;
+                // Scale distance and speed by deltaTime
+                this.distance += this.speed * dt * 5; 
                 this.speed = Math.min(CONFIG.PHYSICS.MAX_SPEED, CONFIG.PHYSICS.INITIAL_SPEED + (this.distance / CONFIG.PHYSICS.SPEED_SCALING));
                 this.peakScoreThisRun = Math.max(this.peakScoreThisRun, this.score);
                 
@@ -450,12 +455,13 @@
                     this.lastShiftDist = this.distance;
                 }
 
-                this.playerX += (this.targetX - this.playerX) * CONFIG.PLAYER.LERP_SPEED;
+                // Smooth player movement using dt-based lerp
+                this.playerX += (this.targetX - this.playerX) * (1 - Math.exp(-CONFIG.PLAYER.LERP_FACTOR * dt));
 
                 this.spawnManager();
-                this.combatManager();
-                this.entityManager();
-                this.particleManager();
+                this.combatManager(dt);
+                this.entityManager(dt);
+                this.particleManager(dt);
             }
 
             spawnManager() {
@@ -471,10 +477,10 @@
                             this.entities.push(new Gate(role, i, -100, '+', val, true));
                         } else if (role === ROLES.EVOLUTION) {
                             this.entities.push(new EvolutionGate(role, i, -100, this.score));
-                        } else { // CHAOS
+                        } else { 
                             const diffProb = Math.min(0.85, 0.4 + (this.distance / CONFIG.PHYSICS.SPEED_SCALING * 1.5));
                             
-                            if (Math.random() > 0.8) { // Chance for Phalanx
+                            if (Math.random() > 0.8) { 
                                 for (let k = 0; k < CONFIG.ENTITIES.PHALANX_COUNT; k++) {
                                     this.entities.push(new Enemy(role, i, -100 - (k * CONFIG.ENTITIES.PHALANX_SPACING), this.score, this.distance, 'phalanx'));
                                 }
@@ -494,10 +500,11 @@
                 }
             }
 
-            combatManager() {
+            combatManager(dt) {
                 const playerY = this.canvas.height - CONFIG.PLAYER.Y_OFFSET;
                 let target = null;
                 let minDist = Infinity;
+                
                 this.entities.forEach(e => {
                     if (((e.type === 'enemy') || (e.type === 'gate' && !e.isUnlocked)) && e.lane === this.currentLane && e.y < playerY - 40) {
                         const d = playerY - e.y;
@@ -506,14 +513,19 @@
                 });
 
                 if (target) {
-                    target.health -= (this.score * 0.012) + 0.35;
-                    if (Date.now() % 3 === 0) {
+                    // Constant damage per second
+                    target.health -= ((this.score * 0.72) + 21) * dt;
+                    
+                    this.fireTimer += dt;
+                    if (this.fireTimer >= CONFIG.PLAYER.FIRE_RATE) {
                         this.bullets.push({ 
                             x: this.playerX + (Math.random() - 0.5) * 20, 
                             y: playerY - 20, 
                             targetY: target.y + 40 
                         });
+                        this.fireTimer = 0;
                     }
+                    
                     if (target.health <= 0) {
                         if (target.type === 'enemy') {
                             target.isCollected = true;
@@ -533,17 +545,32 @@
                         }
                     }
                 }
-                this.bullets.forEach((b, i) => { 
-                    b.y -= CONFIG.PHYSICS.BULLET_SPEED; 
-                    if (b.y < b.targetY) this.bullets.splice(i, 1); 
-                });
+
+                for (let i = this.bullets.length - 1; i >= 0; i--) {
+                    const b = this.bullets[i];
+                    b.y -= CONFIG.PHYSICS.BULLET_SPEED * dt * CONFIG.PHYSICS.FPS_BASELINE; 
+                    if (b.y < b.targetY) {
+                        this.bullets.splice(i, 1);
+                    }
+                }
             }
 
-            entityManager() {
+            entityManager(dt) {
                 const playerY = this.canvas.height - CONFIG.PLAYER.Y_OFFSET;
-                this.entities.forEach((e, idx) => {
-                    e.update(this.speed);
-                    if (e.type === 'enemy' && e.y > this.canvas.height) { this.endGame("DEFENSES BREACHED!"); return; }
+                
+                for (let i = this.entities.length - 1; i >= 0; i--) {
+                    const e = this.entities[i];
+                    e.update(dt, this.speed);
+                    
+                    if (e.y > this.canvas.height) {
+                        if (e.type === 'enemy') {
+                            this.endGame("DEFENSES BREACHED!");
+                            return;
+                        }
+                        this.entities.splice(i, 1);
+                        continue;
+                    }
+
                     if (!e.isCollected && e.lane === this.currentLane && e.y + e.height > playerY && e.y < playerY + CONFIG.PLAYER.COLLISION_HEIGHT) {
                         if (e.type === 'gate' && e.isUnlocked) {
                             e.isCollected = true;
@@ -551,23 +578,30 @@
                             else if (e.op === '-') this.score -= e.val;
                             else if (e.op === 'x') this.score *= e.val;
                             else if (e.op === '/') this.score = Math.floor(this.score / e.val);
-                            this.entities.splice(idx, 1);
+                            this.entities.splice(i, 1);
                         } else if (e.type === 'enemy') {
                             this.score -= Math.ceil(e.health);
-                            this.entities.splice(idx, 1);
+                            this.entities.splice(i, 1);
                         }
-                        if (this.score <= 0) this.endGame("LEGION ANNIHILATED!");
+                        
+                        if (this.score <= 0) {
+                            this.endGame("LEGION ANNIHILATED!");
+                            return;
+                        }
                     }
-                    if (e.y > this.canvas.height) this.entities.splice(idx, 1);
-                });
+                }
             }
 
-            particleManager() {
-                this.particles.forEach((p, i) => { 
-                    p.x += p.vx; p.y += p.vy; 
-                    p.life -= CONFIG.PHYSICS.PARTICLE_DECAY; 
-                    if (p.life <= 0) this.particles.splice(i, 1); 
-                });
+            particleManager(dt) {
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    const p = this.particles[i];
+                    p.x += p.vx * dt * CONFIG.PHYSICS.FPS_BASELINE; 
+                    p.y += p.vy * dt * CONFIG.PHYSICS.FPS_BASELINE; 
+                    p.life -= CONFIG.PHYSICS.PARTICLE_DECAY * dt; 
+                    if (p.life <= 0) {
+                        this.particles.splice(i, 1);
+                    }
+                }
             }
 
             endGame(reason) {
@@ -748,14 +782,19 @@
             e.preventDefault();
         }, { passive: false });
 
-        function loop() {
-            game.update();
+        let lastTime = performance.now();
+        function loop(timestamp) {
+            // Calculate deltaTime in seconds
+            const dt = Math.min((timestamp - lastTime) / 1000, 0.1); // Cap dt to prevent teleporting on lag
+            lastTime = timestamp;
+
+            game.update(dt);
             renderer.draw(game);
             requestAnimationFrame(loop);
         }
 
         updateUI();
-        loop();
+        requestAnimationFrame(loop);
     </script>
 </body>
 </html>
