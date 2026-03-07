@@ -51,6 +51,7 @@
             cursor: pointer;
         }
 
+        /* Overlays & UI */
         .overlay {
             position: absolute;
             top: 0;
@@ -90,20 +91,35 @@
         #record-banner { top: 15%; color: #10b981; font-size: 1.8rem; transform: scale(0.8); }
         #record-banner.show { opacity: 1; transform: scale(1); }
 
+        /* Typography & Theming */
         h1 {
             font-size: 3rem;
             margin-bottom: 10px;
             text-transform: uppercase;
             letter-spacing: 4px;
-            background: linear-gradient(45deg, #3b82f6, #60a5fa);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .title-primary {
+            background-image: linear-gradient(45deg, #3b82f6, #60a5fa);
+        }
+
+        .title-danger {
+            background-image: linear-gradient(45deg, #ef4444, #f87171);
         }
 
         .stat-line {
             font-size: 1.1rem;
             margin-bottom: 8px;
             color: #94a3b8;
+        }
+
+        .text-danger {
+            color: var(--health-red);
+            margin-bottom: 20px;
+            font-weight: bold;
         }
 
         .record-text {
@@ -174,15 +190,15 @@
         <div id="record-banner">NEW PERSONAL BEST!</div>
 
         <div id="start-screen" class="overlay">
-            <h1>LEGION!</h1>
+            <h1 id="game-title" class="title-primary">LEGION!</h1>
             <p class="stat-line">Capture energy. Defend the path.</p>
             <button class="btn" id="start-btn">BATTLE START</button>
             <div class="record-text" id="start-records">Records: Max Distance 0m</div>
         </div>
 
         <div id="game-over-screen" class="overlay hidden">
-            <h1 id="fail-title" style="background: linear-gradient(45deg, #ef4444, #f87171); -webkit-background-clip: text;">DEFEATED</h1>
-            <p id="fail-reason" style="color: #f87171; margin-bottom: 20px; font-weight: bold;"></p>
+            <h1 id="fail-title" class="title-danger">DEFEATED</h1>
+            <p id="fail-reason" class="text-danger"></p>
             
             <div class="final-stats-box">
                 <div class="stat-line">Distance: <b id="final-dist">0</b>m</div>
@@ -196,25 +212,48 @@
     </div>
 
     <script>
-        // Records kept in memory for the session
-        let records = { distance: 0 };
-        let bannerShownThisRun = false;
-
-        function updateRecordsUI() {
-            const str = `Best: ${Math.floor(records.distance)}m`;
-            document.getElementById('start-records').innerText = str;
-            document.getElementById('end-records').innerText = str;
-        }
-
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const distHUD = document.getElementById('dist-hud');
-        const recordBanner = document.getElementById('record-banner');
-
-        const LANES = 3;
-        const INITIAL_SPEED = 3.5;
-        const MAX_SPEED = 14;
-        const PLAYER_SIZE = 40; 
+        /**
+         * Central Game Configuration
+         */
+        const CONFIG = {
+            GAME: {
+                LANES: 3,
+                LANE_SHIFT_INTERVAL: 500,
+                RECORD_BANNER_DURATION: 5000,
+            },
+            PLAYER: {
+                START_SCORE: 10,
+                SWARM_COUNT: 50,
+                COLLISION_HEIGHT: 40,
+                Y_OFFSET: 150,
+                LERP_SPEED: 0.25,
+                HEALTH_BAR_WIDTH: 100,
+                HEALTH_BAR_HEIGHT: 10,
+            },
+            PHYSICS: {
+                INITIAL_SPEED: 3.5,
+                MAX_SPEED: 14,
+                SPEED_SCALING: 3500,
+                BULLET_SPEED: 32,
+                PARTICLE_DECAY: 0.04,
+            },
+            ENTITIES: {
+                GATE_HEIGHT: 80,
+                PHALANX_COUNT: 10,
+                PHALANX_SPACING: 60,
+                HEALTH_BAR_MAGNITUDE: 0.55,
+                HEALTH_BAR_HEIGHT: 8,
+            },
+            ASSETS: {
+                PLAYER: '🏃',
+                ENEMY: '👹',
+                ELITE: '🐉',
+                POWERUP: '⚡',
+                BATTERY: '🔋',
+                HAZARD: '🔥',
+                LOCKED: '🔒',
+            }
+        };
 
         const ROLES = {
             GROWTH: { color: 'rgba(34, 197, 94, 0.15)', speedMult: 1.6 },
@@ -222,347 +261,500 @@
             EVOLUTION: { color: 'rgba(59, 130, 246, 0.15)', speedMult: 0.4 }
         };
 
-        let laneRoles = [ROLES.GROWTH, ROLES.CHAOS, ROLES.EVOLUTION];
-        let gameActive = false;
-        let score = 10;
-        let peakScoreThisRun = 10; // For normalizing the player health bar
-        let distance = 0;
-        let speed = INITIAL_SPEED;
-        let currentLane = 1;
-        let targetX = 0, playerX = 0;
-        let entities = [], particles = [], bullets = [];
-        let lastShiftDist = 0, lastSpawns = [0, 0, 0];
+        /**
+         * DOM Cache
+         */
+        const UI = {
+            distHud: document.getElementById('dist-hud'),
+            recordBanner: document.getElementById('record-banner'),
+            shiftAlert: document.getElementById('shift-alert'),
+            startScreen: document.getElementById('start-screen'),
+            gameOverScreen: document.getElementById('game-over-screen'),
+            failReason: document.getElementById('fail-reason'),
+            finalDist: document.getElementById('final-dist'),
+            startRecords: document.getElementById('start-records'),
+            endRecords: document.getElementById('end-records'),
+            startBtn: document.getElementById('start-btn'),
+            restartBtn: document.getElementById('restart-btn'),
+        };
 
-        const playerSwarm = [];
-        for (let i = 0; i < 50; i++) playerSwarm.push({ x: (Math.random() - 0.5) * 55, y: Math.random() * 45 });
+        /**
+         * Global persistence for session records
+         */
+        let sessionRecords = { distance: 0 };
 
-        function resize() {
-            const container = document.getElementById('game-container');
-            canvas.width = container.clientWidth;
-            canvas.height = container.clientHeight;
-            updateTargetX();
-            playerX = targetX;
-        }
-        window.addEventListener('resize', resize);
-        resize();
-
-        function updateTargetX() { targetX = (currentLane * (canvas.width / LANES)) + (canvas.width / LANES / 2); }
-
-        function shuffleLanes() {
-            let options = [ROLES.GROWTH, ROLES.CHAOS, ROLES.EVOLUTION];
-            for (let i = options.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [options[i], options[j]] = [options[j], options[i]];
-            }
-            laneRoles = options;
-            const alert = document.getElementById('shift-alert');
-            alert.style.opacity = '1';
-            setTimeout(() => alert.style.opacity = '0', 2000);
-        }
-
-        window.addEventListener('keydown', (e) => {
-            if (!gameActive) return;
-            if (e.key === 'ArrowLeft' && currentLane > 0) { currentLane--; updateTargetX(); }
-            else if (e.key === 'ArrowRight' && currentLane < 2) { currentLane++; updateTargetX(); }
-        });
-
-        canvas.addEventListener('mousedown', (e) => {
-            if (!gameActive) return;
-            const clickedLane = Math.floor((e.clientX - canvas.getBoundingClientRect().left) / canvas.width * 3);
-            if (clickedLane < currentLane && currentLane > 0) currentLane--;
-            else if (clickedLane > currentLane && currentLane < 2) currentLane++;
-            updateTargetX();
-        });
-
-        canvas.addEventListener('touchstart', (e) => {
-            if (!gameActive) return;
-            const clickedLane = Math.floor((e.touches[0].clientX - canvas.getBoundingClientRect().left) / canvas.width * 3);
-            if (clickedLane < currentLane && currentLane > 0) currentLane--;
-            else if (clickedLane > currentLane && currentLane < 2) currentLane++;
-            updateTargetX();
-            e.preventDefault();
-        }, { passive: false });
-
+        /**
+         * Entity Base Model
+         */
         class Entity {
-            constructor(role, lane, y, forceType = null) {
+            constructor(role, lane, y) {
                 this.role = role;
                 this.lane = lane;
                 this.y = y;
-                this.width = canvas.width / LANES;
-                this.height = 80;
-                this.isCollected = false;
-                this.isUnlocked = true;
                 this.speedMult = role.speedMult;
+                this.isCollected = false;
+                this.height = CONFIG.ENTITIES.GATE_HEIGHT;
+            }
+
+            update(speed) {
+                this.y += speed * this.speedMult;
+            }
+        }
+
+        /**
+         * Gate Entity
+         */
+        class Gate extends Entity {
+            constructor(role, lane, y, op, val, isPositive, isUnlocked = true) {
+                super(role, lane, y);
+                this.type = 'gate';
+                this.op = op;
+                this.val = val;
+                this.isPositive = isPositive;
+                this.isUnlocked = isUnlocked;
+                // Determine if it's a "big" percentage upgrade for rendering purposes
+                this.isPercentage = (role === ROLES.GROWTH && val > 1) || (op === 'x');
+            }
+        }
+
+        /**
+         * Specialized Evolution Gate
+         */
+        class EvolutionGate extends Gate {
+            constructor(role, lane, y, score) {
+                const val = 1.3 + Math.random() * 2.7;
+                super(role, lane, y, 'x', val, true, false);
+                this.health = score * 1.75;
+                this.maxHealth = this.health;
+                this.isSecret = Math.random() > 0.45;
+            }
+        }
+
+        /**
+         * Enemy Entity
+         */
+        class Enemy extends Entity {
+            constructor(role, lane, y, score, distance, forceType = null) {
+                super(role, lane, y);
+                this.type = 'enemy';
                 this.forceType = forceType;
                 this.phalanxXOffset = forceType === 'phalanx' ? (Math.random() - 0.5) * 20 : 0;
+                this.isElite = forceType === 'phalanx' ? false : (Math.random() > 0.88 - (distance / 10000));
+                
+                const baseH = Math.floor(score * 0.45) + 12;
+                this.health = this.isElite ? baseH * 2 : (forceType === 'phalanx' ? score * 0.08 : baseH);
+                this.maxHealth = this.health;
+                
+                this.isSwarm = Math.random() > 0.5 && !this.isElite && !forceType;
+                if (this.isSwarm) {
+                    this.swarmOffsets = [];
+                    for (let j = 0; j < 15; j++) {
+                        this.swarmOffsets.push({ x: (Math.random() - 0.5) * 55, y: (Math.random() - 0.5) * 45 });
+                    }
+                }
+            }
+        }
 
-                if (role === ROLES.GROWTH) {
-                    this.type = 'gate'; this.op = '+';
-                    this.isPercentage = Math.random() < 0.4;
-                    this.val = this.isPercentage ? Math.ceil(score * 0.012) : 1;
-                    this.isPositive = true;
-                } else if (role === ROLES.EVOLUTION) {
-                    this.type = 'gate'; this.op = 'x';
-                    this.val = 1.3 + Math.random() * 2.7;
-                    this.isPositive = true; this.isUnlocked = false;
-                    this.health = score * 1.75; this.maxHealth = this.health;
-                    this.isSecret = Math.random() > 0.45;
-                } else { // CHAOS
-                    const diffProb = Math.min(0.85, 0.4 + (distance / 5000));
-                    const isEnemy = this.forceType === 'phalanx' ? true : Math.random() < diffProb;
+        /**
+         * GameEngine
+         */
+        class GameEngine {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.active = false;
+                this.score = CONFIG.PLAYER.START_SCORE;
+                this.peakScoreThisRun = CONFIG.PLAYER.START_SCORE;
+                this.distance = 0;
+                this.speed = CONFIG.PHYSICS.INITIAL_SPEED;
+                this.currentLane = 1;
+                this.targetX = 0;
+                this.playerX = 0;
+                this.laneRoles = [ROLES.GROWTH, ROLES.CHAOS, ROLES.EVOLUTION];
+                this.entities = [];
+                this.particles = [];
+                this.bullets = [];
+                this.lastShiftDist = 0;
+                this.lastSpawns = [0, 0, 0];
+                this.bannerShownThisRun = false;
+                
+                this.playerSwarm = [];
+                for (let i = 0; i < CONFIG.PLAYER.SWARM_COUNT; i++) {
+                    this.playerSwarm.push({ x: (Math.random() - 0.5) * 55, y: Math.random() * 45 });
+                }
+            }
+
+            start() {
+                this.score = CONFIG.PLAYER.START_SCORE;
+                this.peakScoreThisRun = CONFIG.PLAYER.START_SCORE;
+                this.distance = 0;
+                this.speed = CONFIG.PHYSICS.INITIAL_SPEED;
+                this.currentLane = 1;
+                this.entities = [];
+                this.particles = [];
+                this.bullets = [];
+                this.lastShiftDist = 0;
+                this.lastSpawns = [Date.now(), Date.now(), Date.now()];
+                this.bannerShownThisRun = false;
+                this.shuffleLanes();
+                this.updateTargetX();
+                this.playerX = this.targetX;
+                this.active = true;
+                
+                UI.startScreen.classList.add('hidden');
+                UI.gameOverScreen.classList.add('hidden');
+            }
+
+            shuffleLanes() {
+                let options = [ROLES.GROWTH, ROLES.CHAOS, ROLES.EVOLUTION];
+                for (let i = options.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [options[i], options[j]] = [options[j], options[i]];
+                }
+                this.laneRoles = options;
+                UI.shiftAlert.style.opacity = '1';
+                setTimeout(() => UI.shiftAlert.style.opacity = '0', 2000);
+            }
+
+            getLaneFromCoords(clientX) {
+                const rect = this.canvas.getBoundingClientRect();
+                return Math.floor(((clientX - rect.left) / rect.width) * CONFIG.GAME.LANES);
+            }
+
+            moveToLane(targetLane) {
+                if (!this.active) return;
+                if (targetLane < this.currentLane && this.currentLane > 0) this.currentLane--;
+                else if (targetLane > this.currentLane && this.currentLane < CONFIG.GAME.LANES - 1) this.currentLane++;
+                this.updateTargetX();
+            }
+
+            updateTargetX() {
+                const lw = this.canvas.width / CONFIG.GAME.LANES;
+                this.targetX = (this.currentLane * lw) + (lw / 2);
+            }
+
+            update() {
+                if (!this.active) return;
+
+                this.distance += this.speed / 12;
+                this.speed = Math.min(CONFIG.PHYSICS.MAX_SPEED, CONFIG.PHYSICS.INITIAL_SPEED + (this.distance / CONFIG.PHYSICS.SPEED_SCALING));
+                this.peakScoreThisRun = Math.max(this.peakScoreThisRun, this.score);
+                
+                if (!this.bannerShownThisRun && this.distance > sessionRecords.distance) {
+                    this.bannerShownThisRun = true;
+                    UI.recordBanner.classList.add('show');
+                    setTimeout(() => UI.recordBanner.classList.remove('show'), CONFIG.GAME.RECORD_BANNER_DURATION);
+                }
+
+                if (this.distance - this.lastShiftDist > CONFIG.GAME.LANE_SHIFT_INTERVAL) {
+                    this.shuffleLanes();
+                    this.lastShiftDist = this.distance;
+                }
+
+                this.playerX += (this.targetX - this.playerX) * CONFIG.PLAYER.LERP_SPEED;
+
+                this.spawnManager();
+                this.combatManager();
+                this.entityManager();
+                this.particleManager();
+            }
+
+            spawnManager() {
+                const now = Date.now();
+                for (let i = 0; i < CONFIG.GAME.LANES; i++) {
+                    const role = this.laneRoles[i];
+                    const interval = (role === ROLES.EVOLUTION ? 5500 : (role === ROLES.GROWTH ? 700 : 1800)) / ( (this.speed * role.speedMult) / CONFIG.PHYSICS.INITIAL_SPEED);
                     
-                    if (isEnemy) {
-                        this.type = 'enemy';
-                        this.isElite = forceType === 'phalanx' ? false : (Math.random() > 0.88 - (distance / 10000));
-                        const baseH = Math.floor(score * 0.45) + 12;
-                        this.health = this.isElite ? baseH * 2 : (this.forceType === 'phalanx' ? score * 0.08 : baseH);
-                        this.maxHealth = this.health;
-                        this.isSwarm = Math.random() > 0.5 && !this.isElite && !this.forceType;
-                        if (this.isSwarm) {
-                            this.swarmOffsets = [];
-                            for (let j = 0; j < 15; j++) this.swarmOffsets.push({ x: (Math.random() - 0.5) * 55, y: (Math.random() - 0.5) * 45 });
+                    if (now - this.lastSpawns[i] > interval) {
+                        if (role === ROLES.GROWTH) {
+                            const isPercentage = Math.random() < 0.4;
+                            const val = isPercentage ? Math.ceil(this.score * 0.012) : 1;
+                            this.entities.push(new Gate(role, i, -100, '+', val, true));
+                        } else if (role === ROLES.EVOLUTION) {
+                            this.entities.push(new EvolutionGate(role, i, -100, this.score));
+                        } else { // CHAOS
+                            const diffProb = Math.min(0.85, 0.4 + (this.distance / CONFIG.PHYSICS.SPEED_SCALING * 1.5));
+                            
+                            if (Math.random() > 0.8) { // Chance for Phalanx
+                                for (let k = 0; k < CONFIG.ENTITIES.PHALANX_COUNT; k++) {
+                                    this.entities.push(new Enemy(role, i, -100 - (k * CONFIG.ENTITIES.PHALANX_SPACING), this.score, this.distance, 'phalanx'));
+                                }
+                            } else {
+                                const isEnemy = Math.random() < diffProb;
+                                if (isEnemy) {
+                                    this.entities.push(new Enemy(role, i, -100, this.score, this.distance));
+                                } else {
+                                    const op = Math.random() > 0.5 ? '-' : '/';
+                                    const val = op === '-' ? Math.floor(this.score * 0.2) + 10 : 2;
+                                    this.entities.push(new Gate(role, i, -100, op, val, false));
+                                }
+                            }
                         }
-                    } else {
-                        this.type = 'gate'; this.op = Math.random() > 0.5 ? '-' : '/';
-                        this.val = this.op === '-' ? Math.floor(score * 0.2) + 10 : 2;
-                        this.isPositive = false;
+                        this.lastSpawns[i] = now;
                     }
                 }
             }
 
-            update() { this.y += speed * this.speedMult; }
+            combatManager() {
+                const playerY = this.canvas.height - CONFIG.PLAYER.Y_OFFSET;
+                let target = null;
+                let minDist = Infinity;
+                this.entities.forEach(e => {
+                    if (((e.type === 'enemy') || (e.type === 'gate' && !e.isUnlocked)) && e.lane === this.currentLane && e.y < playerY - 40) {
+                        const d = playerY - e.y;
+                        if (d < minDist) { minDist = d; target = e; }
+                    }
+                });
 
-            draw() {
-                const x = this.lane * this.width;
-                const radius = 25; // Visual roundness for "oval" look
+                if (target) {
+                    target.health -= (this.score * 0.012) + 0.35;
+                    if (Date.now() % 3 === 0) {
+                        this.bullets.push({ 
+                            x: this.playerX + (Math.random() - 0.5) * 20, 
+                            y: playerY - 20, 
+                            targetY: target.y + 40 
+                        });
+                    }
+                    if (target.health <= 0) {
+                        if (target.type === 'enemy') {
+                            target.isCollected = true;
+                            for (let i = 0; i < 12; i++) {
+                                this.particles.push({ 
+                                    x: target.lane * (this.canvas.width / CONFIG.GAME.LANES) + (this.canvas.width / CONFIG.GAME.LANES / 2), 
+                                    y: target.y + 40, 
+                                    vx: (Math.random() - 0.5) * 8, 
+                                    vy: (Math.random() - 0.5) * 8, 
+                                    life: 1, color: '#ef4444' 
+                                });
+                            }
+                            this.score *= target.isElite ? 2.5 : 1.012;
+                            this.entities = this.entities.filter(ent => ent !== target);
+                        } else {
+                            target.isUnlocked = true;
+                        }
+                    }
+                }
+                this.bullets.forEach((b, i) => { 
+                    b.y -= CONFIG.PHYSICS.BULLET_SPEED; 
+                    if (b.y < b.targetY) this.bullets.splice(i, 1); 
+                });
+            }
 
-                if (this.type === 'gate') {
-                    const isLocked = !this.isUnlocked && this.role === ROLES.EVOLUTION;
-                    const gateColor = isLocked ? 'rgba(71, 85, 105, 0.9)' : (this.isPositive ? 'rgba(37, 99, 235, 0.9)' : 'rgba(220, 38, 38, 0.9)');
-                    const strokeColor = isLocked ? '#94a3b8' : (this.isPositive ? '#60a5fa' : '#f87171');
+            entityManager() {
+                const playerY = this.canvas.height - CONFIG.PLAYER.Y_OFFSET;
+                this.entities.forEach((e, idx) => {
+                    e.update(this.speed);
+                    if (e.type === 'enemy' && e.y > this.canvas.height) { this.endGame("DEFENSES BREACHED!"); return; }
+                    if (!e.isCollected && e.lane === this.currentLane && e.y + e.height > playerY && e.y < playerY + CONFIG.PLAYER.COLLISION_HEIGHT) {
+                        if (e.type === 'gate' && e.isUnlocked) {
+                            e.isCollected = true;
+                            if (e.op === '+') this.score += e.val;
+                            else if (e.op === '-') this.score -= e.val;
+                            else if (e.op === 'x') this.score *= e.val;
+                            else if (e.op === '/') this.score = Math.floor(this.score / e.val);
+                            this.entities.splice(idx, 1);
+                        } else if (e.type === 'enemy') {
+                            this.score -= Math.ceil(e.health);
+                            this.entities.splice(idx, 1);
+                        }
+                        if (this.score <= 0) this.endGame("LEGION ANNIHILATED!");
+                    }
+                    if (e.y > this.canvas.height) this.entities.splice(idx, 1);
+                });
+            }
+
+            particleManager() {
+                this.particles.forEach((p, i) => { 
+                    p.x += p.vx; p.y += p.vy; 
+                    p.life -= CONFIG.PHYSICS.PARTICLE_DECAY; 
+                    if (p.life <= 0) this.particles.splice(i, 1); 
+                });
+            }
+
+            endGame(reason) {
+                this.active = false;
+                sessionRecords.distance = Math.max(sessionRecords.distance, this.distance);
+                UI.failReason.innerText = reason;
+                UI.finalDist.innerText = Math.floor(this.distance);
+                updateUI();
+                UI.gameOverScreen.classList.remove('hidden');
+            }
+        }
+
+        /**
+         * Renderer
+         */
+        class Renderer {
+            constructor(canvas, ctx) {
+                this.canvas = canvas;
+                this.ctx = ctx;
+            }
+
+            draw(engine) {
+                const ctx = this.ctx;
+                const canvas = this.canvas;
+                const lw = canvas.width / CONFIG.GAME.LANES;
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                for (let i = 0; i < CONFIG.GAME.LANES; i++) {
+                    ctx.fillStyle = engine.laneRoles[i].color;
+                    ctx.fillRect(i * lw, 0, lw, canvas.height);
+                }
+
+                ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+                ctx.setLineDash([15, 15]);
+                for (let i = 1; i < CONFIG.GAME.LANES; i++) {
+                    ctx.beginPath(); ctx.moveTo(i * lw, 0); ctx.lineTo(i * lw, canvas.height); ctx.stroke();
+                }
+                ctx.setLineDash([]);
+
+                engine.entities.forEach(e => this.drawEntity(e));
+
+                ctx.fillStyle = '#facc15';
+                engine.bullets.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, 4, 0, Math.PI * 2); ctx.fill(); });
+
+                engine.particles.forEach(p => {
+                    ctx.globalAlpha = p.life;
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2); ctx.fill();
+                });
+                ctx.globalAlpha = 1;
+
+                this.drawPlayer(engine);
+                UI.distHud.innerText = Math.floor(engine.distance);
+            }
+
+            drawEntity(e) {
+                const ctx = this.ctx;
+                const lw = this.canvas.width / CONFIG.GAME.LANES;
+                const x = e.lane * lw;
+                const radius = 25;
+
+                if (e.type === 'gate') {
+                    const isLocked = !e.isUnlocked && e.role === ROLES.EVOLUTION;
+                    const gateColor = isLocked ? 'rgba(71, 85, 105, 0.9)' : (e.isPositive ? 'rgba(37, 99, 235, 0.9)' : 'rgba(220, 38, 38, 0.9)');
+                    const strokeColor = isLocked ? '#94a3b8' : (e.isPositive ? '#60a5fa' : '#f87171');
                     
-                    // Draw Rounded Gate Body
                     ctx.beginPath();
-                    ctx.roundRect(x + 10, this.y, this.width - 20, this.height, radius);
-                    ctx.fillStyle = gateColor;
-                    ctx.fill();
-                    ctx.strokeStyle = strokeColor;
-                    ctx.lineWidth = 3;
-                    ctx.stroke();
+                    ctx.roundRect(x + 10, e.y, lw - 20, e.height, radius);
+                    ctx.fillStyle = gateColor; ctx.fill();
+                    ctx.strokeStyle = strokeColor; ctx.lineWidth = 3; ctx.stroke();
 
                     ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
 
                     if (isLocked) {
                         ctx.font = 'bold 20px var(--font-main)';
-                        ctx.fillText(this.isSecret ? "???" : "🔒", x + this.width / 2, this.y + 35);
-                        // Mini Health Bar for unlocking - also rounded
-                        const barX = x + 25;
-                        const barY = this.y + 58;
-                        const barW = this.width - 50;
-                        const barH = 8;
+                        ctx.fillText(e.isSecret ? "???" : CONFIG.ASSETS.LOCKED, x + lw / 2, e.y + 35);
+                        const barW = lw - 50, barH = 8, barX = x + 25, barY = e.y + 58;
                         ctx.fillStyle = 'rgba(0,0,0,0.4)';
-                        ctx.beginPath();
-                        ctx.roundRect(barX, barY, barW, barH, 4);
-                        ctx.fill();
+                        ctx.beginPath(); ctx.roundRect(barX, barY, barW, barH, 4); ctx.fill();
                         ctx.fillStyle = '#fff';
-                        ctx.beginPath();
-                        ctx.roundRect(barX, barY, barW * (this.health / this.maxHealth), barH, 4);
-                        ctx.fill();
-                    } else if (this.role === ROLES.GROWTH) {
+                        ctx.beginPath(); ctx.roundRect(barX, barY, barW * (e.health / e.maxHealth), barH, 4); ctx.fill();
+                    } else if (e.role === ROLES.GROWTH) {
                         ctx.font = '26px serif';
-                        ctx.fillText(this.isPercentage ? "⚡⚡⚡" : "⚡", x + this.width / 2, this.y + 45);
-                    } else if (this.role === ROLES.EVOLUTION) {
+                        ctx.fillText(e.isPercentage ? CONFIG.ASSETS.POWERUP.repeat(3) : CONFIG.ASSETS.POWERUP, x + lw / 2, e.y + 45);
+                    } else if (e.role === ROLES.EVOLUTION) {
                         ctx.font = '26px serif';
-                        const battery = this.val > 3 ? "🔋🔋🔋" : (this.val > 2 ? "🔋🔋" : "🔋");
-                        ctx.fillText(battery, x + this.width / 2, this.y + 45);
+                        const batteryStr = e.val > 3 ? CONFIG.ASSETS.BATTERY.repeat(3) : (e.val > 2 ? CONFIG.ASSETS.BATTERY.repeat(2) : CONFIG.ASSETS.BATTERY);
+                        ctx.fillText(batteryStr, x + lw / 2, e.y + 45);
                     } else { 
                         ctx.font = '24px serif';
-                        // Changed negative block symbols to fire emojis
-                        ctx.fillText(this.op === '-' ? "🔥" : "🔥🔥🔥", x + this.width / 2, this.y + 45);
+                        ctx.fillText(e.op === '-' ? CONFIG.ASSETS.HAZARD : CONFIG.ASSETS.HAZARD.repeat(3), x + lw / 2, e.y + 45);
                     }
                 } else { 
-                    // Enemy Health bar - Rounded
-                    const barW = this.width * 0.55;
-                    const barH = 8;
-                    const barX = x + this.width/2 - barW/2;
-                    const barY = this.y - 15;
-                    
+                    const barW = lw * CONFIG.ENTITIES.HEALTH_BAR_MAGNITUDE, barH = CONFIG.ENTITIES.HEALTH_BAR_HEIGHT, barX = x + lw/2 - barW/2, barY = e.y - 15;
                     ctx.fillStyle = 'rgba(0,0,0,0.5)';
-                    ctx.beginPath();
-                    ctx.roundRect(barX, barY, barW, barH, 4);
-                    ctx.fill();
-                    
+                    ctx.beginPath(); ctx.roundRect(barX, barY, barW, barH, 4); ctx.fill();
                     ctx.fillStyle = '#ef4444';
-                    ctx.beginPath();
-                    ctx.roundRect(barX, barY, barW * (this.health / this.maxHealth), barH, 4);
-                    ctx.fill();
+                    ctx.beginPath(); ctx.roundRect(barX, barY, barW * (e.health / e.maxHealth), barH, 4); ctx.fill();
                     
-                    if (this.isSwarm) {
+                    if (e.isSwarm) {
                         ctx.font = '18px serif';
-                        this.swarmOffsets.forEach((off, i) => {
+                        e.swarmOffsets.forEach((off, i) => {
                             const jx = Math.sin(Date.now() / 150 + i) * 3, jy = Math.cos(Date.now() / 150 + i) * 3;
-                            ctx.fillText('👹', x + this.width/2 + off.x + jx, this.y + 40 + off.y + jy);
+                            ctx.fillText(CONFIG.ASSETS.ENEMY, x + lw/2 + off.x + jx, e.y + 40 + off.y + jy);
                         });
-                    } else if (this.forceType === 'phalanx') {
+                    } else if (e.forceType === 'phalanx') {
                         ctx.font = '24px serif';
-                        ctx.fillText('👹', x + this.width/2 + this.phalanxXOffset, this.y + 45);
+                        ctx.fillText(CONFIG.ASSETS.ENEMY, x + lw/2 + e.phalanxXOffset, e.y + 45);
                     } else {
-                        const sc = (0.6 + (Math.max(0, this.health) / this.maxHealth) * 0.6) * (this.isElite ? 1.7 : 1.1);
-                        ctx.save(); ctx.translate(x + this.width/2, this.y + 45); ctx.scale(sc, sc);
+                        const sc = (0.6 + (Math.max(0, e.health) / e.maxHealth) * 0.6) * (e.isElite ? 1.7 : 1.1);
+                        ctx.save(); ctx.translate(x + lw/2, e.y + 45); ctx.scale(sc, sc);
                         ctx.font = '48px serif'; ctx.textAlign = 'center';
-                        ctx.fillText(this.isElite ? '🐉' : '👹', 0, 10);
+                        ctx.fillText(e.isElite ? CONFIG.ASSETS.ELITE : CONFIG.ASSETS.ENEMY, 0, 10);
                         ctx.restore();
                     }
                 }
             }
-        }
 
-        function spawn() {
-            const now = Date.now();
-            for (let i = 0; i < 3; i++) {
-                const role = laneRoles[i];
-                const interval = (role === ROLES.EVOLUTION ? 5500 : (role === ROLES.GROWTH ? 700 : 1800)) / ( (speed * role.speedMult) / INITIAL_SPEED);
-                if (now - lastSpawns[i] > interval) {
-                    if (role === ROLES.CHAOS && Math.random() > 0.8) {
-                        for (let k = 0; k < 10; k++) entities.push(new Entity(role, i, -100 - (k * 60), 'phalanx'));
-                    } else {
-                        entities.push(new Entity(role, i, -100));
-                    }
-                    lastSpawns[i] = now;
+            drawPlayer(engine) {
+                const ctx = this.ctx;
+                const pY = this.canvas.height - CONFIG.PLAYER.Y_OFFSET;
+                const cS = Math.min(25, Math.ceil(engine.score / 5));
+                ctx.font = '24px serif'; ctx.textAlign = 'center';
+                
+                for (let i = 0; i < cS; i++) {
+                    const off = engine.playerSwarm[i % engine.playerSwarm.length];
+                    const jx = Math.sin(Date.now() / 180 + i) * 4, jy = Math.cos(Date.now() / 180 + i) * 4;
+                    ctx.fillText(CONFIG.ASSETS.PLAYER, engine.playerX + off.x + jx - 12, pY + off.y + jy);
                 }
+                
+                const barW = CONFIG.PLAYER.HEALTH_BAR_WIDTH, barH = CONFIG.PLAYER.HEALTH_BAR_HEIGHT;
+                const barX = engine.playerX - barW / 2, barY = pY - 35;
+                ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                ctx.beginPath(); ctx.roundRect(barX, barY, barW, barH, 5); ctx.fill();
+                ctx.fillStyle = '#22c55e';
+                ctx.beginPath(); ctx.roundRect(barX, barY, barW * (engine.score / engine.peakScoreThisRun), barH, 5); ctx.fill();
+                ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1; ctx.stroke();
             }
         }
 
-        function handleCombat() {
-            const playerY = canvas.height - 150;
-            let target = null; let minDist = Infinity;
-            entities.forEach(e => {
-                if (((e.type === 'enemy') || (e.type === 'gate' && !e.isUnlocked)) && e.lane === currentLane && e.y < playerY - 40) {
-                    const d = playerY - e.y;
-                    if (d < minDist) { minDist = d; target = e; }
-                }
-            });
-            if (target) {
-                target.health -= (score * 0.012) + 0.35;
-                if (Date.now() % 3 === 0) bullets.push({ x: playerX + (Math.random() - 0.5) * 20, y: playerY - 20, targetY: target.y + 40 });
-                if (target.health <= 0) {
-                    if (target.type === 'enemy') {
-                        target.isCollected = true;
-                        particles.push(...Array(12).fill(0).map(() => ({ x: target.lane * (canvas.width / LANES) + (canvas.width / LANES / 2), y: target.y + 40, vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8, life: 1, color: '#ef4444' })));
-                        score *= target.isElite ? 2.5 : 1.012;
-                        entities = entities.filter(ent => ent !== target);
-                    } else { target.isUnlocked = true; }
-                }
-            }
+        /**
+         * Orchestration
+         */
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const game = new GameEngine(canvas);
+        const renderer = new Renderer(canvas, ctx);
+
+        function updateUI() {
+            const str = `Best: ${Math.floor(sessionRecords.distance)}m`;
+            UI.startRecords.innerText = str;
+            UI.endRecords.innerText = str;
         }
 
-        function update() {
-            if (!gameActive) return;
-            distance += speed / 12;
-            speed = Math.min(MAX_SPEED, INITIAL_SPEED + (distance / 3500));
-            peakScoreThisRun = Math.max(peakScoreThisRun, score);
-            distHUD.innerText = Math.floor(distance);
-            
-            if (!bannerShownThisRun && distance > records.distance) {
-                bannerShownThisRun = true;
-                recordBanner.classList.add('show');
-                setTimeout(() => recordBanner.classList.remove('show'), 5000);
-            }
+        window.addEventListener('resize', () => {
+            const container = document.getElementById('game-container');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            game.updateTargetX();
+            game.playerX = game.targetX;
+        });
+        window.dispatchEvent(new Event('resize'));
 
-            if (distance - lastShiftDist > 500) { shuffleLanes(); lastShiftDist = distance; }
-            playerX += (targetX - playerX) * 0.25;
-            spawn(); handleCombat();
-            
-            bullets.forEach((b, i) => { b.y -= 32; if (b.y < b.targetY) bullets.splice(i, 1); });
-            entities.forEach((e, idx) => {
-                e.update();
-                if (e.type === 'enemy' && e.y > canvas.height) { endGame("DEFENSES BREACHED!"); return; }
-                if (!e.isCollected && e.lane === currentLane && e.y + e.height > (canvas.height - 150) && e.y < (canvas.height - 150) + PLAYER_SIZE) {
-                    if (e.type === 'gate' && e.isUnlocked) {
-                        e.isCollected = true;
-                        if (e.op === '+') score += e.val;
-                        else if (e.op === '-') score -= e.val;
-                        else if (e.op === 'x') score *= e.val;
-                        else if (e.op === '/') score = Math.floor(score / e.val);
-                        entities.splice(idx, 1);
-                    } else if (e.type === 'enemy') {
-                        score -= Math.ceil(e.health);
-                        entities.splice(idx, 1);
-                    }
-                    if (score <= 0) endGame("LEGION ANNIHILATED!");
-                }
-                if (e.y > canvas.height) entities.splice(idx, 1);
-            });
-            particles.forEach((p, i) => { p.x += p.vx; p.y += p.vy; p.life -= 0.04; if (p.life <= 0) particles.splice(i, 1); });
+        UI.startBtn.addEventListener('click', () => game.start());
+        UI.restartBtn.addEventListener('click', () => game.start());
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') game.moveToLane(game.currentLane - 1);
+            if (e.key === 'ArrowRight') game.moveToLane(game.currentLane + 1);
+        });
+
+        canvas.addEventListener('mousedown', (e) => game.moveToLane(game.getLaneFromCoords(e.clientX)));
+        canvas.addEventListener('touchstart', (e) => {
+            game.moveToLane(game.getLaneFromCoords(e.touches[0].clientX));
+            e.preventDefault();
+        }, { passive: false });
+
+        function loop() {
+            game.update();
+            renderer.draw(game);
+            requestAnimationFrame(loop);
         }
 
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, canvas.width, canvas.height); // Background darken
-            const lw = canvas.width / LANES;
-            for (let i = 0; i < 3; i++) { ctx.fillStyle = laneRoles[i].color; ctx.fillRect(i * lw, 0, lw, canvas.height); }
-            ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.setLineDash([15, 15]);
-            for (let i = 1; i < LANES; i++) { ctx.beginPath(); ctx.moveTo(i * lw, 0); ctx.lineTo(i * lw, canvas.height); ctx.stroke(); }
-            ctx.setLineDash([]);
-            entities.forEach(e => e.draw());
-            ctx.fillStyle = '#facc15'; bullets.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, 4, 0, Math.PI * 2); ctx.fill(); });
-            particles.forEach(p => { ctx.globalAlpha = p.life; ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; });
-            
-            const pY = canvas.height - 150;
-            const cS = Math.min(25, Math.ceil(score / 5));
-            ctx.font = '24px serif';
-            for (let i = 0; i < cS; i++) {
-                const off = playerSwarm[i % playerSwarm.length];
-                const jx = Math.sin(Date.now() / 180 + i) * 4, jy = Math.cos(Date.now() / 180 + i) * 4;
-                ctx.fillText('🏃', playerX + off.x + jx - 12, pY + off.y + jy);
-            }
-            
-            // Player Health Bar - Normalized and Rounded
-            const barW = 100;
-            const barH = 10;
-            const barX = playerX - barW / 2;
-            const barY = pY - 35;
-            
-            ctx.fillStyle = 'rgba(0,0,0,0.6)';
-            ctx.beginPath();
-            ctx.roundRect(barX, barY, barW, barH, 5);
-            ctx.fill();
-            
-            ctx.fillStyle = '#22c55e';
-            ctx.beginPath();
-            ctx.roundRect(barX, barY, barW * (score / peakScoreThisRun), barH, 5);
-            ctx.fill();
-            
-            ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-            ctx.lineWidth = 1;
-            ctx.stroke();
-        }
-
-        async function endGame(reason) {
-            gameActive = false;
-            document.getElementById('fail-reason').innerText = reason;
-            document.getElementById('final-dist').innerText = Math.floor(distance);
-            records.distance = Math.max(records.distance, distance);
-            updateRecordsUI();
-            document.getElementById('game-over-screen').classList.remove('hidden');
-        }
-
-        function start() {
-            score = 10; peakScoreThisRun = 10; distance = 0; speed = INITIAL_SPEED;
-            currentLane = 1; updateTargetX(); playerX = targetX;
-            entities = []; particles = []; bullets = []; lastShiftDist = 0;
-            bannerShownThisRun = false;
-            lastSpawns = [Date.now(), Date.now(), Date.now()];
-            shuffleLanes(); gameActive = true;
-            document.getElementById('start-screen').classList.add('hidden');
-            document.getElementById('game-over-screen').classList.add('hidden');
-        }
-
-        document.getElementById('start-btn').addEventListener('click', start);
-        document.getElementById('restart-btn').addEventListener('click', start);
-        updateRecordsUI();
-
-        function loop() { update(); draw(); requestAnimationFrame(loop); }
+        updateUI();
         loop();
     </script>
 </body>
