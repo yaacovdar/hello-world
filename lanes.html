@@ -221,23 +221,53 @@
                 LANE_SHIFT_INTERVAL: 500,
                 RECORD_BANNER_DURATION: 5000,
             },
+            THEME: {
+                FONTS: {
+                    LOCKED: 'bold 20px var(--font-main)',
+                    GATE: '26px serif',
+                    GATE_SUB: '24px serif',
+                    CHAOS_EMOJI: '45px serif',
+                    CHAOS_EMOJI_LARGE: '60px serif',
+                    SWARM_ENEMY: '18px serif',
+                    ENEMY_PHALANX: '24px serif',
+                    ELITE: '48px serif',
+                    PLAYER: '24px serif'
+                },
+                COLORS: {
+                    BACKGROUND: '#0f172a',
+                    GRID: 'rgba(255,255,255,0.05)',
+                    BULLET: '#facc15',
+                    LOCKED_GATE_BG: 'rgba(71, 85, 105, 0.9)',
+                    LOCKED_GATE_STROKE: '#94a3b8',
+                    BAR_BG: 'rgba(0,0,0,0.5)',
+                    BAR_BG_SOLID: 'rgba(0,0,0,0.6)',
+                    HEALTH_ENEMY: '#ef4444',
+                    HEALTH_PLAYER: '#22c55e',
+                    TEXT_WHITE: '#ffffff'
+                },
+                STYLES: {
+                    GRID_DASH: [15, 15]
+                }
+            },
             PLAYER: {
                 START_SCORE: 10,
                 SWARM_COUNT: 50,
+                MAX_VISIBLE_RUNNERS: 25,
+                SCORE_PER_RUNNER: 5,
                 COLLISION_HEIGHT: 40,
                 Y_OFFSET: 150,
-                LERP_FACTOR: 15, // Adjusted for dt
+                LERP_FACTOR: 15,
                 HEALTH_BAR_WIDTH: 100,
                 HEALTH_BAR_HEIGHT: 10,
-                FIRE_RATE: 0.05, // Lower is faster
+                FIRE_RATE: 0.05,
             },
             PHYSICS: {
                 INITIAL_SPEED: 3.5,
                 MAX_SPEED: 14,
                 SPEED_SCALING: 3500,
                 BULLET_SPEED: 32,
-                PARTICLE_DECAY: 2.4, // Adjusted for dt
-                FPS_BASELINE: 60, // Baseline for scaling factor
+                PARTICLE_DECAY: 2.4,
+                FPS_BASELINE: 60,
             },
             ENTITIES: {
                 GATE_HEIGHT: 80,
@@ -245,11 +275,21 @@
                 PHALANX_SPACING: 60,
                 HEALTH_BAR_MAGNITUDE: 0.55,
                 HEALTH_BAR_HEIGHT: 8,
+                // Probability Configs
+                CHANCE_PHALANX: 0.2,
+                CHANCE_PERCENTAGE_GATE: 0.4,
+                CHANCE_SECRET_GATE: 0.55,
+                CHANCE_SWARM: 0.5,
+                CHANCE_ELITE_BASE: 0.12,
+                CHANCE_CHAOS_GATE_NEGATIVE: 0.5,
+                // Difficulty scaling
+                DIFFICULTY_BASE_PROB: 0.4,
+                DIFFICULTY_SCALING_FACTOR: 1.5,
             },
             ASSETS: {
                 PLAYER: '🏃',
                 ENEMY: '👹',
-                ELITE: '🐉',
+                ELITE: '😈',
                 POWERUP: '⚡',
                 BATTERY: '🔋',
                 HAZARD: '🔥',
@@ -264,53 +304,125 @@
         };
 
         /**
-         * DOM Cache
+         * SaveManager
+         * Handles persistence and session records (Single Source of Truth)
          */
-        const UI = {
-            distHud: document.getElementById('dist-hud'),
-            recordBanner: document.getElementById('record-banner'),
-            shiftAlert: document.getElementById('shift-alert'),
-            startScreen: document.getElementById('start-screen'),
-            gameOverScreen: document.getElementById('game-over-screen'),
-            failReason: document.getElementById('fail-reason'),
-            finalDist: document.getElementById('final-dist'),
-            startRecords: document.getElementById('start-records'),
-            endRecords: document.getElementById('end-records'),
-            startBtn: document.getElementById('start-btn'),
-            restartBtn: document.getElementById('restart-btn'),
-        };
+        class SaveManager {
+            constructor() {
+                this.STORAGE_KEY = 'legion_tactical_runner_save';
+                this.data = this.load();
+            }
+
+            load() {
+                try {
+                    const saved = localStorage.getItem(this.STORAGE_KEY);
+                    return saved ? JSON.parse(saved) : { distance: 0 };
+                } catch (e) {
+                    return { distance: 0 };
+                }
+            }
+
+            updateDistance(dist) {
+                if (dist > this.data.distance) {
+                    this.data.distance = dist;
+                    this.persist();
+                    return true;
+                }
+                return false;
+            }
+
+            persist() {
+                try {
+                    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.data));
+                } catch (e) {}
+            }
+
+            getRecords() {
+                return this.data;
+            }
+        }
 
         /**
-         * Global persistence for session records
+         * UIManager
+         * Centralizes all DOM manipulation and UI state refreshing
          */
-        let sessionRecords = { distance: 0 };
+        class UIManager {
+            constructor() {
+                this.elements = {
+                    distHud: document.getElementById('dist-hud'),
+                    recordBanner: document.getElementById('record-banner'),
+                    shiftAlert: document.getElementById('shift-alert'),
+                    startScreen: document.getElementById('start-screen'),
+                    gameOverScreen: document.getElementById('game-over-screen'),
+                    failReason: document.getElementById('fail-reason'),
+                    finalDist: document.getElementById('final-dist'),
+                    startRecords: document.getElementById('start-records'),
+                    endRecords: document.getElementById('end-records'),
+                    startBtn: document.getElementById('start-btn'),
+                    restartBtn: document.getElementById('restart-btn'),
+                };
+            }
+
+            updateDistance(dist) {
+                this.elements.distHud.innerText = Math.floor(dist);
+            }
+
+            showStart(records) {
+                this.refreshRecords(records);
+                this.elements.startScreen.classList.remove('hidden');
+                this.elements.gameOverScreen.classList.add('hidden');
+            }
+
+            hideOverlays() {
+                this.elements.startScreen.classList.add('hidden');
+                this.elements.gameOverScreen.classList.add('hidden');
+            }
+
+            showGameOver(dist, reason, records) {
+                this.elements.failReason.innerText = reason;
+                this.elements.finalDist.innerText = Math.floor(dist);
+                this.refreshRecords(records);
+                this.elements.gameOverScreen.classList.remove('hidden');
+            }
+
+            refreshRecords(records) {
+                const str = `Best: ${Math.floor(records.distance)}m`;
+                this.elements.startRecords.innerText = str;
+                this.elements.endRecords.innerText = str;
+            }
+
+            triggerAlert(type) {
+                if (type === 'shift') {
+                    this.elements.shiftAlert.style.opacity = '1';
+                    setTimeout(() => this.elements.shiftAlert.style.opacity = '0', 2000);
+                } else if (type === 'record') {
+                    this.elements.recordBanner.classList.add('show');
+                    setTimeout(() => this.elements.recordBanner.classList.remove('show'), CONFIG.GAME.RECORD_BANNER_DURATION);
+                }
+            }
+        }
 
         /**
          * Entity Base Model
          */
         class Entity {
-            constructor(role, lane, y) {
+            constructor(role, lane, y, type) {
                 this.role = role;
                 this.lane = lane;
                 this.y = y;
+                this.type = type;
                 this.speedMult = role.speedMult;
                 this.isCollected = false;
                 this.height = CONFIG.ENTITIES.GATE_HEIGHT;
             }
-
             update(dt, speed) {
-                // Scaling by FPS_BASELINE to maintain similar movement to previous 60fps fixed logic
                 this.y += speed * this.speedMult * dt * CONFIG.PHYSICS.FPS_BASELINE;
             }
         }
 
-        /**
-         * Gate Entity
-         */
         class Gate extends Entity {
             constructor(role, lane, y, op, val, isPositive, isUnlocked = true) {
-                super(role, lane, y);
-                this.type = 'gate';
+                super(role, lane, y, 'gate');
                 this.op = op;
                 this.val = val;
                 this.isPositive = isPositive;
@@ -319,35 +431,28 @@
             }
         }
 
-        /**
-         * Specialized Evolution Gate
-         */
         class EvolutionGate extends Gate {
             constructor(role, lane, y, score) {
                 const val = 1.3 + Math.random() * 2.7;
                 super(role, lane, y, 'x', val, true, false);
+                this.type = 'evolutionGate'; 
                 this.health = score * 1.75;
                 this.maxHealth = this.health;
-                this.isSecret = Math.random() > 0.45;
+                this.isSecret = Math.random() < CONFIG.ENTITIES.CHANCE_SECRET_GATE;
             }
         }
 
-        /**
-         * Enemy Entity
-         */
         class Enemy extends Entity {
             constructor(role, lane, y, score, distance, forceType = null) {
-                super(role, lane, y);
-                this.type = 'enemy';
+                super(role, lane, y, 'enemy');
                 this.forceType = forceType;
                 this.phalanxXOffset = forceType === 'phalanx' ? (Math.random() - 0.5) * 20 : 0;
-                this.isElite = forceType === 'phalanx' ? false : (Math.random() > 0.88 - (distance / 10000));
-                
+                const eliteChance = CONFIG.ENTITIES.CHANCE_ELITE_BASE + (distance / 10000);
+                this.isElite = forceType === 'phalanx' ? false : (Math.random() < eliteChance);
                 const baseH = Math.floor(score * 0.45) + 12;
                 this.health = this.isElite ? baseH * 2 : (forceType === 'phalanx' ? score * 0.08 : baseH);
                 this.maxHealth = this.health;
-                
-                this.isSwarm = Math.random() > 0.5 && !this.isElite && !forceType;
+                this.isSwarm = Math.random() < CONFIG.ENTITIES.CHANCE_SWARM && !this.isElite && !forceType;
                 if (this.isSwarm) {
                     this.swarmOffsets = [];
                     for (let j = 0; j < 15; j++) {
@@ -358,11 +463,68 @@
         }
 
         /**
+         * Swarm Model
+         */
+        class Swarm {
+            constructor() {
+                this.offsets = [];
+                for (let i = 0; i < CONFIG.PLAYER.SWARM_COUNT; i++) {
+                    this.offsets.push({ x: (Math.random() - 0.5) * 55, y: Math.random() * 45 });
+                }
+            }
+            getActiveCount(score) {
+                return Math.min(CONFIG.PLAYER.MAX_VISIBLE_RUNNERS, Math.ceil(score / CONFIG.PLAYER.SCORE_PER_RUNNER));
+            }
+            getMemberPosition(index, leaderX, leaderY, gameTime) {
+                const offset = this.offsets[index % this.offsets.length];
+                const timeFactor = gameTime * 5.55; 
+                const jitterX = Math.sin(timeFactor + index) * 4;
+                const jitterY = Math.cos(timeFactor + index) * 4;
+                return { x: leaderX + offset.x + jitterX - 12, y: leaderY + offset.y + jitterY };
+            }
+        }
+
+        /**
+         * EntityFactory
+         */
+        class EntityFactory {
+            static createEntities(role, lane, score, distance) {
+                const spawnY = -100;
+                if (role === ROLES.GROWTH) {
+                    const isPercentage = Math.random() < CONFIG.ENTITIES.CHANCE_PERCENTAGE_GATE;
+                    const val = isPercentage ? Math.ceil(score * 0.012) : 1;
+                    return [new Gate(role, lane, spawnY, '+', val, true)];
+                } else if (role === ROLES.EVOLUTION) {
+                    return [new EvolutionGate(role, lane, spawnY, score)];
+                } else {
+                    const diffProb = Math.min(0.85, CONFIG.ENTITIES.DIFFICULTY_BASE_PROB + (distance / CONFIG.PHYSICS.SPEED_SCALING * CONFIG.ENTITIES.DIFFICULTY_SCALING_FACTOR));
+                    if (Math.random() < CONFIG.ENTITIES.CHANCE_PHALANX) { 
+                        const phalanx = [];
+                        for (let k = 0; k < CONFIG.ENTITIES.PHALANX_COUNT; k++) {
+                            phalanx.push(new Enemy(role, lane, spawnY - (k * CONFIG.ENTITIES.PHALANX_SPACING), score, distance, 'phalanx'));
+                        }
+                        return phalanx;
+                    } else {
+                        if (Math.random() < diffProb) return [new Enemy(role, lane, spawnY, score, distance)];
+                        else {
+                            const isNegative = Math.random() < CONFIG.ENTITIES.CHANCE_CHAOS_GATE_NEGATIVE;
+                            const op = isNegative ? '-' : '/';
+                            const val = op === '-' ? Math.floor(score * 0.2) + 10 : 2;
+                            return [new Gate(role, lane, spawnY, op, val, false)];
+                        }
+                    }
+                }
+            }
+        }
+
+        /**
          * GameEngine
          */
         class GameEngine {
-            constructor(canvas) {
+            constructor(canvas, uiManager, saveManager) {
                 this.canvas = canvas;
+                this.ui = uiManager;
+                this.saveManager = saveManager;
                 this.active = false;
                 this.score = CONFIG.PLAYER.START_SCORE;
                 this.peakScoreThisRun = CONFIG.PLAYER.START_SCORE;
@@ -379,11 +541,8 @@
                 this.lastSpawns = [0, 0, 0];
                 this.bannerShownThisRun = false;
                 this.fireTimer = 0;
-                
-                this.playerSwarm = [];
-                for (let i = 0; i < CONFIG.PLAYER.SWARM_COUNT; i++) {
-                    this.playerSwarm.push({ x: (Math.random() - 0.5) * 55, y: Math.random() * 45 });
-                }
+                this.swarm = new Swarm();
+                this.elapsedTime = 0; 
             }
 
             start() {
@@ -396,27 +555,26 @@
                 this.particles = [];
                 this.bullets = [];
                 this.lastShiftDist = 0;
-                this.lastSpawns = [Date.now(), Date.now(), Date.now()];
+                this.lastSpawns = [performance.now(), performance.now(), performance.now()];
                 this.bannerShownThisRun = false;
                 this.fireTimer = 0;
-                this.shuffleLanes();
+                this.elapsedTime = 0;
+                // Silent shuffle at start prevents alert from showing
+                this.shuffleLanes(true);
                 this.updateTargetX();
                 this.playerX = this.targetX;
                 this.active = true;
-                
-                UI.startScreen.classList.add('hidden');
-                UI.gameOverScreen.classList.add('hidden');
+                this.ui.hideOverlays();
             }
 
-            shuffleLanes() {
+            shuffleLanes(silent = false) {
                 let options = [ROLES.GROWTH, ROLES.CHAOS, ROLES.EVOLUTION];
                 for (let i = options.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
                     [options[i], options[j]] = [options[j], options[i]];
                 }
                 this.laneRoles = options;
-                UI.shiftAlert.style.opacity = '1';
-                setTimeout(() => UI.shiftAlert.style.opacity = '0', 2000);
+                if (!silent) this.ui.triggerAlert('shift');
             }
 
             getLaneFromCoords(clientX) {
@@ -438,63 +596,37 @@
 
             update(dt) {
                 if (!this.active) return;
-
-                // Scale distance and speed by deltaTime
+                
+                this.elapsedTime += dt;
                 this.distance += this.speed * dt * 5; 
                 this.speed = Math.min(CONFIG.PHYSICS.MAX_SPEED, CONFIG.PHYSICS.INITIAL_SPEED + (this.distance / CONFIG.PHYSICS.SPEED_SCALING));
                 this.peakScoreThisRun = Math.max(this.peakScoreThisRun, this.score);
                 
-                if (!this.bannerShownThisRun && this.distance > sessionRecords.distance) {
+                const bestDist = this.saveManager.getRecords().distance;
+                if (!this.bannerShownThisRun && this.distance > bestDist && bestDist > 0) {
                     this.bannerShownThisRun = true;
-                    UI.recordBanner.classList.add('show');
-                    setTimeout(() => UI.recordBanner.classList.remove('show'), CONFIG.GAME.RECORD_BANNER_DURATION);
+                    this.ui.triggerAlert('record');
                 }
 
                 if (this.distance - this.lastShiftDist > CONFIG.GAME.LANE_SHIFT_INTERVAL) {
                     this.shuffleLanes();
                     this.lastShiftDist = this.distance;
                 }
-
-                // Smooth player movement using dt-based lerp
                 this.playerX += (this.targetX - this.playerX) * (1 - Math.exp(-CONFIG.PLAYER.LERP_FACTOR * dt));
-
                 this.spawnManager();
                 this.combatManager(dt);
                 this.entityManager(dt);
                 this.particleManager(dt);
+                this.ui.updateDistance(this.distance);
             }
 
             spawnManager() {
-                const now = Date.now();
+                const now = performance.now();
                 for (let i = 0; i < CONFIG.GAME.LANES; i++) {
                     const role = this.laneRoles[i];
                     const interval = (role === ROLES.EVOLUTION ? 5500 : (role === ROLES.GROWTH ? 700 : 1800)) / ( (this.speed * role.speedMult) / CONFIG.PHYSICS.INITIAL_SPEED);
-                    
                     if (now - this.lastSpawns[i] > interval) {
-                        if (role === ROLES.GROWTH) {
-                            const isPercentage = Math.random() < 0.4;
-                            const val = isPercentage ? Math.ceil(this.score * 0.012) : 1;
-                            this.entities.push(new Gate(role, i, -100, '+', val, true));
-                        } else if (role === ROLES.EVOLUTION) {
-                            this.entities.push(new EvolutionGate(role, i, -100, this.score));
-                        } else { 
-                            const diffProb = Math.min(0.85, 0.4 + (this.distance / CONFIG.PHYSICS.SPEED_SCALING * 1.5));
-                            
-                            if (Math.random() > 0.8) { 
-                                for (let k = 0; k < CONFIG.ENTITIES.PHALANX_COUNT; k++) {
-                                    this.entities.push(new Enemy(role, i, -100 - (k * CONFIG.ENTITIES.PHALANX_SPACING), this.score, this.distance, 'phalanx'));
-                                }
-                            } else {
-                                const isEnemy = Math.random() < diffProb;
-                                if (isEnemy) {
-                                    this.entities.push(new Enemy(role, i, -100, this.score, this.distance));
-                                } else {
-                                    const op = Math.random() > 0.5 ? '-' : '/';
-                                    const val = op === '-' ? Math.floor(this.score * 0.2) + 10 : 2;
-                                    this.entities.push(new Gate(role, i, -100, op, val, false));
-                                }
-                            }
-                        }
+                        this.entities.push(...EntityFactory.createEntities(role, i, this.score, this.distance));
                         this.lastSpawns[i] = now;
                     }
                 }
@@ -504,75 +636,52 @@
                 const playerY = this.canvas.height - CONFIG.PLAYER.Y_OFFSET;
                 let target = null;
                 let minDist = Infinity;
-                
                 this.entities.forEach(e => {
-                    if (((e.type === 'enemy') || (e.type === 'gate' && !e.isUnlocked)) && e.lane === this.currentLane && e.y < playerY - 40) {
+                    if (((e.type === 'enemy') || (e.type === 'evolutionGate' && !e.isUnlocked)) && e.lane === this.currentLane && e.y < playerY - 40) {
                         const d = playerY - e.y;
                         if (d < minDist) { minDist = d; target = e; }
                     }
                 });
-
                 if (target) {
-                    // Constant damage per second
                     target.health -= ((this.score * 0.72) + 21) * dt;
-                    
                     this.fireTimer += dt;
                     if (this.fireTimer >= CONFIG.PLAYER.FIRE_RATE) {
-                        this.bullets.push({ 
-                            x: this.playerX + (Math.random() - 0.5) * 20, 
-                            y: playerY - 20, 
-                            targetY: target.y + 40 
-                        });
+                        this.bullets.push({ x: this.playerX + (Math.random() - 0.5) * 20, y: playerY - 20, targetY: target.y + 40 });
                         this.fireTimer = 0;
                     }
-                    
                     if (target.health <= 0) {
                         if (target.type === 'enemy') {
                             target.isCollected = true;
                             for (let i = 0; i < 12; i++) {
                                 this.particles.push({ 
                                     x: target.lane * (this.canvas.width / CONFIG.GAME.LANES) + (this.canvas.width / CONFIG.GAME.LANES / 2), 
-                                    y: target.y + 40, 
-                                    vx: (Math.random() - 0.5) * 8, 
-                                    vy: (Math.random() - 0.5) * 8, 
-                                    life: 1, color: '#ef4444' 
+                                    y: target.y + 40, vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8, life: 1, color: '#ef4444' 
                                 });
                             }
                             this.score *= target.isElite ? 2.5 : 1.012;
                             this.entities = this.entities.filter(ent => ent !== target);
-                        } else {
-                            target.isUnlocked = true;
-                        }
+                        } else { target.isUnlocked = true; }
                     }
                 }
-
                 for (let i = this.bullets.length - 1; i >= 0; i--) {
                     const b = this.bullets[i];
                     b.y -= CONFIG.PHYSICS.BULLET_SPEED * dt * CONFIG.PHYSICS.FPS_BASELINE; 
-                    if (b.y < b.targetY) {
-                        this.bullets.splice(i, 1);
-                    }
+                    if (b.y < b.targetY) this.bullets.splice(i, 1);
                 }
             }
 
             entityManager(dt) {
                 const playerY = this.canvas.height - CONFIG.PLAYER.Y_OFFSET;
-                
                 for (let i = this.entities.length - 1; i >= 0; i--) {
                     const e = this.entities[i];
                     e.update(dt, this.speed);
-                    
                     if (e.y > this.canvas.height) {
-                        if (e.type === 'enemy') {
-                            this.endGame("DEFENSES BREACHED!");
-                            return;
-                        }
+                        if (e.type === 'enemy') { this.endGame("DEFENSES BREACHED!"); return; }
                         this.entities.splice(i, 1);
                         continue;
                     }
-
                     if (!e.isCollected && e.lane === this.currentLane && e.y + e.height > playerY && e.y < playerY + CONFIG.PLAYER.COLLISION_HEIGHT) {
-                        if (e.type === 'gate' && e.isUnlocked) {
+                        if ((e.type === 'gate' || e.type === 'evolutionGate') && e.isUnlocked) {
                             e.isCollected = true;
                             if (e.op === '+') this.score += e.val;
                             else if (e.op === '-') this.score -= e.val;
@@ -583,11 +692,7 @@
                             this.score -= Math.ceil(e.health);
                             this.entities.splice(i, 1);
                         }
-                        
-                        if (this.score <= 0) {
-                            this.endGame("LEGION ANNIHILATED!");
-                            return;
-                        }
+                        if (this.score <= 0) { this.endGame("LEGION ANNIHILATED!"); return; }
                     }
                 }
             }
@@ -598,19 +703,14 @@
                     p.x += p.vx * dt * CONFIG.PHYSICS.FPS_BASELINE; 
                     p.y += p.vy * dt * CONFIG.PHYSICS.FPS_BASELINE; 
                     p.life -= CONFIG.PHYSICS.PARTICLE_DECAY * dt; 
-                    if (p.life <= 0) {
-                        this.particles.splice(i, 1);
-                    }
+                    if (p.life <= 0) this.particles.splice(i, 1);
                 }
             }
 
             endGame(reason) {
                 this.active = false;
-                sessionRecords.distance = Math.max(sessionRecords.distance, this.distance);
-                UI.failReason.innerText = reason;
-                UI.finalDist.innerText = Math.floor(this.distance);
-                updateUI();
-                UI.gameOverScreen.classList.remove('hidden');
+                this.saveManager.updateDistance(this.distance);
+                this.ui.showGameOver(this.distance, reason, this.saveManager.getRecords());
             }
         }
 
@@ -621,15 +721,23 @@
             constructor(canvas, ctx) {
                 this.canvas = canvas;
                 this.ctx = ctx;
+                
+                this.STRATEGIES = {
+                    gate: (ctx, entity, lw, engine) => this.drawStandardGate(ctx, entity, lw),
+                    evolutionGate: (ctx, entity, lw, engine) => this.drawEvolutionGate(ctx, entity, lw),
+                    enemy: (ctx, entity, lw, engine) => this.drawEnemy(ctx, entity, lw, engine),
+                    player: (ctx, engine) => this.drawPlayer(ctx, engine)
+                };
             }
 
             draw(engine) {
                 const ctx = this.ctx;
                 const canvas = this.canvas;
                 const lw = canvas.width / CONFIG.GAME.LANES;
+                const theme = CONFIG.THEME;
 
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = '#0f172a';
+                ctx.fillStyle = theme.COLORS.BACKGROUND;
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                 for (let i = 0; i < CONFIG.GAME.LANES; i++) {
@@ -637,16 +745,19 @@
                     ctx.fillRect(i * lw, 0, lw, canvas.height);
                 }
 
-                ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-                ctx.setLineDash([15, 15]);
+                ctx.strokeStyle = theme.COLORS.GRID;
+                ctx.setLineDash(theme.STYLES.GRID_DASH);
                 for (let i = 1; i < CONFIG.GAME.LANES; i++) {
                     ctx.beginPath(); ctx.moveTo(i * lw, 0); ctx.lineTo(i * lw, canvas.height); ctx.stroke();
                 }
                 ctx.setLineDash([]);
 
-                engine.entities.forEach(e => this.drawEntity(e));
+                engine.entities.forEach(e => {
+                    const strategy = this.STRATEGIES[e.type];
+                    if (strategy) strategy(ctx, e, lw, engine);
+                });
 
-                ctx.fillStyle = '#facc15';
+                ctx.fillStyle = theme.COLORS.BULLET;
                 engine.bullets.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, 4, 0, Math.PI * 2); ctx.fill(); });
 
                 engine.particles.forEach(p => {
@@ -655,91 +766,113 @@
                     ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2); ctx.fill();
                 });
                 ctx.globalAlpha = 1;
-
-                this.drawPlayer(engine);
-                UI.distHud.innerText = Math.floor(engine.distance);
+                this.STRATEGIES.player(ctx, engine);
             }
 
-            drawEntity(e) {
-                const ctx = this.ctx;
-                const lw = this.canvas.width / CONFIG.GAME.LANES;
+            _drawGateShell(ctx, x, y, width, height, radius, bgColor, strokeColor) {
+                ctx.beginPath();
+                ctx.roundRect(x + 10, y, width - 20, height, radius);
+                ctx.fillStyle = bgColor; ctx.fill();
+                ctx.strokeStyle = strokeColor; ctx.lineWidth = 3; ctx.stroke();
+            }
+
+            drawStandardGate(ctx, e, lw) {
                 const x = e.lane * lw;
-                const radius = 25;
-
-                if (e.type === 'gate') {
-                    const isLocked = !e.isUnlocked && e.role === ROLES.EVOLUTION;
-                    const gateColor = isLocked ? 'rgba(71, 85, 105, 0.9)' : (e.isPositive ? 'rgba(37, 99, 235, 0.9)' : 'rgba(220, 38, 38, 0.9)');
-                    const strokeColor = isLocked ? '#94a3b8' : (e.isPositive ? '#60a5fa' : '#f87171');
+                const theme = CONFIG.THEME;
+                
+                if (e.role === ROLES.GROWTH) {
+                    const gateWidth = lw * 0.6;
+                    const gateOffset = (lw - gateWidth) / 2;
+                    const gateColor = e.isPositive ? 'rgba(37, 99, 235, 0.9)' : 'rgba(220, 38, 38, 0.9)';
+                    const strokeColor = e.isPositive ? '#60a5fa' : '#f87171';
                     
-                    ctx.beginPath();
-                    ctx.roundRect(x + 10, e.y, lw - 20, e.height, radius);
-                    ctx.fillStyle = gateColor; ctx.fill();
-                    ctx.strokeStyle = strokeColor; ctx.lineWidth = 3; ctx.stroke();
-
-                    ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
-
-                    if (isLocked) {
-                        ctx.font = 'bold 20px var(--font-main)';
-                        ctx.fillText(e.isSecret ? "???" : CONFIG.ASSETS.LOCKED, x + lw / 2, e.y + 35);
-                        const barW = lw - 50, barH = 8, barX = x + 25, barY = e.y + 58;
-                        ctx.fillStyle = 'rgba(0,0,0,0.4)';
-                        ctx.beginPath(); ctx.roundRect(barX, barY, barW, barH, 4); ctx.fill();
-                        ctx.fillStyle = '#fff';
-                        ctx.beginPath(); ctx.roundRect(barX, barY, barW * (e.health / e.maxHealth), barH, 4); ctx.fill();
-                    } else if (e.role === ROLES.GROWTH) {
-                        ctx.font = '26px serif';
-                        ctx.fillText(e.isPercentage ? CONFIG.ASSETS.POWERUP.repeat(3) : CONFIG.ASSETS.POWERUP, x + lw / 2, e.y + 45);
-                    } else if (e.role === ROLES.EVOLUTION) {
-                        ctx.font = '26px serif';
-                        const batteryStr = e.val > 3 ? CONFIG.ASSETS.BATTERY.repeat(3) : (e.val > 2 ? CONFIG.ASSETS.BATTERY.repeat(2) : CONFIG.ASSETS.BATTERY);
-                        ctx.fillText(batteryStr, x + lw / 2, e.y + 45);
-                    } else { 
-                        ctx.font = '24px serif';
-                        ctx.fillText(e.op === '-' ? CONFIG.ASSETS.HAZARD : CONFIG.ASSETS.HAZARD.repeat(3), x + lw / 2, e.y + 45);
-                    }
+                    this._drawGateShell(ctx, x + gateOffset - 10, e.y, gateWidth + 20, e.height, 25, gateColor, strokeColor);
+                    ctx.fillStyle = theme.COLORS.TEXT_WHITE; ctx.textAlign = 'center';
+                    ctx.font = theme.FONTS.GATE;
+                    ctx.fillText(e.isPercentage ? CONFIG.ASSETS.POWERUP.repeat(3) : CONFIG.ASSETS.POWERUP, x + lw / 2, e.y + 45);
                 } else { 
-                    const barW = lw * CONFIG.ENTITIES.HEALTH_BAR_MAGNITUDE, barH = CONFIG.ENTITIES.HEALTH_BAR_HEIGHT, barX = x + lw/2 - barW/2, barY = e.y - 15;
-                    ctx.fillStyle = 'rgba(0,0,0,0.5)';
-                    ctx.beginPath(); ctx.roundRect(barX, barY, barW, barH, 4); ctx.fill();
-                    ctx.fillStyle = '#ef4444';
-                    ctx.beginPath(); ctx.roundRect(barX, barY, barW * (e.health / e.maxHealth), barH, 4); ctx.fill();
-                    
-                    if (e.isSwarm) {
-                        ctx.font = '18px serif';
-                        e.swarmOffsets.forEach((off, i) => {
-                            const jx = Math.sin(Date.now() / 150 + i) * 3, jy = Math.cos(Date.now() / 150 + i) * 3;
-                            ctx.fillText(CONFIG.ASSETS.ENEMY, x + lw/2 + off.x + jx, e.y + 40 + off.y + jy);
-                        });
-                    } else if (e.forceType === 'phalanx') {
-                        ctx.font = '24px serif';
-                        ctx.fillText(CONFIG.ASSETS.ENEMY, x + lw/2 + e.phalanxXOffset, e.y + 45);
-                    } else {
-                        const sc = (0.6 + (Math.max(0, e.health) / e.maxHealth) * 0.6) * (e.isElite ? 1.7 : 1.1);
-                        ctx.save(); ctx.translate(x + lw/2, e.y + 45); ctx.scale(sc, sc);
-                        ctx.font = '48px serif'; ctx.textAlign = 'center';
-                        ctx.fillText(e.isElite ? CONFIG.ASSETS.ELITE : CONFIG.ASSETS.ENEMY, 0, 10);
-                        ctx.restore();
-                    }
+                    ctx.fillStyle = theme.COLORS.TEXT_WHITE; ctx.textAlign = 'center';
+                    const isGreater = e.op === '/';
+                    ctx.font = isGreater ? theme.FONTS.CHAOS_EMOJI_LARGE : theme.FONTS.CHAOS_EMOJI;
+                    ctx.fillText(CONFIG.ASSETS.HAZARD, x + lw / 2, e.y + (isGreater ? 60 : 50));
                 }
             }
 
-            drawPlayer(engine) {
-                const ctx = this.ctx;
-                const pY = this.canvas.height - CONFIG.PLAYER.Y_OFFSET;
-                const cS = Math.min(25, Math.ceil(engine.score / 5));
-                ctx.font = '24px serif'; ctx.textAlign = 'center';
+            drawEvolutionGate(ctx, e, lw) {
+                const x = e.lane * lw;
+                const theme = CONFIG.THEME;
+                const isLocked = !e.isUnlocked;
                 
-                for (let i = 0; i < cS; i++) {
-                    const off = engine.playerSwarm[i % engine.playerSwarm.length];
-                    const jx = Math.sin(Date.now() / 180 + i) * 4, jy = Math.cos(Date.now() / 180 + i) * 4;
-                    ctx.fillText(CONFIG.ASSETS.PLAYER, engine.playerX + off.x + jx - 12, pY + off.y + jy);
+                const gateWidth = lw * 0.6;
+                const gateOffset = (lw - gateWidth) / 2;
+                const gateColor = isLocked ? theme.COLORS.LOCKED_GATE_BG : 'rgba(37, 99, 235, 0.9)';
+                const strokeColor = isLocked ? theme.COLORS.LOCKED_GATE_STROKE : '#60a5fa';
+                
+                this._drawGateShell(ctx, x + gateOffset - 10, e.y, gateWidth + 20, e.height, 25, gateColor, strokeColor);
+                ctx.fillStyle = theme.COLORS.TEXT_WHITE; ctx.textAlign = 'center';
+
+                if (isLocked) {
+                    // Lock size is now perfectly consistent - no scaling transforms applied
+                    ctx.font = theme.FONTS.LOCKED;
+                    ctx.fillText(CONFIG.ASSETS.LOCKED, x + lw / 2, e.y + 35);
+                    const barW = (gateWidth) - 20, barH = 8, barX = x + gateOffset + 10, barY = e.y + 58;
+                    ctx.fillStyle = theme.COLORS.BAR_BG;
+                    ctx.beginPath(); ctx.roundRect(barX, barY, barW, barH, 4); ctx.fill();
+                    ctx.fillStyle = theme.COLORS.TEXT_WHITE;
+                    ctx.beginPath(); ctx.roundRect(barX, barY, barW * (e.health / e.maxHealth), barH, 4); ctx.fill();
+                } else {
+                    ctx.font = theme.FONTS.GATE;
+                    const batteryStr = e.val > 3 ? CONFIG.ASSETS.BATTERY.repeat(3) : (e.val > 2 ? CONFIG.ASSETS.BATTERY.repeat(2) : CONFIG.ASSETS.BATTERY);
+                    ctx.fillText(batteryStr, x + lw / 2, e.y + 45);
+                }
+            }
+
+            drawEnemy(ctx, e, lw, engine) {
+                const x = e.lane * lw;
+                const theme = CONFIG.THEME;
+                const barW = lw * CONFIG.ENTITIES.HEALTH_BAR_MAGNITUDE, barH = CONFIG.ENTITIES.HEALTH_BAR_HEIGHT, barX = x + lw/2 - barW/2, barY = e.y - 15;
+                
+                ctx.fillStyle = theme.COLORS.BAR_BG;
+                ctx.beginPath(); ctx.roundRect(barX, barY, barW, barH, 4); ctx.fill();
+                ctx.fillStyle = theme.COLORS.HEALTH_ENEMY;
+                ctx.beginPath(); ctx.roundRect(barX, barY, barW * (e.health / e.maxHealth), barH, 4); ctx.fill();
+                
+                if (e.isSwarm) {
+                    ctx.font = theme.FONTS.SWARM_ENEMY;
+                    const timeFactor = engine.elapsedTime * 6.67; 
+                    e.swarmOffsets.forEach((off, i) => {
+                        const jx = Math.sin(timeFactor + i) * 3, jy = Math.cos(timeFactor + i) * 3;
+                        ctx.fillText(CONFIG.ASSETS.ENEMY, x + lw/2 + off.x + jx, e.y + 40 + off.y + jy);
+                    });
+                } else if (e.forceType === 'phalanx') {
+                    ctx.font = theme.FONTS.ENEMY_PHALANX;
+                    ctx.fillText(CONFIG.ASSETS.ENEMY, x + lw/2 + e.phalanxXOffset, e.y + 45);
+                } else {
+                    const sc = (0.6 + (Math.max(0, e.health) / e.maxHealth) * 0.6) * (e.isElite ? 1.4 : 1.1);
+                    ctx.save(); ctx.translate(x + lw/2, e.y + 45); ctx.scale(sc, sc);
+                    ctx.font = theme.FONTS.ELITE; ctx.textAlign = 'center';
+                    ctx.fillText(e.isElite ? CONFIG.ASSETS.ELITE : CONFIG.ASSETS.ENEMY, 0, 10);
+                    ctx.restore();
+                }
+            }
+
+            drawPlayer(ctx, engine) {
+                const theme = CONFIG.THEME;
+                const pY = this.canvas.height - CONFIG.PLAYER.Y_OFFSET;
+                const swarmCount = engine.swarm.getActiveCount(engine.score);
+                
+                ctx.font = theme.FONTS.PLAYER; ctx.textAlign = 'center';
+                for (let i = 0; i < swarmCount; i++) {
+                    const pos = engine.swarm.getMemberPosition(i, engine.playerX, pY, engine.elapsedTime);
+                    ctx.fillText(CONFIG.ASSETS.PLAYER, pos.x, pos.y);
                 }
                 
                 const barW = CONFIG.PLAYER.HEALTH_BAR_WIDTH, barH = CONFIG.PLAYER.HEALTH_BAR_HEIGHT;
                 const barX = engine.playerX - barW / 2, barY = pY - 35;
-                ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                
+                ctx.fillStyle = theme.COLORS.BAR_BG_SOLID;
                 ctx.beginPath(); ctx.roundRect(barX, barY, barW, barH, 5); ctx.fill();
-                ctx.fillStyle = '#22c55e';
+                ctx.fillStyle = theme.COLORS.HEALTH_PLAYER;
                 ctx.beginPath(); ctx.roundRect(barX, barY, barW * (engine.score / engine.peakScoreThisRun), barH, 5); ctx.fill();
                 ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1; ctx.stroke();
             }
@@ -750,32 +883,27 @@
          */
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const game = new GameEngine(canvas);
+        const saveManager = new SaveManager();
+        const uiManager = new UIManager();
+        const game = new GameEngine(canvas, uiManager, saveManager);
         const renderer = new Renderer(canvas, ctx);
-
-        function updateUI() {
-            const str = `Best: ${Math.floor(sessionRecords.distance)}m`;
-            UI.startRecords.innerText = str;
-            UI.endRecords.innerText = str;
-        }
 
         window.addEventListener('resize', () => {
             const container = document.getElementById('game-container');
-            canvas.width = container.clientWidth;
-            canvas.height = container.clientHeight;
-            game.updateTargetX();
-            game.playerX = game.targetX;
+            if (container) {
+                canvas.width = container.clientWidth;
+                canvas.height = container.clientHeight;
+                game.updateTargetX();
+                game.playerX = game.targetX;
+            }
         });
         window.dispatchEvent(new Event('resize'));
-
-        UI.startBtn.addEventListener('click', () => game.start());
-        UI.restartBtn.addEventListener('click', () => game.start());
-
+        uiManager.elements.startBtn.addEventListener('click', () => game.start());
+        uiManager.elements.restartBtn.addEventListener('click', () => game.start());
         window.addEventListener('keydown', (e) => {
             if (e.key === 'ArrowLeft') game.moveToLane(game.currentLane - 1);
             if (e.key === 'ArrowRight') game.moveToLane(game.currentLane + 1);
         });
-
         canvas.addEventListener('mousedown', (e) => game.moveToLane(game.getLaneFromCoords(e.clientX)));
         canvas.addEventListener('touchstart', (e) => {
             game.moveToLane(game.getLaneFromCoords(e.touches[0].clientX));
@@ -784,16 +912,14 @@
 
         let lastTime = performance.now();
         function loop(timestamp) {
-            // Calculate deltaTime in seconds
-            const dt = Math.min((timestamp - lastTime) / 1000, 0.1); // Cap dt to prevent teleporting on lag
+            const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
             lastTime = timestamp;
-
             game.update(dt);
             renderer.draw(game);
             requestAnimationFrame(loop);
         }
 
-        updateUI();
+        uiManager.showStart(saveManager.getRecords());
         requestAnimationFrame(loop);
     </script>
 </body>
