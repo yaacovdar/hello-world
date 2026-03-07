@@ -377,7 +377,8 @@
                         ctx.fillText(battery, x + this.width / 2, this.y + 45);
                     } else { 
                         ctx.font = '24px serif';
-                        ctx.fillText(this.op === '-' ? "➖" : "➗", x + this.width / 2, this.y + 45);
+                        // Changed negative block symbols to fire emojis
+                        ctx.fillText(this.op === '-' ? "🔥" : "🔥🔥🔥", x + this.width / 2, this.y + 45);
                     }
                 } else { 
                     // Enemy Health bar - Rounded
