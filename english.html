@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>English Adventure - Kids Learning App</title>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Updated Font: Bubblegum Sans -->
+    <link href="https://fonts.googleapis.com/css2?family=Bubblegum+Sans&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #4FACFE;
@@ -26,7 +27,7 @@
 
         body {
             margin: 0;
-            font-family: 'Fredoka', sans-serif;
+            font-family: 'Bubblegum Sans', cursive;
             background-color: var(--bg-color);
             color: var(--text-dark);
             height: 100vh;
@@ -63,11 +64,12 @@
             border: none;
             padding: 8px 16px;
             border-radius: 20px;
-            font-size: 1rem;
+            font-size: 1.2rem;
             font-weight: bold;
             cursor: pointer;
             transition: transform 0.2s;
             flex-shrink: 0;
+            font-family: inherit;
         }
 
         .back-btn:active { transform: scale(0.9); }
@@ -139,6 +141,7 @@
             cursor: pointer;
             transition: all 0.3s;
             border-bottom: 6px solid #ccc;
+            font-family: inherit;
         }
 
         .card:hover { transform: translateY(-5px); }
@@ -223,7 +226,7 @@
 
         /* --- GAMEPLAY UI --- */
         .instruction {
-            font-size: 1.8rem;
+            font-size: 2.2rem;
             font-weight: bold;
             text-align: center;
             margin-bottom: 10px;
@@ -232,9 +235,9 @@
         }
 
         .exercise-text-prompt {
-            font-size: 3rem;
+            font-size: 3.5rem;
             color: var(--success);
-            margin: 5px 0 25px 0;
+            margin: 5px 0 20px 0;
             font-weight: 700;
             text-transform: capitalize;
             text-align: center;
@@ -242,7 +245,7 @@
 
         .interaction-area {
             width: 100%;
-            max-width: 850px;
+            max-width: 1100px;
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
@@ -251,8 +254,8 @@
 
         .option-img-container {
             position: relative;
-            width: 180px;
-            height: 180px;
+            width: 150px;
+            height: 150px;
             border-radius: 24px;
             overflow: hidden;
             border: 6px solid white;
@@ -278,7 +281,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 70px;
+            font-size: 65px;
             background: #fff;
         }
 
@@ -287,14 +290,14 @@
             bottom: 0;
             left: 0;
             width: 100%;
-            padding: 8px 0;
+            padding: 5px 0;
             text-align: center;
             color: white;
             font-size: 1.4rem;
             font-weight: bold;
-            -webkit-text-stroke: 1.5px #333;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
-            background: linear-gradient(transparent, rgba(0,0,0,0.4));
+            -webkit-text-stroke: 1px #333;
+            text-shadow: 1px 1px 0 #333, 0 2px 4px rgba(0,0,0,0.5);
+            background: linear-gradient(transparent, rgba(0,0,0,0.5));
             pointer-events: none;
         }
 
@@ -337,7 +340,7 @@
             border: none;
             padding: 12px 30px;
             border-radius: 30px;
-            font-size: 1.2rem;
+            font-size: 1.4rem;
             font-weight: bold;
             cursor: pointer;
             margin-top: 30px;
@@ -345,6 +348,7 @@
             width: auto;
             min-width: 120px;
             box-shadow: 0 4px 0 #93C5FD;
+            font-family: inherit;
         }
 
         .skip-btn:active {
@@ -361,10 +365,11 @@
             border: none;
             padding: 10px 15px;
             border-radius: 12px;
-            font-size: 0.9rem;
+            font-size: 1rem;
             font-weight: bold;
             cursor: pointer;
             opacity: 0.7;
+            font-family: inherit;
         }
 
         .parental-btn:hover { opacity: 1; background: #94a3b8; }
@@ -385,11 +390,13 @@
         }
 
         .feedback-text {
-            font-size: 5rem;
+            font-size: 3.5rem;
             font-weight: bold;
             color: var(--success);
             text-shadow: 3px 3px 0 white;
             animation: bounce 0.6s infinite alternate;
+            padding: 20px;
+            text-align: center;
         }
 
         @keyframes bounce {
@@ -399,10 +406,11 @@
 
         /* --- RESPONSIVE ADJUSTMENTS --- */
         @media (max-width: 600px) {
-            .option-img-container { width: 140px; height: 140px; }
-            .emoji-box { font-size: 50px; }
-            .instruction { font-size: 1.4rem; }
+            .option-img-container { width: 120px; height: 120px; }
+            .emoji-box { font-size: 40px; }
+            .instruction { font-size: 1.5rem; }
             .exercise-text-prompt { font-size: 2.2rem; }
+            .feedback-text { font-size: 2.2rem; }
             .stars-container { 
                 flex-wrap: wrap;
                 max-width: 320px; 
@@ -422,15 +430,15 @@
         
         <!-- Welcome Screen -->
         <div id="welcome-screen" class="screen active">
-            <h1 style="font-size: 3rem; color: var(--primary); margin-bottom: 20px; text-align: center;">English Adventure! 🌟</h1>
-            <p style="font-size: 1.2rem; margin-bottom: 30px; color: #777;">Ready to learn and play?</p>
+            <h1 style="font-size: 4rem; color: var(--primary); margin-bottom: 20px; text-align: center;">English Adventure! 🌟</h1>
+            <p style="font-size: 1.5rem; margin-bottom: 30px; color: #777;">Ready to learn and play?</p>
             <div class="grid-menu" id="level-menu"></div>
-            <button class="parental-btn" onclick="showDebug()">⚙ Parental Dashboard</button>
+            <button class="parental-btn" onclick="updateState({view: 'debug'})">⚙ Parental Dashboard</button>
         </div>
 
         <!-- Sublevel Selection -->
         <div id="sublevel-screen" class="screen">
-            <h2 id="level-title" style="margin-bottom: 30px; color: var(--primary);">Select a Lesson</h2>
+            <h2 id="level-title" style="margin-bottom: 30px; color: var(--primary); font-size: 2.5rem;">Select a Lesson</h2>
             <div class="grid-menu" id="sublevel-menu"></div>
         </div>
 
@@ -439,13 +447,13 @@
             <div class="instruction" id="question-text">Look and listen!</div>
             <div id="exercise-info" class="exercise-text-prompt" style="display: none;"></div>
             <div class="interaction-area" id="interaction-root"></div>
-            <div id="status-message" style="margin-top: 20px; font-weight: bold; color: #666; font-size: 1.1rem; min-height: 1.5em;"></div>
+            <div id="status-message" style="margin-top: 20px; font-weight: bold; color: #666; font-size: 1.3rem; min-height: 1.5em; text-align: center;"></div>
         </div>
 
         <!-- Parental / Debug Screen -->
         <div id="debug-screen" class="screen">
-            <h1 style="color: #1e293b; margin-top: 20px; margin-bottom: 10px;">Parental Overview</h1>
-            <p style="margin-bottom: 30px; color: #64748b;">Click any item to hear the voice.</p>
+            <h1 style="color: #1e293b; margin-top: 20px; margin-bottom: 10px; font-size: 2.5rem;">Parental Overview</h1>
+            <p style="margin-bottom: 30px; color: #64748b; font-size: 1.2rem;">Click any item to hear the voice.</p>
             <div id="debug-content-root" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
                 <!-- Generated by JS -->
             </div>
@@ -453,9 +461,9 @@
 
         <!-- Success Screen -->
         <div id="success-screen" class="screen">
-            <h1 style="font-size: 4rem; color: #FFD700;">AMAZING! 🏆</h1>
-            <p style="font-size: 1.8rem;">You are an English Star!</p>
-            <button class="card level-card" style="margin-top: 40px; padding: 25px 50px; font-size: 1.8rem;" onclick="goHome()">Play More!</button>
+            <h1 style="font-size: 5rem; color: #FFD700;">AMAZING! 🏆</h1>
+            <p style="font-size: 2.2rem;">You are an English Star!</p>
+            <button class="card level-card" style="margin-top: 40px; padding: 25px 60px; font-size: 2.5rem;" onclick="updateState({view: 'welcome'})">Play More!</button>
         </div>
 
     </div>
@@ -468,184 +476,111 @@
     <script>
         /** * DATA DEFINITIONS */
         const DATA = {
-            1: {
-                title: "Basics",
-                words: [
-                    { word: "Apple", emoji: "🍎" }, { word: "Dog", emoji: "🐶" }, { word: "Cat", emoji: "🐱" },
-                    { word: "Sun", emoji: "☀️" }, { word: "Moon", emoji: "🌙" }, { word: "Bird", emoji: "🐦" },
-                    { word: "Water", emoji: "💧" }, { word: "Bread", emoji: "🍞" }, { word: "Milk", emoji: "🥛" },
-                    { word: "Hello", emoji: "👋", social: true, response: "Hello" }
-                ]
-            },
-            2: {
-                title: "Playground",
-                words: [
-                    { word: "Monkey bars", url: "https://images.unsplash.com/vector-1757332570676-facced078968?q=80&w=1160&auto=format&fit=crop" },
-                    { word: "Rope bridge", url: "https://media.istockphoto.com/id/1006459800/photo/child-crossing-a-bridge-of-ropes.jpg?s=612x612&w=0&k=20&c=u6xBBbbU0qTmeE8Tt8RzB5TIVS8vwEEB2OJtY-NjWm8=" },
-                    { word: "Climbing frame", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRod-c9zdPr5uwqEZxCBwHkzqHyB3rrMxPYPQ&s" },
-                    { word: "Seesaw", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTj4Yw4wG2mxsr2p8D65wF5CBECXkjV-IVJqA&s" },
-                    { word: "Springy", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSnY2Z70Pv_IeIUtEqMbK-Xc8hy-c7_9tvH4Q&s" },
-                    { word: "Roundabout", url: "https://fibran.co.il/wp-content/uploads/2018/01/C-2447-foto1-1.jpg" },
-                    { word: "Sandpit", url: "https://upload.wikimedia.org/wikipedia/commons/7/74/Sandpit.jpg" },
-                    { word: "Swing", emoji: "🛝" },
-                    { word: "Jump", emoji: "🏃" },
-                    { word: "Play", emoji: "🎈" }
-                ]
-            },
-            3: {
-                title: "School",
-                words: [
-                    { word: "Protractor", url: "https://www.artdepot.co.il/16991-thickbox_default/%D7%9E%D7%93-%D7%96%D7%95%D7%95%D7%99%D7%AA-180-10-%D7%A1%D7%9E.jpg" },
-                    { word: "Compass", url: "https://picassoart.co.il/wp-content/uploads/2024/09/%D7%A1%D7%98-%D7%9E%D7%97%D7%95%D7%92%D7%94-STAEDTLER-%D7%9E%D7%90%D7%A8%D7%99%D7%9A.webp" },
-                    { word: "Whiteboard", url: "https://d3m9l0v76dty0.cloudfront.net/system/photos/6300072/large/beae27c0f2f7efd16d9d373de1173d5b.jpg" },
-                    { word: "Exercise book", url: "https://www.holisticfit.co.il/wp-content/uploads/2019/11/book2.jpg" },
-                    { word: "Gluestick", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTciAlKfgYbf97aiA4tmFwyT7Mlxdk2ADHqDw&s" },
-                    { word: "White Glue", url: "https://www.kravitz.co.il/cdn/shop/files/0609040.jpg?v=1717334825" },
-                    { word: "Colouring pencils", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRsGo4kEhv_yB5f0dFLeVPNeTO51K3UO9-v8g&s" },
-                    { word: "Pencil case", emoji: "👝" },
-                    { word: "Teacher", emoji: "👩‍🏫" },
-                    { word: "School bag", emoji: "🎒" }
-                ]
-            },
-            4: {
-                title: "Feelings",
-                words: [
-                    { word: "Proud", url: "https://storage.hidabroot.org/articles_new/371700_tumb_730X500.webp" },
-                    { word: "Confident", url: "https://www.shaharcohen.co.il/wp-content/uploads/2018/09/%D7%91%D7%99%D7%98%D7%97%D7%95%D7%9F-%D7%A2%D7%A6%D7%9E%D7%99-2.jpg" },
-                    { word: "Stuck", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS0QyZU8mjqWU9B1j6PHIlfa2NQFNEd3m59oA&s" },
-                    { word: "Embarrassed", url: "https://img.haarets.co.il/bs/0000017f-e0b4-d568-ad7f-f3ffd21f0000/44/ed/a1f65e5743e7e23b5dee992725fc/214241096.jpg?precrop=2200,1282,x0,y0&width=420&height=244&cmsprod" },
-                    { word: "Happy", emoji: "😊" },
-                    { word: "Sad", emoji: "😢" },
-                    { word: "Angry", emoji: "😠" },
-                    { word: "Together", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT6JdD8YJ5_gx62VabkzLg67mtKxKgVghWzGg&s" },
-                    { word: "Alone", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRSdvXZEA6OxXd0Lka76fuTVCSpmNQD8rT24w&s" },
-                    { word: "Sleepy", emoji: "😴" }
-                ]
-            },
-            5: {
-                title: "Actions",
-                words: [
-                    { word: "Line up", url: "https://i0.wp.com/blog.kolzchut.org.il/wp/wp-content/uploads/2021/04/53583181_l-1-scaled.jpg?fit=2560%2C2560&ssl=1" },
-                    { word: "Hands up", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT-5yi4ilAnk2dURlRe8sGy0x4SuoSZyydFQA&s" },
-                    { word: "Understand", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRAopj_QQFpkk1UtCYyuBdDjY8GsDxvpe582w&s" },
-                    { word: "English", url: "https://www.gan-li.co.il/images/itempics/2232_030820221718501.jpg" },
-                    { word: "History", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQmU_B7bxVo0knirxCMIGKLrJ5csX7CpM8W5A&s" },
-                    { word: "Listen", emoji: "👂" },
-                    { word: "Speak", emoji: "🗣️" },
-                    { word: "Write", emoji: "✍️" },
-                    { word: "Read", emoji: "📖" },
-                    { word: "Finished", emoji: "✅" }
-                ]
-            },
-            6: {
-                title: "Colours",
-                words: [
-                    { word: "Purple", emoji: "🟪" }, { word: "Orange", emoji: "🟧" }, { word: "Pink", emoji: "🩷" },
-                    { word: "Black", emoji: "⬛" }, { word: "Yellow", emoji: "🟨" }, { word: "Blue", emoji: "🟦" },
-                    { word: "Brown", emoji: "🟫" }, { word: "Red", emoji: "🟥" }, { word: "White", emoji: "⬜" },
-                    { word: "Green", emoji: "🟩" }, { word: "Gold", emoji: "🟡" }, { word: "Grey", emoji: "🩶" }
-                ]
-            },
-            7: {
-                title: "Animals",
-                words: [
-                    { word: "Goat", emoji: "🐐" }, { word: "Panda", emoji: "🐼" }, { word: "Pig", emoji: "🐷" },
-                    { word: "Lion", emoji: "🦁" }, { word: "Hippo", emoji: "🦛" }, { word: "Shark", emoji: "🦈" },
-                    { word: "Whale", emoji: "🐋" }, { word: "Hen", emoji: "🐔" }, { word: "Butterfly", emoji: "🦋" },
-                    { word: "Tiger", emoji: "🐅" }, { word: "Elephant", emoji: "🐘" }, { word: "Dolphin", emoji: "🐬" },
-                    { word: "Zebra", emoji: "🦓" }, { word: "Snake", emoji: "🐍" }, { word: "Wolf", emoji: "🐺" },
-                    { word: "Duck", emoji: "🦆" }, { word: "Bear", emoji: "🐻" }, { word: "Sheep", emoji: "🐑" },
-                    { word: "Rabbit", emoji: "🐰" }, { word: "Monkey", emoji: "🐒" }, { word: "Giraffe", emoji: "🦒" },
-                    { word: "Cow", emoji: "🐄" }, { word: "Ant", emoji: "🐜" }, { word: "Parrot", emoji: "🦜" }
-                ]
-            }
+            1: { title: "Basics", words: [{ word: "Apple", emoji: "🍎" }, { word: "Dog", emoji: "🐶" }, { word: "Cat", emoji: "🐱" }, { word: "Sun", emoji: "☀️" }, { word: "Moon", emoji: "🌙" }, { word: "Bird", emoji: "🐦" }, { word: "Water", emoji: "💧" }, { word: "Bread", emoji: "🍞" }, { word: "Milk", emoji: "🥛" }, { word: "Hello", emoji: "👋", social: true, response: "Hello" }] },
+            2: { title: "Playground", words: [{ word: "Monkey bars", url: "https://images.unsplash.com/vector-1757332570676-facced078968?q=80&w=1160&auto=format&fit=crop" }, { word: "Rope bridge", url: "https://media.istockphoto.com/id/1006459800/photo/child-crossing-a-bridge-of-ropes.jpg?s=612x612&w=0&k=20&c=u6xBBbbU0qTmeE8Tt8RzB5TIVS8vwEEB2OJtY-NjWm8=" }, { word: "Climbing frame", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRod-c9zdPr5uwqEZxCBwHkzqHyB3rrMxPYPQ&s" }, { word: "Seesaw", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTj4Yw4wG2mxsr2p8D65wF5CBECXkjV-IVJqA&s" }, { word: "Springy", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSnY2Z70Pv_IeIUtEqMbK-Xc8hy-c7_9tvH4Q&s" }, { word: "Roundabout", url: "https://fibran.co.il/wp-content/uploads/2018/01/C-2447-foto1-1.jpg" }, { word: "Sandpit", url: "https://upload.wikimedia.org/wikipedia/commons/7/74/Sandpit.jpg" }, { word: "Swing", emoji: "🛝" }, { word: "Jump", emoji: "🏃" }, { word: "Play", emoji: "🎈" }] },
+            3: { title: "School", words: [{ word: "Protractor", url: "https://www.artdepot.co.il/16991-thickbox_default/%D7%9E%D7%93-%D7%96%D7%95%D7%95%D7%99%D7%AA-180-10-%D7%A1%D7%9E.jpg" }, { word: "Compass", url: "https://picassoart.co.il/wp-content/uploads/2024/09/%D7%A1%D7%98-%D7%9E%D7%97%D7%95%D7%92%D7%94-STAEDTLER-%D7%9E%D7%90%D7%A8%D7%99%D7%9A.webp" }, { word: "Whiteboard", url: "https://d3m9l0v76dty0.cloudfront.net/system/photos/6300072/large/beae27c0f2f7efd16d9d373de1173d5b.jpg" }, { word: "Exercise book", url: "https://www.holisticfit.co.il/wp-content/uploads/2019/11/book2.jpg" }, { word: "Gluestick", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTciAlKfgYbf97aiA4tmFwyT7Mlxdk2ADHqDw&s" }, { word: "White Glue", url: "https://www.kravitz.co.il/cdn/shop/files/0609040.jpg?v=1717334825" }, { word: "Colouring pencils", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRsGo4kEhv_yB5f0dFLeVPNeTO51K3UO9-v8g&s" }, { word: "Pencil case", emoji: "👝" }, { word: "Teacher", emoji: "👩‍🏫" }, { word: "School bag", emoji: "🎒" }] },
+            4: { title: "Feelings", words: [{ word: "Proud", url: "https://storage.hidabroot.org/articles_new/371700_tumb_730X500.webp" }, { word: "Confident", url: "https://www.shaharcohen.co.il/wp-content/uploads/2018/09/%D7%91%D7%99%D7%98%D7%97%D7%95%D7%9F-%D7%A2%D7%A6%D7%9E%D7%99-2.jpg" }, { word: "Stuck", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS0QyZU8mjqWU9B1j6PHIlfa2NQFNEd3m59oA&s" }, { word: "Embarrassed", url: "https://img.haarets.co.il/bs/0000017f-e0b4-d568-ad7f-f3ffd21f0000/44/ed/a1f65e5743e7e23b5dee992725fc/214241096.jpg?precrop=2200,1282,x0,y0&width=420&height=244&cmsprod" }, { word: "Happy", emoji: "😊" }, { word: "Sad", emoji: "😢" }, { word: "Angry", emoji: "😠" }, { word: "Together", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT6JdD8YJ5_gx62VabkzLg67mtKxKgVghWzGg&s" }, { word: "Alone", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRSdvXZEA6OxXd0Lka76fuTVCSpmNQD8rT24w&s" }, { word: "Sleepy", emoji: "😴" }] },
+            5: { title: "Actions", words: [{ word: "Line up", url: "https://i0.wp.com/blog.kolzchut.org.il/wp/wp-content/uploads/2021/04/53583181_l-1-scaled.jpg?fit=2560%2C2560&ssl=1" }, { word: "Hands up", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT-5yi4ilAnk2dURlRe8sGy0x4SuoSZyydFQA&s" }, { word: "Understand", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRAopj_QQFpkk1UtCYyuBdDjY8GsDxvpe582w&s" }, { word: "English", url: "https://www.gan-li.co.il/images/itempics/2232_030820221718501.jpg" }, { word: "History", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQmU_B7bxVo0knirxCMIGKLrJ5csX7CpM8W5A&s" }, { word: "Listen", emoji: "👂" }, { word: "Speak", emoji: "🗣️" }, { word: "Write", emoji: "✍️" }, { word: "Read", emoji: "📖" }, { word: "Finished", emoji: "✅" }] },
+            6: { title: "Colours", words: [{ word: "Purple", emoji: "🟪" }, { word: "Orange", emoji: "🟧" }, { word: "Pink", emoji: "🩷" }, { word: "Black", emoji: "⬛" }, { word: "Yellow", emoji: "🟨" }, { word: "Blue", emoji: "🟦" }, { word: "Brown", emoji: "🟫" }, { word: "Red", emoji: "🟥" }, { word: "White", emoji: "⬜" }, { word: "Green", emoji: "🟩" }, { word: "Gold", emoji: "🟡" }, { word: "Grey", emoji: "🩶" }] },
+            7: { title: "Animals", words: [{ word: "Goat", emoji: "🐐" }, { word: "Panda", emoji: "🐼" }, { word: "Pig", emoji: "🐷" }, { word: "Lion", emoji: "🦁" }, { word: "Hippo", emoji: "🦛" }, { word: "Shark", emoji: "🦈" }, { word: "Whale", emoji: "🐋" }, { word: "Hen", emoji: "🐔" }, { word: "Butterfly", emoji: "🦋" }, { word: "Tiger", emoji: "🐅" }, { word: "Elephant", emoji: "🐘" }, { word: "Dolphin", emoji: "🐬" }, { word: "Zebra", emoji: "🦓" }, { word: "Snake", emoji: "🐍" }, { word: "Wolf", emoji: "🐺" }, { word: "Duck", emoji: "🦆" }, { word: "Bear", emoji: "🐻" }, { word: "Sheep", emoji: "🐑" }, { word: "Rabbit", emoji: "🐰" }, { word: "Monkey", emoji: "🐒" }, { word: "Giraffe", emoji: "🦒" }, { word: "Cow", emoji: "🐄" }, { word: "Ant", emoji: "🐜" }, { word: "Parrot", emoji: "🦜" }] }
         };
 
-        const AFFIRMATIONS = [
-            "Good job!", "Amazing!", "Well done!", "You're a star!", 
-            "Excellent!", "Brilliant!", "Fantastic!", "Keep it up!", 
-            "Super!", "Wonderful!"
+        const WRONG_FEEDBACK_TEMPLATES = [
+            "No, that was a {clicked}, can you find the {target}?",
+            "Oops! That's a {clicked}. Where is the {target}?",
+            "That's a {clicked}! Try looking for the {target}.",
+            "Not quite! That was the {clicked}. Let's find the {target}.",
+            "Whoops! You tapped the {clicked}. Can you see the {target}?"
         ];
 
-        let currentLevel = null;
-        let currentSublevel = null;
-        let currentQuestionIndex = 0;
-        let lessonQuestions = [];
-        let voices = [];
-        let recognition = null;
-        let repeatTimer = null; 
+        const CORRECT_FEEDBACK_TEMPLATES = [
+            "Good job, you found the {target}!",
+            "Well done, that's the {target}!",
+            "Great! That is the {target}!",
+            "You got it! It's a {target}!",
+            "Perfect! You found the {target}!"
+        ];
 
-        window.onload = () => {
-            initSpeech();
-            renderLevelMenu();
-            initStars();
+        const QUESTION_PROMPT_TEMPLATES = [
+            "Can you find the {target}?",
+            "Can you spot the {target}?",
+            "Where is the {target}?",
+            "Look for the {target}!",
+            "I'm looking for the {target}. Do you see it?"
+        ];
+
+        const DIGIT_MAP = { "1": "one", "2": "two", "3": "three", "4": "four", "5": "five", "6": "six", "7": "seven", "8": "eight", "9": "nine", "10": "ten" };
+
+        /** * STATE MANAGEMENT */
+        const state = {
+            view: 'welcome', // welcome, sublevel, game, debug, success
+            level: null,
+            sublevel: null,
+            questionIndex: 0,
+            questions: [],
+            stars: Array(15).fill(false),
+            voice: null,
+            voices: [],
+            recognition: null,
+            repeatTimer: null
         };
 
-        function initStars() {
+        function updateState(updates) {
+            Object.assign(state, updates);
+            render();
+        }
+
+        /** * RENDERER */
+        function render() {
+            // Hide all screens
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            
+            // Show active screen
+            const activeScreen = document.getElementById(`${state.view}-screen`);
+            if (activeScreen) activeScreen.classList.add('active');
+
+            // Header logic
+            const header = document.getElementById('app-header');
+            header.style.display = (['game', 'sublevel', 'debug'].includes(state.view)) ? 'flex' : 'none';
+
+            // Refresh progress stars
+            renderStars();
+
+            // Screen-specific updates
+            if (state.view === 'welcome') renderWelcomeMenu();
+            if (state.view === 'sublevel') renderSublevelMenu();
+            if (state.view === 'game') renderQuestion();
+            if (state.view === 'debug') renderDebugContent();
+
+            // Clear timer if not in game
+            if (state.view !== 'game') stopRepeatTimer();
+        }
+
+        function renderStars() {
             const container = document.getElementById('stars-bar');
             container.innerHTML = '';
-            for (let i = 0; i < 15; i++) {
+            state.stars.forEach((filled, i) => {
                 const star = document.createElement('span');
-                star.className = 'star';
+                star.className = `star ${filled ? 'filled' : ''}`;
                 star.innerHTML = '★';
-                star.id = `star-${i}`;
                 container.appendChild(star);
-            }
+            });
         }
 
-        function initSpeech() {
-            window.speechSynthesis.onvoiceschanged = () => {
-                voices = window.speechSynthesis.getVoices().filter(v => v.lang.startsWith('en'));
-            };
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (SpeechRecognition) {
-                recognition = new SpeechRecognition();
-                recognition.continuous = false;
-                recognition.interimResults = false;
-                recognition.lang = 'en-US';
-            }
-        }
-
-        function speak(text, rate = 0.8) {
-            window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(text);
-            if (voices.length > 0) {
-                utterance.voice = voices[Math.floor(Math.random() * voices.length)];
-            }
-            utterance.rate = rate;
-            window.speechSynthesis.speak(utterance);
-        }
-
-        function startRepeatTimer(textToRepeat) {
-            stopRepeatTimer();
-            repeatTimer = setInterval(() => {
-                speak(textToRepeat);
-            }, 8000); 
-        }
-
-        function stopRepeatTimer() {
-            if (repeatTimer) {
-                clearInterval(repeatTimer);
-                repeatTimer = null;
-            }
-        }
-
-        function renderLevelMenu() {
+        function renderWelcomeMenu() {
             const menu = document.getElementById('level-menu');
             menu.innerHTML = '';
-            const levelKeys = Object.keys(DATA).sort((a, b) => a - b);
-            levelKeys.forEach(levelKey => {
+            Object.keys(DATA).sort((a, b) => a - b).forEach(lvl => {
                 const card = document.createElement('div');
                 card.className = 'card level-card';
-                card.innerHTML = `<h3>Level ${levelKey}</h3><p>${DATA[levelKey].title}</p>`;
-                card.onclick = () => selectLevel(levelKey);
+                card.innerHTML = `<h3>Level ${lvl}</h3><p>${DATA[lvl].title}</p>`;
+                card.onclick = () => updateState({ view: 'sublevel', level: parseInt(lvl) });
                 menu.appendChild(card);
             });
         }
 
-        function selectLevel(lvl) {
-            currentLevel = parseInt(lvl);
-            showScreen('sublevel-screen');
+        function renderSublevelMenu() {
+            const lvl = state.level;
             document.getElementById('level-title').innerText = `Level ${lvl}: ${DATA[lvl].title}`;
             const menu = document.getElementById('sublevel-menu');
             menu.innerHTML = '';
@@ -658,97 +593,60 @@
             }
         }
 
-        function showScreen(screenId) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(screenId).classList.add('active');
-            const header = document.getElementById('app-header');
-            header.style.display = (screenId === 'game-screen' || screenId === 'sublevel-screen' || screenId === 'debug-screen') ? 'flex' : 'none';
-            if (screenId !== 'game-screen') stopRepeatTimer();
-        }
-
-        function showDebug() {
-            showScreen('debug-screen');
+        function renderDebugContent() {
             const root = document.getElementById('debug-content-root');
             root.innerHTML = '';
-
-            Object.keys(DATA).sort((a, b) => a - b).forEach(levelKey => {
-                const level = DATA[levelKey];
+            Object.keys(DATA).sort((a, b) => a - b).forEach(lvl => {
+                const level = DATA[lvl];
                 const section = document.createElement('div');
                 section.className = 'debug-level-section';
-                section.innerHTML = `<h2>Level ${levelKey}: ${level.title}</h2>`;
-                
+                section.innerHTML = `<h2>Level ${lvl}: ${level.title}</h2>`;
                 const grid = document.createElement('div');
                 grid.className = 'debug-grid';
-                
                 level.words.forEach(item => {
                     const wordCard = document.createElement('div');
                     wordCard.className = 'debug-word-card';
-                    wordCard.onclick = () => speak(item.word);
-                    
-                    if (item.url) {
-                        wordCard.innerHTML = `<img class="debug-img" src="${item.url}" onerror="this.src='https://via.placeholder.com/90?text=Error'">`;
-                    } else {
-                        wordCard.innerHTML = `<div class="debug-emoji">${item.emoji}</div>`;
-                    }
-                    
+                    wordCard.onclick = () => { state.voice = null; speak(item.word); };
+                    wordCard.innerHTML = item.url ? `<img class="debug-img" src="${item.url}" onerror="this.src='https://via.placeholder.com/90?text=Error'">` : `<div class="debug-emoji">${item.emoji}</div>`;
                     const label = document.createElement('span');
                     label.style.fontWeight = 'bold';
                     label.style.marginTop = '5px';
                     label.innerText = item.word;
                     wordCard.appendChild(label);
-                    
                     grid.appendChild(wordCard);
                 });
-                
                 section.appendChild(grid);
                 root.appendChild(section);
             });
         }
 
-        function goBack() {
-            const active = document.querySelector('.screen.active').id;
-            if (active === 'sublevel-screen' || active === 'debug-screen') showScreen('welcome-screen');
-            else if (active === 'game-screen') showScreen('sublevel-screen');
-        }
-
-        function goHome() {
-            showScreen('welcome-screen');
-        }
-
+        /** * GAME LOGIC */
         function startLesson(lvl, sub) {
-            currentSublevel = sub;
-            currentQuestionIndex = 0;
-            initStars();
-            lessonQuestions = generateLessonQuestions(lvl);
-            showScreen('game-screen');
-            renderQuestion();
+            const questions = generateLessonQuestions(lvl);
+            updateState({
+                view: 'game',
+                level: lvl,
+                sublevel: sub,
+                questionIndex: 0,
+                questions: questions,
+                stars: Array(15).fill(false)
+            });
         }
 
         function generateLessonQuestions(lvl) {
             const currentLevelWords = DATA[lvl].words;
-            let reviewPool = [];
-            for (let i = 1; i < lvl; i++) reviewPool = [...reviewPool, ...DATA[i].words];
-
-            const questions = [];
-            for (let i = 0; i < 10; i++) {
-                const target = currentLevelWords[i % currentLevelWords.length];
-                questions.push(createRandomExercise(target, currentLevelWords));
+            let pool = [];
+            for (let i = 1; i <= lvl; i++) pool = [...pool, ...DATA[i].words];
+            
+            const q = [];
+            for (let i = 0; i < 15; i++) {
+                const target = pool[Math.floor(Math.random() * pool.length)];
+                q.push(createExercise(target, pool, lvl));
             }
-            if (reviewPool.length > 0) {
-                for (let i = 0; i < 5; i++) {
-                    const target = reviewPool[Math.floor(Math.random() * reviewPool.length)];
-                    questions.push(createRandomExercise(target, reviewPool));
-                }
-            } else {
-                for (let i = 0; i < 5; i++) {
-                    const target = currentLevelWords[Math.floor(Math.random() * currentLevelWords.length)];
-                    questions.push(createRandomExercise(target, currentLevelWords));
-                }
-            }
-            return questions.sort(() => Math.random() - 0.5);
+            return q;
         }
 
-        function createRandomExercise(target, pool) {
+        function createExercise(target, pool, lvl) {
             const types = ['audioMatch', 'repeat', 'social', 'counting', 'sayWord'];
             let type = types[Math.floor(Math.random() * types.length)];
             if (target.social) type = 'social';
@@ -758,14 +656,14 @@
         function generateOptions(target, pool) {
             const options = [target];
             const others = pool.filter(w => w.word !== target.word);
-            while (options.length < 3 && others.length > 0) {
+            while (options.length < 6 && others.length > 0) {
                 options.push(others.splice(Math.floor(Math.random() * others.length), 1)[0]);
             }
             return options.sort(() => Math.random() - 0.5);
         }
 
         function renderQuestion() {
-            const q = lessonQuestions[currentQuestionIndex];
+            const q = state.questions[state.questionIndex];
             const root = document.getElementById('interaction-root');
             const qText = document.getElementById('question-text');
             const info = document.getElementById('exercise-info');
@@ -775,209 +673,144 @@
             status.innerText = '';
             info.style.display = 'none';
 
-            let isSpeechExercise = false;
+            // Voice consistency
+            if (state.voices.length > 0) state.voice = state.voices[Math.floor(Math.random() * state.voices.length)];
 
-            switch(q.type) {
-                case 'audioMatch':
-                    qText.innerText = "Tap the picture you hear!";
-                    info.innerText = q.target.word; 
-                    info.style.display = 'block';
-                    speak(q.target.word);
-                    startRepeatTimer(q.target.word); 
-                    q.options.forEach(opt => {
-                        root.appendChild(createImageOption(opt, () => checkAnswer(opt.word === q.target.word), false));
-                    });
-                    break;
-                
-                case 'repeat':
-                    isSpeechExercise = true;
-                    qText.innerText = `Can you say...`;
-                    info.innerText = q.target.word;
-                    info.style.display = 'block';
-                    root.appendChild(createImageOption(q.target, () => speak(q.target.word), false));
-                    root.appendChild(createMicButton(q.target.word));
-                    speak(`Can you say ${q.target.word}?`);
-                    startRepeatTimer(`Can you say ${q.target.word}?`);
-                    break;
+            let isSpeech = false;
 
-                case 'sayWord': 
-                    isSpeechExercise = true;
-                    qText.innerText = `Repeat after me:`;
-                    info.innerText = q.target.word;
-                    info.style.display = 'block';
-                    root.appendChild(createImageOption(q.target, () => speak(q.target.word), false));
-                    root.appendChild(createMicButton(q.target.word));
-                    const sayMsg = `Repeat after me: ${q.target.word}`;
-                    speak(sayMsg);
-                    startRepeatTimer(sayMsg);
-                    break;
-
-                case 'social':
-                    qText.innerText = `Listen and respond!`;
-                    info.innerText = q.target.word; 
-                    info.style.display = 'block';
-                    speak(q.target.word);
-                    startRepeatTimer(q.target.word); 
-                    q.options.forEach(opt => {
-                        const btn = createImageOption(opt, () => checkAnswer(opt.word === q.target.word), false);
-                        root.appendChild(btn);
-                    });
-                    break;
-
-                case 'counting':
-                    isSpeechExercise = true;
-                    let min = 2, max = 10;
-                    if (currentLevel === 1) { min = 2; max = 3; }
-                    else if (currentLevel === 2) { min = 3; max = 5; }
-                    else { min = 5; max = 10; }
-                    const num = Math.floor(Math.random() * (max - min + 1)) + min;
-
-                    qText.innerText = `Count out loud!`;
-                    const countArray = Array.from({length: num}, (_, i) => i + 1);
-                    const countString = countArray.join(" ");
-                    info.style.display = 'block';
-                    info.innerText = countString;
-                    root.appendChild(createMicButton(countString));
-                    const countSpeech = `Please count from 1 to ${num}`;
-                    speak(countSpeech);
-                    startRepeatTimer(countSpeech);
-                    break;
+            if (['audioMatch', 'social'].includes(q.type)) {
+                const prompt = QUESTION_PROMPT_TEMPLATES[Math.floor(Math.random() * QUESTION_PROMPT_TEMPLATES.length)];
+                const spoken = prompt.replace(/{target}/g, q.target.word);
+                qText.innerText = "Look and listen!";
+                info.innerText = q.target.word; info.style.display = 'block';
+                speak(spoken); startRepeatTimer(spoken);
+                q.options.forEach(opt => root.appendChild(createOptionUI(opt, () => checkAnswer(opt.word === q.target.word, opt.word))));
+            } else if (['repeat', 'sayWord'].includes(q.type)) {
+                isSpeech = true;
+                qText.innerText = q.type === 'repeat' ? 'Can you say...' : 'Repeat after me:';
+                info.innerText = q.target.word; info.style.display = 'block';
+                root.appendChild(createOptionUI(q.target, () => speak(q.target.word)));
+                root.appendChild(createMicBtn(q.target.word));
+                const spoken = q.type === 'repeat' ? `Can you say ${q.target.word}?` : `Repeat after me: ${q.target.word}`;
+                speak(spoken); startRepeatTimer(spoken);
+            } else if (q.type === 'counting') {
+                isSpeech = true;
+                const num = state.level === 1 ? 3 : (state.level === 2 ? 5 : 10);
+                qText.innerText = `Count out loud!`;
+                const countStr = Array.from({length: num}, (_, i) => i + 1).join(" ");
+                info.innerText = countStr; info.style.display = 'block';
+                root.appendChild(createMicBtn(countStr));
+                const spoken = `Please count from 1 to ${num}`;
+                speak(spoken); startRepeatTimer(spoken);
             }
 
-            if (isSpeechExercise) {
-                const skipBtn = document.createElement('button');
-                skipBtn.className = 'skip-btn';
-                skipBtn.innerText = "Skip ➡";
-                skipBtn.onclick = () => skipQuestion();
-                
-                const skipContainer = document.createElement('div');
-                skipContainer.style.width = '100%';
-                skipContainer.style.display = 'flex';
-                skipContainer.style.justifyContent = 'center';
-                skipContainer.appendChild(skipBtn);
-                root.appendChild(skipContainer);
+            if (isSpeech) {
+                const container = document.createElement('div');
+                container.style.width = '100%'; container.style.display = 'flex'; container.style.justifyContent = 'center';
+                const skip = document.createElement('button');
+                skip.className = 'skip-btn'; skip.innerText = "Skip ➡";
+                skip.onclick = skipQuestion;
+                container.appendChild(skip);
+                root.appendChild(container);
             }
         }
 
-        function createImageOption(data, callback, noLabel = false) {
+        function createOptionUI(data, callback) {
             const div = document.createElement('div');
             div.className = 'option-img-container';
-            
-            if (data.url) {
-                div.innerHTML = `<img src="${data.url}" onerror="this.src='https://via.placeholder.com/200?text=Image'">`;
-            } else if (data.emoji) {
-                div.innerHTML = `<div class="emoji-box">${data.emoji}</div>`;
-            } else {
-                div.innerHTML = `<div class="emoji-box" style="font-size: 20px;">${data.word}</div>`;
-            }
-
-            if (!noLabel) {
-                const label = document.createElement('div');
-                label.className = 'img-label';
-                label.innerText = data.social ? data.response : data.word;
-                div.appendChild(label);
-            }
-
-            if (callback) div.onclick = callback;
+            div.innerHTML = data.url ? `<img src="${data.url}" onerror="this.src='https://via.placeholder.com/200?text=Image'">` : `<div class="emoji-box">${data.emoji || data.word}</div>`;
+            const label = document.createElement('div');
+            label.className = 'img-label'; label.innerText = data.social ? data.response : data.word;
+            div.appendChild(label);
+            div.onclick = callback;
             return div;
         }
 
-        function createMicButton(targetText) {
+        function createMicBtn(target) {
             const btn = document.createElement('button');
-            btn.className = 'mic-btn';
-            btn.innerHTML = '🎤';
-            btn.onclick = () => handleSpeechInput(btn, targetText);
+            btn.className = 'mic-btn'; btn.innerHTML = '🎤';
+            btn.onclick = () => handleSpeech(btn, target);
             return btn;
         }
 
-        function handleSpeechInput(btn, target) {
-            if (!recognition) return;
-            stopRepeatTimer(); 
-            btn.classList.add('listening');
-            recognition.start();
-            const timeout = setTimeout(() => {
-                recognition.stop();
-                btn.classList.remove('listening');
-                document.getElementById('status-message').innerText = "Didn't hear anything. Try again!";
-                startRepeatTimer(target); 
-            }, 6000);
+        /** * HELPERS */
+        function initSpeech() {
+            window.speechSynthesis.onvoiceschanged = () => { state.voices = window.speechSynthesis.getVoices().filter(v => v.lang.startsWith('en')); };
+            const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (SR) { state.recognition = new SR(); state.recognition.lang = 'en-US'; }
+        }
 
-            recognition.onresult = (event) => {
-                clearTimeout(timeout);
-                btn.classList.remove('listening');
-                const result = event.results[0][0].transcript.toLowerCase();
-                if (isSimilar(result, target.toLowerCase())) {
-                    checkAnswer(true);
-                } else {
-                    document.getElementById('status-message').innerText = `You said "${result}". Try again!`;
-                    speak("Try saying it again!");
-                    startRepeatTimer(target); 
-                }
+        function speak(text, rate = 0.8) {
+            window.speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(text);
+            if (state.voice) u.voice = state.voice;
+            u.rate = rate; window.speechSynthesis.speak(u);
+        }
+
+        function startRepeatTimer(txt) { stopRepeatTimer(); state.repeatTimer = setInterval(() => speak(txt), 10000); }
+        function stopRepeatTimer() { if (state.repeatTimer) clearInterval(state.repeatTimer); }
+
+        function handleSpeech(btn, target) {
+            if (!state.recognition) return;
+            stopRepeatTimer(); btn.classList.add('listening'); state.recognition.start();
+            const timer = setTimeout(() => { state.recognition.stop(); btn.classList.remove('listening'); startRepeatTimer(target); }, 6000);
+            state.recognition.onresult = (e) => {
+                clearTimeout(timer); btn.classList.remove('listening');
+                if (isSimilar(e.results[0][0].transcript, target)) checkAnswer(true);
+                else { speak("Try saying it again!"); startRepeatTimer(target); }
             };
-            recognition.onerror = () => {
-                clearTimeout(timeout);
-                btn.classList.remove('listening');
-                startRepeatTimer(target);
-            };
+            state.recognition.onerror = () => { clearTimeout(timer); btn.classList.remove('listening'); startRepeatTimer(target); };
         }
 
         function isSimilar(s1, s2) {
-            const normalize = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
-            const c1 = normalize(s1);
-            const c2 = normalize(s2);
-            if (c1 === c2) return true;
-            if (c1.includes(c2) || c2.includes(c1)) return true;
-            const w1 = s1.split(" ");
-            const w2 = s2.split(" ");
-            let matches = 0;
-            w2.forEach(word => { if(w1.includes(word)) matches++; });
-            return (matches / w2.length) >= 0.75;
+            const norm = s => s.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+            const mapNums = s => { let out = s; Object.entries(DIGIT_MAP).forEach(([d, w]) => out = out.replace(new RegExp(`\\b${w}\\b`, 'g'), d)); return out; };
+            const c1 = norm(s1); const c2 = norm(s2);
+            if (c1 === c2 || mapNums(c1) === mapNums(c2)) return true;
+            const words2 = c2.split(" ");
+            let m = 0; words2.forEach(w2 => { if (c1.split(" ").some(w1 => w1 === w2 || (w1.length > 2 && w2.includes(w1)))) m++; });
+            return (m / words2.length) >= 0.7;
+        }
+
+        function checkAnswer(correct, clicked = "") {
+            if (correct) {
+                stopRepeatTimer();
+                const template = CORRECT_FEEDBACK_TEMPLATES[Math.floor(Math.random() * CORRECT_FEEDBACK_TEMPLATES.length)];
+                const feedback = template.replace(/{target}/g, state.questions[state.questionIndex].target.word);
+                document.getElementById('feedback-message').innerText = feedback;
+                document.getElementById('feedback-overlay').style.display = 'flex';
+                speak(feedback, 1.0);
+                const newStars = [...state.stars]; newStars[state.questionIndex] = true;
+                setTimeout(() => { document.getElementById('feedback-overlay').style.display = 'none'; nextQuestion(newStars); }, 2000);
+            } else {
+                const template = WRONG_FEEDBACK_TEMPLATES[Math.floor(Math.random() * WRONG_FEEDBACK_TEMPLATES.length)];
+                const feedback = template.replace(/{clicked}/g, clicked).replace(/{target}/g, state.questions[state.questionIndex].target.word);
+                speak(feedback); document.getElementById('status-message').innerText = feedback;
+            }
         }
 
         function skipQuestion() {
-            stopRepeatTimer();
-            if (recognition) recognition.stop();
-            
-            // Generate a fresh random exercise for the current slot
-            // This replaces the "counted without a star" bug by essentially "rerolling" the challenge
-            const currentLevelWords = DATA[currentLevel].words;
-            const newTarget = currentLevelWords[Math.floor(Math.random() * currentLevelWords.length)];
-            lessonQuestions[currentQuestionIndex] = createRandomExercise(newTarget, currentLevelWords);
-            
-            renderQuestion();
+            const lvl = state.level;
+            const newQuestions = [...state.questions];
+            const pool = DATA[lvl].words;
+            const newTarget = pool[Math.floor(Math.random() * pool.length)];
+            newQuestions[state.questionIndex] = createExercise(newTarget, pool, lvl);
+            updateState({ questions: newQuestions });
         }
 
-        function checkAnswer(isCorrect) {
-            if (isCorrect) {
-                stopRepeatTimer(); 
-                const overlay = document.getElementById('feedback-overlay');
-                const affirmation = AFFIRMATIONS[Math.floor(Math.random() * AFFIRMATIONS.length)];
-                document.getElementById('feedback-message').innerText = affirmation;
-                overlay.style.display = 'flex';
-                speak(affirmation, 1.0);
-                
-                const star = document.getElementById(`star-${currentQuestionIndex}`);
-                if (star) star.classList.add('filled');
-
-                setTimeout(() => {
-                    overlay.style.display = 'none';
-                    nextQuestion(); 
-                }, 1500);
-            } else {
-                speak("Oops, try again!");
-                document.getElementById('status-message').innerText = "Not quite! Try once more.";
-            }
+        function nextQuestion(newStars) {
+            const idx = state.questionIndex + 1;
+            if (idx >= 15) updateState({ view: 'success', stars: newStars });
+            else updateState({ questionIndex: idx, stars: newStars });
         }
 
-        function nextQuestion() {
-            currentQuestionIndex++;
-            if (currentQuestionIndex >= 15) {
-                showScreen('success-screen');
-                speak("Great job! You finished the lesson!", 0.9);
-            } else {
-                renderQuestion();
-            }
+        function goBack() {
+            if (state.view === 'sublevel' || state.view === 'debug') updateState({ view: 'welcome' });
+            else if (state.view === 'game') updateState({ view: 'sublevel' });
         }
+
+        initSpeech();
+        render();
     </script>
 </body>
 </html>
