@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smol Voice AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-zinc-950 text-zinc-200 min-h-screen flex items-center justify-center p-4">
+
+    <div class="max-w-md w-full bg-zinc-900 border border-zinc-800 rounded-3xl p-8 shadow-2xl">
+        <div class="text-center mb-8">
+            <h1 class="text-2xl font-bold text-emerald-400">SmolAI</h1>
+            <p id="status" class="text-zinc-500 text-sm mt-2">Loading engine (~130MB)...</p>
+        </div>
+
+        <div id="display" class="h-48 overflow-y-auto mb-6 text-lg font-medium border-l-2 border-emerald-500/30 pl-4 flex flex-col justify-end">
+            <p id="ai-text" class="text-emerald-100">Hello! I'm a tiny LLM running entirely in your browser.</p>
+        </div>
+
+        <div class="space-y-4">
+            <p id="user-transcript" class="text-center text-zinc-400 italic min-h-[1.5rem] text-sm"></p>
+            
+            <button id="mic-btn" disabled class="w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-800 py-4 rounded-2xl font-bold transition-all transform active:scale-95 flex items-center justify-center gap-3">
+                <span class="text-xl">🎤</span>
+                <span id="btn-label">Wait for it...</span>
+            </button>
+        </div>
+    </div>
+
+    <script type="module">
+        // Using Transformers.js v3 for WebGPU support
+        import { pipeline } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0-alpha.19';
+
+        const status = document.getElementById('status');
+        const aiText = document.getElementById('ai-text');
+        const transcript = document.getElementById('user-transcript');
+        const micBtn = document.getElementById('mic-btn');
+        const btnLabel = document.getElementById('btn-label');
+
+        let generator;
+
+        // 1. Initialize the Pipeline
+        async function init() {
+            try {
+                // We use 'text-generation' with a highly compressed tiny model
+                generator = await pipeline('text-generation', 'HuggingFaceTB/SmolLM2-135M-Instruct', {
+                    device: 'webgpu', // Use 'wasm' if you don't have a GPU
+                    dtype: 'q4',      // 4-bit quantization makes it tiny
+                });
+
+                status.innerText = "Local Model Ready (WebGPU)";
+                micBtn.disabled = false;
+                btnLabel.innerText = "Push to Talk";
+            } catch (e) {
+                status.innerText = "WebGPU not supported? Falling back to CPU...";
+                // Fallback to CPU if WebGPU fails
+                generator = await pipeline('text-generation', 'HuggingFaceTB/SmolLM2-135M-Instruct', { dtype: 'q4' });
+                status.innerText = "Local Model Ready (CPU)";
+                micBtn.disabled = false;
+                btnLabel.innerText = "Push to Talk";
+            }
+        }
+
+        // 2. Speech Recognition Logic
+        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.lang = 'en-US';
+
+        micBtn.onmousedown = () => {
+            recognition.start();
+            btnLabel.innerText = "Listening...";
+            micBtn.classList.replace('bg-emerald-600', 'bg-red-600');
+        };
+
+        micBtn.onmouseup = () => {
+            recognition.stop();
+            btnLabel.innerText = "Processing...";
+            micBtn.classList.replace('bg-red-600', 'bg-emerald-600');
+        };
+
+        recognition.onresult = async (event) => {
+            const query = event.results[0][0].transcript;
+            transcript.innerText = `"${query}"`;
+            generateResponse(query);
+        };
+
+        // 3. Inference Logic
+        async function generateResponse(text) {
+            aiText.innerText = "...";
+            aiText.classList.add('animate-pulse');
+
+            const messages = [
+                { role: "system", content: "You are a helpful, brief assistant." },
+                { role: "user", content: text }
+            ];
+
+            // Formats the prompt for SmolLM2
+            const output = await generator(messages, { 
+                max_new_tokens: 50,
+                temperature: 0.7,
+                do_sample: true 
+            });
+
+            aiText.classList.remove('animate-pulse');
+            aiText.innerText = output[0].generated_text.at(-1).content;
+        }
+
+        init();
+    </script>
+</body>
+</html>
