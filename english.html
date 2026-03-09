@@ -17,6 +17,7 @@
             --skip-blue: #BAE6FD;
             --parental-bg: #E0E7FF;
             --card-shadow: rgba(0,0,0,0.08);
+            --transition-speed: 0.5s;
             --transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
 
@@ -44,10 +45,11 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            transition: background-color 0.5s ease;
+            transition: background-color var(--transition-speed) ease, 
+                        color var(--transition-speed) ease, 
+                        border-color var(--transition-speed) ease;
         }
 
-        /* --- UI COMPONENTS --- */
         #game-container {
             flex: 1;
             display: flex;
@@ -86,27 +88,19 @@
             gap: 5px;
         }
 
-        .stop-btn {
-            background: #ffe4e6;
-            color: #e11d48;
-        }
-
-        .back-btn:active, .stop-btn:active { transform: scale(0.9); }
+        .stop-btn { background: #ffe4e6; color: #e11d48; }
 
         .stars-container {
             display: flex;
             gap: 4px;
-            flex-wrap: nowrap;
             justify-content: center;
             max-width: 60%;
-            margin: 0 10px;
         }
 
         .star {
             font-size: 26px;
             color: #eee;
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            line-height: 1;
         }
 
         .star.filled {
@@ -134,6 +128,14 @@
 
         .screen.active { display: flex; }
 
+        /* Fix for scrollable dashboard alignment */
+        #debug-screen {
+            justify-content: flex-start;
+            overflow-y: auto;
+            padding-top: 40px;
+            background-color: var(--parental-bg);
+        }
+
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -155,28 +157,15 @@
             text-align: center;
             box-shadow: 0 8px 15px var(--card-shadow);
             cursor: pointer;
-            transition: var(--transition);
+            transition: transform 0.3s ease, border-color var(--transition-speed) ease;
             border-bottom: 6px solid #ccc;
             font-family: inherit;
         }
 
-        .card:hover { transform: translateY(-5px); }
         .card:active { transform: translateY(2px); border-bottom-width: 2px; }
 
         .level-card { border-color: var(--primary); }
         .sublevel-card { border-color: var(--secondary); }
-
-        #debug-screen {
-            background: var(--parental-bg);
-            padding: 20px;
-            overflow-y: auto;
-            justify-content: flex-start;
-            height: 100%;
-            width: 100%;
-            display: none;
-        }
-
-        #debug-screen.active { display: flex; }
 
         .debug-level-section {
             width: 100%;
@@ -186,13 +175,6 @@
             padding: 25px;
             border-radius: 25px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        }
-
-        .debug-level-section h2 {
-            margin-top: 0;
-            color: var(--primary);
-            border-bottom: 2px solid #f1f5f9;
-            padding-bottom: 10px;
         }
 
         .debug-grid {
@@ -210,31 +192,30 @@
             border: 2px solid #f1f5f9;
             border-radius: 18px;
             cursor: pointer;
-            transition: var(--transition);
             background: #fff;
         }
 
-        .debug-word-card:hover {
-            background: var(--bg-color);
-            border-color: var(--primary);
-            transform: scale(1.03);
-        }
-
-        .debug-img {
-            width: 90px;
-            height: 90px;
-            object-fit: cover;
-            border-radius: 12px;
-            margin-bottom: 8px;
-        }
+        .debug-img { width: 90px; height: 90px; object-fit: cover; border-radius: 12px; margin-bottom: 8px; }
 
         .debug-emoji {
             font-size: 50px;
-            margin-bottom: 8px;
             height: 90px;
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+
+        .loader-star {
+            font-size: 5rem;
+            color: var(--accent);
+            animation: pulse-rotate 1.5s infinite ease-in-out;
+            margin-bottom: 20px;
+        }
+
+        @keyframes pulse-rotate {
+            0% { transform: scale(1) rotate(0deg); opacity: 0.5; }
+            50% { transform: scale(1.3) rotate(180deg); opacity: 1; }
+            100% { transform: scale(1) rotate(360deg); opacity: 0.5; }
         }
 
         .instruction {
@@ -243,7 +224,7 @@
             text-align: center;
             margin-bottom: 10px;
             color: var(--primary);
-            padding: 0 15px;
+            transition: color var(--transition-speed) ease;
         }
 
         .exercise-text-prompt {
@@ -264,164 +245,89 @@
             gap: 15px;
         }
 
-        /* --- CHALLENGE SPECIAL STYLES --- */
         .option-img-container {
             position: relative;
-            width: 150px;
-            height: 150px;
+            width: 150px; height: 150px;
             border-radius: 24px;
-            overflow: visible;
             border: 6px solid white;
             box-shadow: 0 6px 15px rgba(0,0,0,0.12);
             cursor: pointer;
-            transition: var(--transition);
+            transition: transform 0.3s ease, border-color var(--transition-speed) ease;
             background: #fff;
         }
 
+        .option-img-container:hover { border-color: var(--primary); }
+
         .option-img-container .content-wrapper {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 18px;
-            overflow: hidden;
-            transition: transform 0.3s ease;
+            width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 18px; overflow: hidden;
         }
 
-        .option-img-container:hover { 
-            transform: translateY(-5px);
-            border-color: var(--primary);
-        }
-
-        .option-img-container img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
+        .option-img-container img { width: 100%; height: 100%; object-fit: cover; }
 
         .emoji-box {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
             font-size: 65px;
         }
 
         .img-label {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            padding: 5px 0;
-            text-align: center;
-            color: white;
-            font-size: 1.4rem;
-            font-weight: bold;
+            position: absolute; bottom: 0; left: 0; width: 100%;
+            padding: 5px 0; text-align: center; color: white;
+            font-size: 1.4rem; font-weight: bold;
             -webkit-text-stroke: 1px #333;
             text-shadow: 1px 1px 0 #333, 0 2px 4px rgba(0,0,0,0.5);
             background: linear-gradient(transparent, rgba(0,0,0,0.5));
-            pointer-events: none;
-            border-radius: 0 0 18px 18px;
-            z-index: 5;
+            pointer-events: none; border-radius: 0 0 18px 18px; z-index: 5;
         }
 
         .highlight-frame { outline: 8px solid var(--accent); outline-offset: 4px; }
         .highlight-blink { animation: blinker 1.5s infinite; }
-        @keyframes blinker { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
-        .highlight-arrow::before {
-            content: '👇';
-            position: absolute;
-            top: -55px; left: 50%;
-            transform: translateX(-50%);
-            font-size: 3.5rem;
-            animation: bounce-small 0.8s infinite alternate;
-            z-index: 10;
-        }
-        @keyframes bounce-small { from { transform: translateX(-50%) translateY(0); } to { transform: translateX(-50%) translateY(-10px); } }
-
+        @keyframes blinker { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        
         .mic-btn {
-            width: 110px; height: 110px;
-            border-radius: 50%;
-            background: var(--primary);
-            border: none;
-            color: white;
-            font-size: 44px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            position: relative;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
-            margin-top: 20px;
+            width: 110px; height: 110px; border-radius: 50%;
+            background: var(--primary); border: none; color: white;
+            font-size: 44px; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; position: relative; box-shadow: 0 10px 20px rgba(0,0,0,0.15); margin-top: 20px;
         }
 
         .mic-btn.listening::after {
-            content: '';
-            position: absolute;
-            width: 125%; height: 125%;
-            border: 5px dashed var(--primary);
-            border-radius: 50%;
+            content: ''; position: absolute; width: 125%; height: 125%;
+            border: 5px dashed var(--primary); border-radius: 50%;
             animation: spin 4s linear infinite;
         }
 
         @keyframes spin { 100% { transform: rotate(360deg); } }
 
         .skip-btn {
-            background: var(--skip-blue);
-            color: #0369A1;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 30px;
-            font-size: 1.4rem;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 30px;
-            transition: var(--transition);
-            width: auto;
-            min-width: 120px;
-            box-shadow: 0 4px 0 #93C5FD;
-            font-family: inherit;
+            background: var(--skip-blue); color: #0369A1; border: none;
+            padding: 12px 30px; border-radius: 30px; font-size: 1.4rem;
+            font-weight: bold; cursor: pointer; margin-top: 30px;
+            box-shadow: 0 4px 0 #93C5FD; font-family: inherit;
         }
 
-        .skip-btn:active { transform: translateY(2px); box-shadow: none; }
-
         .parental-btn {
-            position: absolute;
-            bottom: 20px; right: 20px;
-            background: #cbd5e1;
-            color: #475569;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 12px;
-            font-size: 1rem;
-            font-weight: bold;
-            cursor: pointer;
-            opacity: 0.7;
-            font-family: inherit;
+            position: absolute; bottom: 20px; right: 20px;
+            background: #cbd5e1; color: #475569; border: none;
+            padding: 10px 15px; border-radius: 12px; font-size: 1rem;
+            font-weight: bold; cursor: pointer; opacity: 0.7; font-family: inherit;
         }
 
         #feedback-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255,255,255,0.85);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            z-index: 100;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.85); display: none;
+            align-items: center; justify-content: center; flex-direction: column; z-index: 100;
         }
 
         .feedback-text {
-            font-size: 3.5rem;
-            font-weight: bold;
-            color: var(--success);
-            text-shadow: 3px 3px 0 white;
-            animation: bounce 0.6s infinite alternate;
-            padding: 20px;
-            text-align: center;
+            font-size: 3.5rem; font-weight: bold; color: var(--success);
+            text-shadow: 3px 3px 0 white; animation: bounce 0.6s infinite alternate;
+            padding: 20px; text-align: center;
         }
+
+        @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-15px); } }
 
         @media (max-width: 600px) {
             .option-img-container { width: 120px; height: 120px; }
@@ -429,24 +335,28 @@
             .instruction { font-size: 1.5rem; }
             .exercise-text-prompt { font-size: 2.2rem; }
             .feedback-text { font-size: 2.2rem; }
-            .stars-container { max-width: 50%; }
         }
     </style>
 </head>
 <body>
 
     <header id="app-header" style="display:none;">
-        <button id="header-back-btn" class="back-btn">⬅ Back</button>
+        <button id="header-back-btn" class="back-btn" data-action="header-back">⬅ Back</button>
         <div class="stars-container" id="stars-bar"></div>
-        <button id="header-stop-btn" class="stop-btn">Stop ⏹️</button>
+        <button id="header-stop-btn" class="stop-btn" data-action="header-stop">Stop ⏹️</button>
     </header>
 
     <div id="game-container">
         <div id="welcome-screen" class="screen active">
-            <h1 style="font-size: 4rem; color: var(--primary); margin-bottom: 20px; text-align: center;">English Adventure! 🌟</h1>
+            <h1 style="font-size: 4rem; color: var(--primary); text-align: center; transition: color var(--transition-speed) ease;">English Adventure! 🌟</h1>
             <p style="font-size: 1.5rem; margin-bottom: 30px; color: #777;">Ready to learn and play?</p>
             <div class="grid-menu" id="level-menu"></div>
-            <button id="open-parental-btn" class="parental-btn">⚙ Parental Dashboard</button>
+            <button id="open-parental-btn" class="parental-btn" data-action="open-parental">⚙ Parental Dashboard</button>
+        </div>
+
+        <div id="loading-screen" class="screen">
+            <div class="loader-star">★</div>
+            <h2 style="color: var(--primary); font-size: 2.5rem;">Getting adventure ready...</h2>
         </div>
 
         <div id="sublevel-screen" class="screen">
@@ -462,15 +372,15 @@
         </div>
 
         <div id="debug-screen" class="screen">
-            <h1 style="color: #1e293b; margin-top: 20px; margin-bottom: 10px; font-size: 2.5rem;">Parental Overview</h1>
-            <p style="margin-bottom: 30px; color: #64748b; font-size: 1.2rem;">Click any item to hear the voice.</p>
+            <h1 style="color: #1e293b; font-size: 2.5rem;">Parental Overview</h1>
+            <p style="margin-bottom: 30px; color: #64748b; font-size: 1.2rem;">Hear any item in the adventure.</p>
             <div id="debug-content-root" style="width: 100%; display: flex; flex-direction: column; align-items: center;"></div>
         </div>
 
         <div id="success-screen" class="screen">
             <h1 style="font-size: 5rem; color: #FFD700;">AMAZING! 🏆</h1>
             <p style="font-size: 2.2rem;">You are an English Star!</p>
-            <button id="success-home-btn" class="card" style="margin-top: 40px; padding: 25px 60px; font-size: 2.5rem; border-color: var(--primary);">Play More!</button>
+            <button class="card" style="margin-top: 40px; padding: 25px 60px; font-size: 2.5rem;" data-action="go-home">Play More!</button>
         </div>
     </div>
 
@@ -478,11 +388,10 @@
         <div class="feedback-text" id="feedback-message">GREAT!</div>
     </div>
 
-    <!-- Templates -->
     <template id="tpl-card">
         <div class="card">
-            <h3></h3>
-            <p></p>
+            <h3 style="margin: 0; font-size: 1.8rem;"></h3>
+            <p style="margin: 5px 0 0 0; color: #666;"></p>
         </div>
     </template>
 
@@ -501,22 +410,45 @@
     </template>
 
     <script>
+        /** * CONFIGURATION */
+        const CONFIG = {
+            settings: {
+                questionsPerLesson: 15,
+                repeatInterval: 12000,
+                speechRate: 0.85,
+                listenTimeout: 6000,
+                similarityThreshold: 0.35,
+                imageErrorPlaceholder: 'https://via.placeholder.com/200?text=Image',
+                debugPlaceholder: 'https://via.placeholder.com/90?text=Error'
+            },
+            templates: {
+                feedback: {
+                    correct: ["Good job, you found the {target}!", "Well done, that's the {target}!", "Great! That is the {target}!", "You got it! It's a {target}!"],
+                    wrong: ["No, that was a {clicked}, can you find the {target}?", "Oops! That's a {clicked}. Where is the {target}?", "Try looking for the {target}."]
+                },
+                questions: ["Can you find the {target}?", "Can you spot the {target}?", "Where is the {target}?", "Look for the {target}!"]
+            },
+            maps: {
+                digits: { "1": "one", "2": "two", "3": "three", "4": "four", "5": "five", "6": "six", "7": "seven", "8": "eight", "9": "nine", "10": "ten" },
+                colors: ["Red", "Blue", "Green", "Yellow", "Orange", "Purple", "Pink", "White"],
+                synonyms: {
+                    "small": ["little", "tiny"], "little": ["small", "tiny"],
+                    "big": ["large", "huge", "giant"], "large": ["big", "huge"],
+                    "hi": ["hello", "hey"], "hello": ["hi", "hey"]
+                }
+            }
+        };
+
         /** * DATA DEFINITIONS */
         const DATA = {
             1: { title: "Basics", words: [{ word: "Apple", emoji: "🍎", color: "red" }, { word: "Dog", emoji: "🐶", color: "brown" }, { word: "Cat", emoji: "🐱", color: "gray" }, { word: "Sun", emoji: "☀️", color: "yellow" }, { word: "Moon", emoji: "🌙", color: "white" }, { word: "Bird", emoji: "🐦", color: "blue" }, { word: "Water", emoji: "💧", color: "blue" }, { word: "Bread", emoji: "🍞", color: "brown" }, { word: "Milk", emoji: "🥛", color: "white" }, { word: "Hello", emoji: "👋", social: true, response: "Hello" }] },
-            2: { title: "Playground", words: [{ word: "Monkey bars", url: "https://images.unsplash.com/vector-1757332570676-facced078968?q=80&w=1160&auto=format&fit=crop" }, { word: "Rope bridge", url: "https://media.istockphoto.com/id/1006459800/photo/child-crossing-a-bridge-of-ropes.jpg?s=612x612&w=0&k=20&c=u6xBBbbU0qTmeE8Tt8RzB5TIVS8vwEEB2OJtY-NjWm8=" }, { word: "Climbing frame", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRod-c9zdPr5uwqEZxCBwHkzqHyB3rrMxPYPQ&s" }, { word: "Seesaw", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTj4Yw4wG2mxsr2p8D65wF5CBECXkjV-IVJqA&s" }, { word: "Springy", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSnY2Z70Pv_IeIUtEqMbK-Xc8hy-c7_9tvH4Q&s" }, { word: "Roundabout", url: "https://fibran.co.il/wp-content/uploads/2018/01/C-2447-foto1-1.jpg" }, { word: "Sandpit", url: "https://upload.wikimedia.org/wikipedia/commons/7/74/Sandpit.jpg" }, { word: "Swing", emoji: "🛝" }, { word: "Jump", emoji: "🏃" }, { word: "Play", emoji: "🎈" }] },
-            3: { title: "School", words: [{ word: "Protractor", url: "https://www.artdepot.co.il/16991-thickbox_default/%D7%9E%D7%93-%D7%96%D7%95%D7%95%D7%99%D7%AA-180-10-%D7%A1%D7%9E.jpg" }, { word: "Compass", url: "https://picassoart.co.il/wp-content/uploads/2024/09/%D7%A1%D7%98-%D7%9E%D7%97%D7%95%D7%92%D7%94-STAEDTLER-%D7%9E%D7%90%D7%A8%D7%99%D7%9A.webp" }, { word: "Whiteboard", url: "https://d3m9l0v76dty0.cloudfront.net/system/photos/6300072/large/beae27c0f2f7efd16d9d373de1173d5b.jpg" }, { word: "Exercise book", url: "https://www.holisticfit.co.il/wp-content/uploads/2019/11/book2.jpg" }, { word: "Gluestick", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTciAlKfgYbf97aiA4tmFwyT7Mlxdk2ADHqDw&s" }, { word: "White Glue", url: "https://www.kravitz.co.il/cdn/shop/files/0609040.jpg?v=1717334825" }, { word: "Colouring pencils", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRsGo4kEhv_yB5f0dFLeVPNeTO51K3UO9-v8g&s" }, { word: "Pencil case", emoji: "👝" }, { word: "Teacher", emoji: "👩‍🏫" }, { word: "School bag", emoji: "🎒" }] },
-            4: { title: "Feelings", words: [{ word: "Proud", url: "https://storage.hidabroot.org/articles_new/371700_tumb_730X500.webp" }, { word: "Confident", url: "https://www.shaharcohen.co.il/wp-content/uploads/2018/09/%D7%91%D7%99%D7%98%D7%97%D7%95%D7%9F-%D7%A2%D7%A6%D7%9E%D7%99-2.jpg" }, { word: "Stuck", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS0QyZU8mjqWU9B1j6PHIlfa2NQFNEd3m59oA&s" }, { word: "Embarrassed", url: "https://img.haarets.co.il/bs/0000017f-e0b4-d568-ad7f-f3ffd21f0000/44/ed/a1f65e5743e7e23b5dee992725fc/214241096.jpg?precrop=2200,1282,x0,y0&width=420&height=244&cmsprod" }, { word: "Happy", emoji: "😊" }, { word: "Sad", emoji: "😢" }, { word: "Angry", emoji: "😠" }, { word: "Together", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT6JdD8YJ5_gx62VabkzLg67mtKxKgVghWzGg&s" }, { word: "Alone", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRSdvXZEA6OxXd0Lka76fuTVCSpmNQD8rT24w&s" }, { word: "Sleepy", emoji: "😴" }] },
-            5: { title: "Actions", words: [{ word: "Line up", url: "https://i0.wp.com/blog.kolzchut.org.il/wp/wp-content/uploads/2021/04/53583181_l-1-scaled.jpg?fit=2560%2C2560&ssl=1" }, { word: "Hands up", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT-5yi4ilAnk2dURlRe8sGy0x4SuoSZyydFQA&s" }, { word: "Understand", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRAopj_QQFpkk1UtCYyuBdDjY8GsDxvpe582w&s" }, { word: "English", url: "https://www.gan-li.co.il/images/itempics/2232_030820221718501.jpg" }, { word: "History", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQmU_B7bxVo0knirxCMIGKLrJ5csX7CpM8W5A&s" }, { word: "Listen", emoji: "👂" }, { word: "Speak", emoji: "🗣️" }, { word: "Write", emoji: "✍️" }, { word: "Read", emoji: "📖" }, { word: "Finished", emoji: "✅" }] },
-            6: { title: "Colours", words: [{ word: "Purple", emoji: "🟪" }, { word: "Orange", emoji: "🟧" }, { word: "Pink", emoji: "🩷" }, { word: "Black", emoji: "⬛" }, { word: "Yellow", emoji: "🟨" }, { word: "Blue", emoji: "🟦" }, { word: "Brown", emoji: "🟫" }, { word: "Red", emoji: "🟥" }, { word: "White", emoji: "⬜" }, { word: "Green", emoji: "🟩" }, { word: "Gold", emoji: "🟡" }, { word: "Grey", emoji: "🩶" }] },
-            7: { title: "Animals", words: [{ word: "Goat", emoji: "🐐" }, { word: "Panda", emoji: "🐼" }, { word: "Pig", emoji: "🐷" }, { word: "Lion", emoji: "🦁" }, { word: "Hippo", emoji: "🦛" }, { word: "Shark", emoji: "🦈" }, { word: "Whale", emoji: "🐋" }, { word: "Hen", emoji: "🐔" }, { word: "Butterfly", emoji: "🦋" }, { word: "Tiger", emoji: "🐅" }, { word: "Elephant", emoji: "🐘" }, { word: "Dolphin", emoji: "🐬" }, { word: "Zebra", emoji: "🦓" }, { word: "Snake", emoji: "🐍" }, { word: "Wolf", emoji: "🐺" }, { word: "Duck", emoji: "🦆" }, { word: "Bear", emoji: "🐻" }, { word: "Sheep", emoji: "🐑" }, { word: "Rabbit", emoji: "🐰" }, { word: "Monkey", emoji: "🐒" }, { word: "Giraffe", emoji: "🦒" }, { word: "Cow", emoji: "🐄" }, { word: "Ant", emoji: "🐜" }, { word: "Parrot", emoji: "🦜" }] }
+            2: { title: "Playground", words: [{ word: "Monkey bars", url: "https://images.unsplash.com/vector-1757332570676-facced078968?q=80&w=1160&auto=format&fit=crop" }, { word: "Rope bridge", url: "https://media.istockphoto.com/id/1006459800/photo/child-crossing-a-bridge-of-ropes.jpg?s=612x612&w=0&k=20&c=u6xBBbbU0qTmeE8Tt8RzB5TIVS8vwEEB2OJtY-NjWm8=" }, { word: "Climbing frame", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRod-c9zdPr5uwqEZxCBwHkzqHyB3rrMxPYPQ&s" }, { word: "Seesaw", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTj4Yw4wG2mxsr2p8D65wF5CBECXkjV-IVJqA&s" }, { word: "Sandpit", url: "https://upload.wikimedia.org/wikipedia/commons/7/74/Sandpit.jpg" }, { word: "Swing", emoji: "🛝" }, { word: "Jump", emoji: "🏃" }, { word: "Play", emoji: "🎈" }] },
+            3: { title: "School", words: [{ word: "Protractor", url: "https://www.artdepot.co.il/16991-thickbox_default/%D7%9E%D7%93-%D7%96%D7%95%D7%95%D7%99%D7%AA-180-10-%D7%A1%D7%9E.jpg" }, { word: "Compass", url: "https://picassoart.co.il/wp-content/uploads/2024/09/%D7%A1%D7%98-%D7%9E%D7%97%D7%95%D7%92%D7%94-STAEDTLER-%D7%9E%D7%90%D7%A8%D7%99%D7%9A.webp" }, { word: "Whiteboard", url: "https://d3m9l0v76dty0.cloudfront.net/system/photos/6300072/large/beae27c0f2f7efd16d9d373de1173d5b.jpg" }, { word: "Exercise book", url: "https://www.holisticfit.co.il/wp-content/uploads/2019/11/book2.jpg" }, { word: "Gluestick", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTciAlKfgYbf97aiA4tmFwyT7Mlxdk2ADHqDw&s" }, { word: "Pencil case", emoji: "👝" }, { word: "Teacher", emoji: "👩‍🏫" }, { word: "School bag", emoji: "🎒" }] },
+            4: { title: "Feelings", words: [{ word: "Proud", url: "https://storage.hidabroot.org/articles_new/371700_tumb_730X500.webp" }, { word: "Confident", url: "https://www.shaharcohen.co.il/wp-content/uploads/2018/09/%D7%91%D7%99%D7%98%D7%97%D7%95%D7%9F-%D7%A2%D7%A6%D7%9E%D7%99-2.jpg" }, { word: "Happy", emoji: "😊" }, { word: "Sad", emoji: "😢" }, { word: "Angry", emoji: "😠" }, { word: "Sleepy", emoji: "😴" }] },
+            5: { title: "Actions", words: [{ word: "Line up", url: "https://i0.wp.com/blog.kolzchut.org.il/wp/wp-content/uploads/2021/04/53583181_l-1-scaled.jpg?fit=2560%2C2560&ssl=1" }, { word: "Hands up", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT-5yi4ilAnk2dURRe8sGy0x4SuoSZyydFQA&s" }, { word: "English", url: "https://www.gan-li.co.il/images/itempics/2232_030820221718501.jpg" }, { word: "Listen", emoji: "👂" }, { word: "Speak", emoji: "🗣️" }, { word: "Write", emoji: "✍️" }, { word: "Read", emoji: "📖" }, { word: "Finished", emoji: "✅" }] },
+            6: { title: "Colours", words: [{ word: "Purple", emoji: "🟪" }, { word: "Orange", emoji: "🟧" }, { word: "Pink", emoji: "🩷" }, { word: "Black", emoji: "⬛" }, { word: "Yellow", emoji: "🟨" }, { word: "Blue", emoji: "🟦" }, { word: "Brown", emoji: "🟫" }, { word: "Red", emoji: "🟥" }, { word: "White", emoji: "⬜" }, { word: "Green", emoji: "🟩" }] },
+            7: { title: "Animals", words: [{ word: "Goat", emoji: "🐐" }, { word: "Panda", emoji: "🐼" }, { word: "Pig", emoji: "🐷" }, { word: "Lion", emoji: "🦁" }, { word: "Hippo", emoji: "🦛" }, { word: "Shark", emoji: "🦈" }, { word: "Tiger", emoji: "🐅" }, { word: "Elephant", emoji: "🐘" }, { word: "Monkey", emoji: "🐒" }, { word: "Giraffe", emoji: "🦒" }, { word: "Cow", emoji: "🐄" }] }
         };
-
-        const WRONG_FEEDBACK_TEMPLATES = ["No, that was a {clicked}, can you find the {target}?", "Oops! That's a {clicked}. Where is the {target}?", "That's a {clicked}! Try looking for the {target}.", "Not quite! That was the {clicked}. Let's find the {target}.", "Whoops! You tapped the {clicked}. Can you see the {target}?"];
-        const CORRECT_FEEDBACK_TEMPLATES = ["Good job, you found the {target}!", "Well done, that's the {target}!", "Great! That is the {target}!", "You got it! It's a {target}!", "Perfect! You found the {target}!"];
-        const QUESTION_PROMPT_TEMPLATES = ["Can you find the {target}?", "Can you spot the {target}?", "Where is the {target}?", "Look for the {target}!", "I'm looking for the {target}. Do you see it?"];
-        const DIGIT_MAP = { "1": "one", "2": "two", "3": "three", "4": "four", "5": "five", "6": "six", "7": "seven", "8": "eight", "9": "nine", "10": "ten" };
-        const COLORS = ["Red", "Blue", "Green", "Yellow", "Orange", "Purple", "Pink", "White"];
 
         /** * ASSET SERVICE */
         const AssetService = {
@@ -527,9 +459,9 @@
                     return list.filter(Boolean);
                 });
                 const unique = [...new Set(urls)];
-                return Promise.all(unique.map(url => new Promise(resolve => {
+                return Promise.allSettled(unique.map(url => new Promise(resolve => {
                     const img = new Image();
-                    img.onload = img.onerror = resolve;
+                    img.onload = img.onerror = resolve; 
                     img.src = url;
                 })));
             }
@@ -537,27 +469,59 @@
 
         /** * SPEECH SERVICE */
         const SpeechService = {
-            voices: [], recognition: null,
+            voices: [],
             init() {
-                window.speechSynthesis.onvoiceschanged = () => this.voices = window.speechSynthesis.getVoices().filter(v => v.lang.startsWith('en'));
-                const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-                if (SR) { this.recognition = new SR(); this.recognition.lang = 'en-US'; }
+                this.updateVoices();
+                window.speechSynthesis.onvoiceschanged = () => this.updateVoices();
+            },
+            updateVoices() {
+                this.voices = window.speechSynthesis.getVoices().filter(v => v.lang.startsWith('en'));
             },
             stop() { window.speechSynthesis.cancel(); },
-            speak(text, voice, rate = 0.8) {
+            abort() { window.speechSynthesis.cancel(); },
+            speak(text, voice, rate = CONFIG.settings.speechRate) {
+                if (this.voices.length === 0) this.updateVoices();
                 window.speechSynthesis.cancel();
                 const u = new SpeechSynthesisUtterance(text);
                 if (voice) u.voice = voice;
-                u.rate = rate; window.speechSynthesis.speak(u);
+                u.rate = rate; 
+                window.speechSynthesis.speak(u);
             },
             listen(target) {
                 return new Promise((resolve, reject) => {
-                    if (!this.recognition) return reject("No speech support");
-                    let h = false;
-                    const t = setTimeout(() => { if (!h) { h=true; this.recognition.stop(); reject("timeout"); } }, 6000);
-                    this.recognition.onresult = (e) => { if (!h) { h=true; clearTimeout(t); resolve({ success: this.isSimilar(e.results[0][0].transcript, target), transcript: e.results[0][0].transcript }); } };
-                    this.recognition.onerror = (e) => { if (!h) { h=true; clearTimeout(t); reject(e.error); } };
-                    this.recognition.start();
+                    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+                    if (!SR) return reject("No speech support");
+                    
+                    const rec = new SR();
+                    rec.lang = 'en-US';
+                    rec.continuous = false;
+                    rec.interimResults = false;
+
+                    let handled = false;
+                    const timeout = setTimeout(() => {
+                        if (!handled) {
+                            handled = true;
+                            rec.abort();
+                            reject("timeout");
+                        }
+                    }, CONFIG.settings.listenTimeout);
+
+                    rec.onresult = (e) => {
+                        if (handled) return;
+                        handled = true;
+                        clearTimeout(timeout);
+                        const transcript = e.results[0][0].transcript;
+                        resolve({ success: this.isSimilar(transcript, target), transcript });
+                    };
+
+                    rec.onerror = (e) => {
+                        if (handled) return;
+                        handled = true;
+                        clearTimeout(timeout);
+                        reject(e.error);
+                    };
+
+                    rec.start();
                 });
             },
             levenshtein(a, b) {
@@ -571,25 +535,24 @@
                 }
                 return tmp[a.length][b.length];
             },
-            isSimilar(s1, s2) {
+            isSimilar(transcript, target) {
                 const norm = s => s.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
-                const mapNums = s => { let o = s; Object.entries(DIGIT_MAP).forEach(([d, w]) => o = o.replace(new RegExp(`\\b${w}\\b`, 'g'), d)); return o; };
-                const c1 = norm(s1); const c2 = norm(s2);
-                if ((c2 === "small" || c2 === "little") && (c1.includes("little") || c1.includes("small"))) return true;
+                const mapNums = s => {
+                    let o = s;
+                    Object.entries(CONFIG.maps.digits).forEach(([d, w]) => o = o.replace(new RegExp(`\\b${w}\\b`, 'g'), d));
+                    return o;
+                };
+                const c1 = norm(transcript); const c2 = norm(target);
                 if (c1 === c2 || mapNums(c1) === mapNums(c2)) return true;
+                const synonyms = CONFIG.maps.synonyms[c2];
+                if (synonyms && synonyms.some(syn => c1.includes(norm(syn)))) return true;
                 if (c1.includes(c2)) return true;
                 const w1 = c1.split(" "); const w2 = c2.split(" ");
-                let m = 0;
+                let matches = 0;
                 w2.forEach(v => {
-                    if (w1.some(v1 => {
-                        if (v1 === v) return true;
-                        if (v.length > 3) return this.levenshtein(v, v1) <= 1;
-                        return false;
-                    })) m++;
+                    if (w1.some(v1 => (v1 === v || (v.length > 3 && this.levenshtein(v, v1) <= 1)))) matches++;
                 });
-                const fullDist = this.levenshtein(c1, c2);
-                const threshold = Math.floor(c2.length * 0.35);
-                return (m / w2.length) >= 0.7 || fullDist <= threshold;
+                return (matches / w2.length) >= 0.7 || this.levenshtein(c1, c2) <= Math.floor(c2.length * CONFIG.settings.similarityThreshold);
             }
         };
 
@@ -600,6 +563,7 @@
                 const clone = tpl.content.cloneNode(true);
                 const card = clone.querySelector('.card');
                 card.dataset[type === 'level' ? 'lvl' : 'sub'] = id;
+                card.dataset.action = type === 'level' ? 'select-level' : 'select-sublevel';
                 card.classList.add(...classes);
                 card.querySelector('h3').textContent = title;
                 const p = card.querySelector('p');
@@ -610,7 +574,9 @@
                 const tpl = document.getElementById('tpl-option');
                 const clone = tpl.content.cloneNode(true);
                 const cont = clone.querySelector('.option-img-container');
-                cont.dataset.word = config.labelOverride || data.word;
+                cont.dataset.label = config.choiceLabel || data.word;
+                cont.dataset.isCorrect = config.isCorrect ? "true" : "false";
+                cont.dataset.action = 'select-option';
                 if (config.isLocked) cont.dataset.locked = "true";
                 if (config.highlight) cont.classList.add(`highlight-${config.highlight}`);
                 if (config.bgColor) cont.style.backgroundColor = config.bgColor;
@@ -618,13 +584,11 @@
                 if (config.scale) wrap.style.transform = `scale(${config.scale})`;
                 if (data.url) {
                     const img = document.createElement('img');
-                    img.src = data.url;
-                    img.onerror = () => img.src = 'https://via.placeholder.com/200?text=Image';
+                    img.src = data.url; img.onerror = () => img.src = CONFIG.settings.imageErrorPlaceholder;
                     wrap.appendChild(img);
                 } else {
                     const emo = document.createElement('div');
-                    emo.className = 'emoji-box'; 
-                    emo.textContent = data.emoji || data.word;
+                    emo.className = 'emoji-box'; emo.textContent = data.emoji || data.word;
                     wrap.appendChild(emo);
                 }
                 const label = cont.querySelector('.img-label');
@@ -636,12 +600,12 @@
                 const tpl = document.getElementById('tpl-debug-word');
                 const clone = tpl.content.cloneNode(true);
                 const card = clone.querySelector('.debug-word-card');
-                card.dataset.word = item.word;
+                card.dataset.word = item.word; card.dataset.action = 'debug-speak';
                 const wrap = card.querySelector('.debug-icon-wrapper');
                 if (item.url) {
                     const img = document.createElement('img');
                     img.className = 'debug-img'; img.src = item.url;
-                    img.onerror = () => img.src = 'https://via.placeholder.com/90?text=Error';
+                    img.onerror = () => img.src = CONFIG.settings.debugPlaceholder;
                     wrap.appendChild(img);
                 } else {
                     const emo = document.createElement('div');
@@ -650,225 +614,170 @@
                 }
                 card.querySelector('.debug-label').textContent = item.word;
                 return clone;
+            },
+            createMicButton(target) {
+                const mic = document.createElement('button');
+                mic.className = 'mic-btn'; mic.innerHTML = '🎤';
+                mic.dataset.target = target; mic.dataset.action = 'mic';
+                return mic;
+            },
+            createSkipButton() {
+                const skip = document.createElement('button');
+                skip.className = 'skip-btn'; skip.textContent = "Skip ➡";
+                skip.dataset.action = 'skip-challenge';
+                return skip;
+            }
+        };
+
+        /** * EXERCISE GENERATOR */
+        const ExerciseGenerator = {
+            standard(pool) {
+                const target = pool[Math.floor(Math.random() * pool.length)];
+                // Standard pool of challenges for any word
+                const types = ['audioMatch', 'repeat', 'sayWord'];
+                // Only assign social if explicitly supported
+                let type = target.social ? 'social' : types[Math.floor(Math.random() * types.length)];
+                
+                const options = [target]; 
+                const others = pool.filter(w => w.word !== target.word).sort(() => Math.random() - 0.5);
+                while (options.length < 6 && others.length > 0) options.push(others.pop());
+                
+                return { 
+                    type, 
+                    target, 
+                    targetLabel: target.word, 
+                    options: options.sort(() => Math.random() - 0.5) 
+                };
+            },
+            countingMatch(pool) {
+                const target = pool[Math.floor(Math.random() * pool.length)];
+                const count = Math.floor(Math.random() * 4) + 2; 
+                return {
+                    type: 'counting',
+                    target,
+                    count,
+                    targetLabel: count.toString(), // Correct answer is the count digit
+                    feedbackLabel: `${count} ${target.word}${count > 1 ? 's' : ''}`,
+                    micTarget: count.toString()
+                };
+            },
+            adjectiveRepeat(pool, mode) {
+                const word = pool[Math.floor(Math.random() * pool.length)];
+                const attr = mode === "size" ? (Math.random() > 0.5 ? "big" : "small") : (word.color || "Red");
+                const label = `${attr} ${word.word}`;
+                return { type: 'adjectiveRepeat', target: word, targetLabel: label, phrase: label, attr, scale: attr === "big" ? 1.4 : 0.7 };
+            },
+            sizeMatch(pool) {
+                const word = pool[Math.floor(Math.random() * pool.length)];
+                const size = Math.random() > 0.5 ? "big" : "small";
+                const options = [];
+                const others = pool.filter(w => w.word !== word.word).sort(() => Math.random() - 0.5).slice(0, 2);
+                [word, ...others].forEach(it => {
+                    options.push({ ...it, scale: 1.4, size: "big" });
+                    options.push({ ...it, scale: 0.7, size: "small" });
+                });
+                return { type: 'sizeMatch', target: word, targetLabel: `${size} ${word.word}`, size, options: options.sort(() => Math.random() - 0.5) };
+            },
+            getRandomChallenge(pool, lvl, sub) {
+                const r = Math.random();
+                if (lvl === 1 && sub === 3) return r > 0.6 ? this.sizeMatch(pool) : this.adjectiveRepeat(pool, "size");
+                if (r > 0.8) return this.countingMatch(pool);
+                return this.standard(pool);
             }
         };
 
         /** * STATE */
         const state = { 
             view: 'welcome', level: null, sublevel: null, 
-            questionIndex: 0, questions: [], stars: Array(15).fill(false), 
-            voice: null, repeatTimer: null, isProcessingSpeech: false,
-            isAnswering: false // LOCKING MECHANISM FOR RACE CONDITIONS
+            questionIndex: 0, questions: [], stars: [],
+            voice: null, repeatTimer: null, isProcessingSpeech: false, isAnswering: false 
         };
 
-        function updateState(updates) { Object.assign(state, updates); render(); }
-
-        /** * RENDERER */
-        function render() {
-            document.body.className = (state.level && DATA[state.level]) ? `theme-lvl-${state.level}` : '';
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            const active = document.getElementById(`${state.view}-screen`);
-            if (active) active.classList.add('active');
-            
-            const header = document.getElementById('app-header');
-            header.style.display = (['game', 'sublevel', 'debug'].includes(state.view)) ? 'flex' : 'none';
-
-            const starContainer = document.getElementById('stars-bar');
-            starContainer.innerHTML = '';
-            state.stars.forEach(f => {
-                const s = document.createElement('span');
-                s.className = `star ${f ? 'filled' : ''}`; s.innerHTML = '★';
-                starContainer.appendChild(s);
-            });
-
-            if (state.view === 'welcome') renderWelcomeMenu();
-            if (state.view === 'sublevel') renderSublevelMenu();
-            if (state.view === 'game') renderQuestion();
-            if (state.view === 'debug') renderDebugContent();
-            if (state.view !== 'game') stopRepeatTimer();
+        function updateState(updates) { 
+            const prev = { ...state }; Object.assign(state, updates);
+            render(prev.view !== state.view, prev.level !== state.level, prev.questionIndex !== state.questionIndex); 
         }
 
-        function renderWelcomeMenu() {
-            const menu = document.getElementById('level-menu'); menu.innerHTML = '';
-            Object.keys(DATA).sort((a,b) => a-b).forEach(lvl => {
-                menu.appendChild(UIFactory.createCard({ type: 'level', id: lvl, title: `Level ${lvl}`, subtitle: DATA[lvl].title, classes: ['level-card'] }));
-            });
-        }
-
-        function renderSublevelMenu() {
-            const lvl = state.level;
-            if (!lvl || !DATA[lvl]) return;
-            document.getElementById('level-title').textContent = `Level ${lvl}: ${DATA[lvl].title}`;
-            const menu = document.getElementById('sublevel-menu'); menu.innerHTML = '';
-            const count = lvl === 1 ? 4 : 3; 
-            for (let i = 1; i <= count; i++) {
-                menu.appendChild(UIFactory.createCard({ type: 'sublevel', id: i, title: `Lesson ${lvl}.${i}`, classes: ['sublevel-card'] }));
+        /** * CHALLENGE RENDERERS */
+        const ChallengeRenderers = {
+            'repeat': (q, root, info, qText) => {
+                const prompt = `Repeat after me: ${q.target.word}`;
+                qText.textContent = "Say the word!";
+                info.textContent = q.target.word; info.style.display = 'block';
+                root.appendChild(UIFactory.createOption(q.target, { isCorrect: true, isLocked: true }));
+                return { prompt, isSpeech: true, micTarget: q.target.word };
+            },
+            'social': (q, root, info, qText) => {
+                const response = q.target.response || q.target.word;
+                const prompt = `Say ${response}!`;
+                qText.textContent = "Say it!";
+                info.textContent = response; info.style.display = 'block';
+                root.appendChild(UIFactory.createOption(q.target, { isCorrect: true, isLocked: true }));
+                return { prompt, isSpeech: true, micTarget: response };
+            },
+            'counting': (q, root, info, qText) => {
+                const prompt = `How many ${q.target.word}s are there? Count them!`;
+                qText.textContent = "Count!";
+                info.textContent = "?"; info.style.display = 'block';
+                for (let i = 0; i < q.count; i++) {
+                    root.appendChild(UIFactory.createOption(q.target, { isCorrect: true, isLocked: true, showLabel: false }));
+                }
+                return { prompt, isSpeech: true, micTarget: q.micTarget };
+            },
+            'sayWord': (q, root, info, qText) => {
+                const prompt = `What is this? Say the word.`;
+                qText.textContent = "What is it?";
+                info.textContent = "?"; info.style.display = 'block';
+                root.appendChild(UIFactory.createOption(q.target, { isCorrect: true, isLocked: true, showLabel: false }));
+                return { prompt, isSpeech: true, micTarget: q.target.word };
+            },
+            'sizeMatch': (q, root, info, qText) => {
+                const prompt = `Where is the ${q.size} ${q.target.word}?`;
+                qText.textContent = "Look and listen!";
+                info.textContent = q.targetLabel; info.style.display = 'block';
+                q.options.forEach(o => root.appendChild(UIFactory.createOption(o, { 
+                    scale: o.scale, choiceLabel: `${o.size} ${o.word}`, 
+                    isCorrect: (o.word === q.target.word && o.size === q.size)
+                })));
+                return { prompt, isSpeech: false, micTarget: "" };
+            },
+            'adjectiveRepeat': (q, root, info, qText) => {
+                const prompt = `Repeat: ${q.phrase}`;
+                qText.textContent = "Say the phrase!";
+                info.textContent = q.phrase; info.style.display = 'block';
+                root.appendChild(UIFactory.createOption(q.target, { scale: q.scale, isLocked: true }));
+                return { prompt, isSpeech: true, micTarget: q.phrase };
+            },
+            'standard': (q, root, info, qText) => {
+                const prompt = CONFIG.templates.questions[Math.floor(Math.random() * 4)].replace(/{target}/g, q.target.word);
+                qText.textContent = "Look and listen!";
+                info.textContent = q.target.word; info.style.display = 'block';
+                q.options.forEach(o => root.appendChild(UIFactory.createOption(o, { isCorrect: o.word === q.target.word })));
+                return { prompt, isSpeech: false, micTarget: "" };
             }
-        }
-
-        function renderDebugContent() {
-            const root = document.getElementById('debug-content-root'); root.innerHTML = '';
-            Object.keys(DATA).sort((a,b)=>a-b).forEach(lvl => {
-                const sec = document.createElement('div');
-                sec.className = 'debug-level-section';
-                sec.innerHTML = `<h2>Level ${lvl}: ${DATA[lvl].title}</h2>`;
-                const grid = document.createElement('div'); grid.className = 'debug-grid';
-                DATA[lvl].words.forEach(item => grid.appendChild(UIFactory.createDebugItem(item)));
-                sec.appendChild(grid); root.appendChild(sec);
-            });
-        }
-
-        /** * GAME LOGIC & EXERCISE GENERATION */
-        async function startLesson(lvl, sub) {
-            if (!lvl || !DATA[lvl]) return;
-            document.getElementById('status-message').textContent = 'Loading adventure...';
-            const pool = []; for (let i = 1; i <= lvl; i++) pool.push(...DATA[i].words);
-            if (pool.length === 0) return;
-            const q = []; 
-            for (let i = 0; i < 15; i++) {
-                if (lvl === 1 && sub === 3) {
-                    const r = Math.random();
-                    if (r > 0.6) q.push(createSizeExercise(pool));
-                    else if (r > 0.3) q.push(createAdjectiveRepeatExercise(pool, "size"));
-                    else q.push(createStandardExercise(pool));
-                } else if (lvl === 1 && sub === 4) {
-                    const r = Math.random();
-                    if (r > 0.6) q.push(createAttributeChoiceExercise(pool));
-                    else if (r > 0.3) q.push(createAdjectiveRepeatExercise(pool, "mixed"));
-                    else q.push(createStandardExercise(pool));
-                } else { q.push(createStandardExercise(pool)); }
-            }
-            await AssetService.precache(q);
-            updateState({ view: 'game', level: lvl, sublevel: sub, questionIndex: 0, questions: q, stars: Array(15).fill(false), isAnswering: false });
-        }
-
-        function createStandardExercise(pool) {
-            const target = pool[Math.floor(Math.random() * pool.length)];
-            const types = ['audioMatch', 'repeat', 'social', 'counting', 'sayWord'];
-            let type = types[Math.floor(Math.random() * types.length)];
-            if (target.social) type = 'social';
-            const options = [target]; const others = pool.filter(w => w.word !== target.word);
-            while (options.length < 6 && others.length > 0) options.push(others.splice(Math.floor(Math.random()*others.length), 1)[0]);
-            return { type, target, options: options.sort(() => Math.random() - 0.5) };
-        }
-
-        function createAdjectiveRepeatExercise(pool, mode) {
-            const targetWord = pool[Math.floor(Math.random() * pool.length)];
-            let attr;
-            if (mode === "size") {
-                attr = Math.random() > 0.5 ? "big" : "small";
-            } else {
-                const r = Math.random();
-                if (r > 0.6) attr = Math.random() > 0.5 ? "big" : "small";
-                else attr = targetWord.color || COLORS[Math.floor(Math.random()*COLORS.length)];
-            }
-            const label = `${attr} ${targetWord.word}`;
-            return { 
-                type: 'adjectiveRepeat', 
-                target: targetWord, 
-                phrase: label, 
-                attr, 
-                scale: attr === "big" ? 1.4 : (attr === "small" ? 0.7 : 1.0) 
-            };
-        }
-
-        function createSizeExercise(pool) {
-            const targetWord = pool[Math.floor(Math.random() * pool.length)];
-            const size = Math.random() > 0.5 ? "big" : "small";
-            const options = [];
-            const otherPool = pool.filter(w => w.word !== targetWord.word);
-            const others = otherPool.sort(() => Math.random() - 0.5).slice(0, 3);
-            const distinctIcons = [targetWord, ...others];
-            distinctIcons.forEach(item => {
-                options.push({ ...item, scale: 1.4, size: "big" });
-                options.push({ ...item, scale: 0.7, size: "small" });
-            });
-            const target = options.find(o => o.word === targetWord.word && (o.size === size));
-            return { type: 'sizeMatch', target, size, word: targetWord.word, options: options.sort(() => Math.random() - 0.5) };
-        }
-
-        function createAttributeChoiceExercise(pool) {
-            const targetWord = pool[Math.floor(Math.random() * pool.length)];
-            const isSize = Math.random() > 0.5;
-            const highlightType = ["frame", "blink", "arrow"][Math.floor(Math.random() * 3)];
-            const options = [];
-            let targetAttr, otherAttr;
-            if (isSize) {
-                targetAttr = Math.random() > 0.5 ? "big" : "small";
-                otherAttr = targetAttr === "big" ? "small" : "big";
-                options.push({ ...targetWord, size: "big", scale: 1.4, isTarget: targetAttr === "big" });
-                options.push({ ...targetWord, size: "small", scale: 0.7, isTarget: targetAttr === "small" });
-            } else {
-                const cPool = COLORS.filter(c => c !== targetWord.color);
-                targetAttr = targetWord.color || "Red";
-                otherAttr = cPool[Math.floor(Math.random() * cPool.length)];
-                options.push({ ...targetWord, colorName: targetAttr, bgColor: targetAttr, isTarget: true });
-                options.push({ ...targetWord, colorName: otherAttr, bgColor: otherAttr, isTarget: false });
-            }
-            return { type: 'attributeChoice', target: targetWord, targetAttr, otherAttr, highlightType, options: options.sort(() => Math.random() - 0.5) };
-        }
+        };
 
         function renderQuestion() {
-            const q = state.questions[state.questionIndex];
-            if (!q || !q.target) return;
-            state.isAnswering = false; // Reset lock for new question
-
-            const root = document.getElementById('interaction-root'); root.innerHTML = '';
+            const q = state.questions[state.questionIndex]; if (!q) return;
+            state.isAnswering = false; 
+            const root = document.getElementById('interaction-root'); root.innerHTML = ''; 
             const info = document.getElementById('exercise-info'); info.style.display = 'none';
             const status = document.getElementById('status-message'); status.textContent = '';
             const qText = document.getElementById('question-text');
-            if (SpeechService.voices.length > 0) state.voice = SpeechService.voices[Math.floor(Math.random()*SpeechService.voices.length)];
-            let isSpeech = false;
-            let prompt = "";
+            
+            if (SpeechService.voices.length === 0) SpeechService.updateVoices();
+            state.voice = SpeechService.voices[Math.floor(Math.random() * SpeechService.voices.length)];
 
-            if (q.type === 'sizeMatch') {
-                prompt = [`Where is the ${q.size} ${q.word}?`, `Can you spot the ${q.size} ${q.word}?`][Math.floor(Math.random()*2)];
-                qText.textContent = "Look and listen!";
-                info.textContent = `${q.size} ${q.word}`; info.style.display = 'block';
-                q.options.forEach(opt => {
-                    const el = UIFactory.createOption(opt, { scale: opt.scale, labelOverride: opt.word });
-                    el.querySelector('.option-img-container').dataset.size = opt.size;
-                    root.appendChild(el);
-                });
-            } else if (q.type === 'attributeChoice') {
-                isSpeech = true;
-                prompt = `Is this the ${q.targetAttr} ${q.target.word} or the ${q.otherAttr} ${q.target.word}?`;
-                qText.textContent = "Listen and Answer!";
-                info.textContent = q.target.word; info.style.display = 'block';
-                q.options.forEach(opt => {
-                    root.appendChild(UIFactory.createOption(opt, { scale: opt.scale, bgColor: opt.bgColor, highlight: opt.isTarget ? q.highlightType : null, showLabel: false, isLocked: true }));
-                });
-                const mic = document.createElement('button'); mic.className = 'mic-btn'; mic.innerHTML = '🎤'; mic.dataset.target = q.targetAttr;
-                root.appendChild(mic);
-            } else if (q.type === 'adjectiveRepeat') {
-                isSpeech = true;
-                prompt = `Repeat after me: ${q.phrase}`;
-                qText.textContent = "Say the phrase!";
-                info.textContent = q.phrase; info.style.display = 'block';
-                root.appendChild(UIFactory.createOption(q.target, { scale: q.scale, showLabel: false, isLocked: true }));
-                const mic = document.createElement('button'); mic.className = 'mic-btn'; mic.innerHTML = '🎤'; mic.dataset.target = q.phrase;
-                root.appendChild(mic);
-            } else {
-                const standardPrompt = QUESTION_PROMPT_TEMPLATES[Math.floor(Math.random()*QUESTION_PROMPT_TEMPLATES.length)].replace(/{target}/g, q.target.word);
-                prompt = standardPrompt;
-                qText.textContent = "Look and listen!";
-                info.textContent = q.target.word; info.style.display = 'block';
-                q.options.forEach(opt => root.appendChild(UIFactory.createOption(opt)));
-                if (['repeat', 'sayWord', 'counting'].includes(q.type)) isSpeech = true;
-                if (isSpeech) {
-                   const micTarget = q.type === 'counting' ? info.textContent : q.target.word;
-                   const mic = document.createElement('button'); mic.className = 'mic-btn'; mic.innerHTML = '🎤'; mic.dataset.target = micTarget;
-                   root.appendChild(mic);
-                }
+            const renderer = ChallengeRenderers[q.type] || ChallengeRenderers['standard'];
+            const res = renderer(q, root, info, qText);
+
+            if (res.isSpeech) {
+                root.appendChild(UIFactory.createMicButton(res.micTarget));
+                root.appendChild(UIFactory.createSkipButton());
             }
 
-            SpeechService.speak(prompt, state.voice); 
-            startRepeatTimer(prompt);
-            if (isSpeech) {
-                const wrap = document.createElement('div'); wrap.style.width = '100%'; wrap.style.display = 'flex'; wrap.style.justifyContent = 'center';
-                const skip = document.createElement('button'); skip.id = 'skip-challenge-btn'; skip.className = 'skip-btn'; skip.textContent = "Skip ➡";
-                wrap.appendChild(skip); root.appendChild(wrap);
-            }
+            SpeechService.speak(res.prompt, state.voice); 
+            startRepeatTimer(res.prompt);
         }
 
         async function handleMic(btn, target) {
@@ -877,103 +786,98 @@
             document.getElementById('status-message').textContent = "Listening...";
             try {
                 const r = await SpeechService.listen(target);
-                if (r.success) checkAnswer(true); else {
-                    document.getElementById('status-message').textContent = `You said "${r.transcript}". Try again!`;
-                    SpeechService.speak("Try saying it again!", state.voice); startRepeatTimer(target);
+                if (r.success) checkAnswer(true); 
+                else {
+                    document.getElementById('status-message').textContent = `Try again!`;
+                    startRepeatTimer(target);
                 }
             } catch (e) {
-                document.getElementById('status-message').textContent = e === 'timeout' ? "Didn't hear anything." : "Microphone error.";
+                document.getElementById('status-message').textContent = "I didn't hear that. Try again!";
                 startRepeatTimer(target);
             } finally { btn.classList.remove('listening'); state.isProcessingSpeech = false; }
         }
 
         function checkAnswer(correct, clicked = "") {
-            if (state.isAnswering) return; // RACE CONDITION FIX: EXIT IF ALREADY ANSWERED
+            if (state.isAnswering) return; 
             const q = state.questions[state.questionIndex];
             if (correct) {
-                state.isAnswering = true; // LOCK FURTHER INPUTS
-                stopRepeatTimer();
-                const targetText = q.type === 'sizeMatch' ? `${q.size} ${q.word}` : (q.type === 'adjectiveRepeat' ? q.phrase : q.target.word);
-                const feedback = CORRECT_FEEDBACK_TEMPLATES[Math.floor(Math.random()*CORRECT_FEEDBACK_TEMPLATES.length)].replace(/{target}/g, targetText);
+                state.isAnswering = true; stopRepeatTimer();
+                const label = q.type === 'counting' ? q.feedbackLabel : q.targetLabel;
+                const feedback = CONFIG.templates.feedback.correct[Math.floor(Math.random()*4)].replace(/{target}/g, label);
                 document.getElementById('feedback-message').textContent = feedback;
                 document.getElementById('feedback-overlay').style.display = 'flex';
                 SpeechService.speak(feedback, state.voice, 1.0);
-                
-                const newStars = [...state.stars]; 
-                newStars[state.questionIndex] = true;
-                
+                const newStars = [...state.stars]; newStars[state.questionIndex] = true;
                 setTimeout(() => { 
                     document.getElementById('feedback-overlay').style.display = 'none'; 
                     const idx = state.questionIndex + 1;
-                    if (idx >= 15) updateState({ view: 'success', stars: newStars }); 
+                    if (idx >= CONFIG.settings.questionsPerLesson) updateState({ view: 'success', stars: newStars }); 
                     else updateState({ questionIndex: idx, stars: newStars, isAnswering: false });
                 }, 2000);
             } else {
-                const targetText = q.type === 'sizeMatch' ? `${q.size} ${q.word}` : q.target.word;
-                const feedback = WRONG_FEEDBACK_TEMPLATES[Math.floor(Math.random()*WRONG_FEEDBACK_TEMPLATES.length)].replace(/{clicked}/g, clicked).replace(/{target}/g, targetText);
+                const label = q.type === 'counting' ? q.feedbackLabel : q.targetLabel;
+                const feedback = CONFIG.templates.feedback.wrong[Math.floor(Math.random()*3)].replace(/{clicked}/g, clicked).replace(/{target}/g, label);
                 SpeechService.speak(feedback, state.voice); document.getElementById('status-message').textContent = feedback;
             }
         }
 
-        function startRepeatTimer(txt) { stopRepeatTimer(); state.repeatTimer = setInterval(() => SpeechService.speak(txt, state.voice), 10000); }
+        function startRepeatTimer(txt) { stopRepeatTimer(); state.repeatTimer = setInterval(() => SpeechService.speak(txt, state.voice), CONFIG.settings.repeatInterval); }
         function stopRepeatTimer() { if (state.repeatTimer) clearInterval(state.repeatTimer); }
 
-        function setupEvents() {
-            document.getElementById('game-container').addEventListener('click', e => {
-                if (state.isAnswering) return; // GLOBAL UI LOCKING DURING FEEDBACK
-
-                if (e.target.id === 'success-home-btn') return updateState({ view: 'welcome', level: null });
-                if (e.target.id === 'skip-challenge-btn') {
-                    if (!state.level || !DATA[state.level]) return;
-                    const pool = []; for (let i = 1; i <= state.level; i++) pool.push(...DATA[i].words);
-                    const sub = state.sublevel;
-                    if (state.level === 1 && sub === 3) state.questions[state.questionIndex] = createSizeExercise(pool);
-                    else if (state.level === 1 && sub === 4) state.questions[state.questionIndex] = createAttributeChoiceExercise(pool);
-                    else state.questions[state.questionIndex] = createStandardExercise(pool);
-                    return renderQuestion();
-                }
-                if (e.target.id === 'open-parental-btn') return updateState({ view: 'debug' });
-
-                const lvlCard = e.target.closest('.level-card'); 
-                if (lvlCard && lvlCard.dataset.lvl) return updateState({ view: 'sublevel', level: parseInt(lvlCard.dataset.lvl) });
-
-                const subCard = e.target.closest('.sublevel-card'); 
-                if (subCard && subCard.dataset.sub) return startLesson(state.level, parseInt(subCard.dataset.sub));
-                
-                const opt = e.target.closest('.option-img-container'); 
-                if (opt) {
-                    const q = state.questions[state.questionIndex];
-                    if (opt.dataset.locked) {
-                        SpeechService.speak(opt.dataset.word, state.voice);
-                    } else if (q.type === 'sizeMatch') {
-                        const isCorrectSize = opt.dataset.size === q.size || (q.size === "small" && opt.dataset.size === "little") || (q.size === "little" && opt.dataset.size === "small");
-                        checkAnswer(opt.dataset.word === q.word && isCorrectSize, `${opt.dataset.size} ${opt.dataset.word}`);
-                    } else {
-                        checkAnswer(opt.dataset.word === q.target.word, opt.dataset.word);
-                    }
-                    return;
-                }
-                const mic = e.target.closest('.mic-btn'); if (mic) return handleMic(mic, mic.dataset.target);
-            });
-
-            document.getElementById('header-stop-btn').addEventListener('click', () => {
-                stopRepeatTimer();
-                SpeechService.stop();
-            });
-
-            document.getElementById('header-back-btn').addEventListener('click', () => {
-                SpeechService.stop();
-                stopRepeatTimer();
-                if (state.view === 'sublevel' || state.view === 'debug') updateState({ view: 'welcome', level: null });
-                else if (state.view === 'game') updateState({ view: 'sublevel' });
-            });
-
-            document.getElementById('debug-content-root').addEventListener('click', e => {
-                const w = e.target.closest('.debug-word-card'); if (w) SpeechService.speak(w.dataset.word);
-            });
+        /** * RENDERER */
+        function render(viewC, lvlC, idxC) {
+            document.body.className = state.level ? `theme-lvl-${state.level}` : '';
+            document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === `${state.view}-screen`));
+            document.getElementById('app-header').style.display = (['game', 'sublevel', 'debug', 'loading'].includes(state.view)) ? 'flex' : 'none';
+            if (lvlC && state.view === 'sublevel') {
+                document.getElementById('level-title').textContent = `Level ${state.level}: ${DATA[state.level].title}`;
+                const m = document.getElementById('sublevel-menu'); m.innerHTML = '';
+                for (let i = 1; i <= (state.level === 1 ? 4 : 3); i++) m.appendChild(UIFactory.createCard({ type: 'sublevel', id: i, title: `Lesson ${state.level}.${i}`, classes: ['sublevel-card'] }));
+            }
+            if (idxC || (viewC && state.view === 'game')) renderQuestion();
+            const bar = document.getElementById('stars-bar'); bar.innerHTML = '';
+            state.stars.forEach(f => { const s = document.createElement('span'); s.className = `star ${f ? 'filled' : ''}`; s.innerHTML = '★'; bar.appendChild(s); });
+            if (state.view !== 'game') stopRepeatTimer();
         }
 
-        window.onload = () => { SpeechService.init(); setupEvents(); render(); };
+        const ActionHandler = {
+            'go-home': () => updateState({ view: 'welcome', level: null }),
+            'open-parental': () => updateState({ view: 'debug' }),
+            'select-level': (el) => updateState({ view: 'sublevel', level: parseInt(el.dataset.lvl) }),
+            'select-sublevel': async (el) => {
+                const lvl = state.level, sub = parseInt(el.dataset.sub); updateState({ view: 'loading' });
+                const pool = []; for (let i = 1; i <= lvl; i++) pool.push(...DATA[i].words);
+                const q = []; for (let i = 0; i < CONFIG.settings.questionsPerLesson; i++) q.push(ExerciseGenerator.getRandomChallenge(pool, lvl, sub));
+                await AssetService.precache(q);
+                updateState({ view: 'game', sublevel: sub, questionIndex: 0, questions: q, stars: Array(CONFIG.settings.questionsPerLesson).fill(false) });
+            },
+            'select-option': (el) => el.dataset.locked === "true" ? SpeechService.speak(el.dataset.label, state.voice) : checkAnswer(el.dataset.isCorrect === "true", el.dataset.label),
+            'mic': (el) => handleMic(el, el.dataset.target),
+            'skip-challenge': () => {
+                const pool = []; for (let i = 1; i <= state.level; i++) pool.push(...DATA[i].words);
+                state.questions[state.questionIndex] = ExerciseGenerator.getRandomChallenge(pool, state.level, state.sublevel);
+                renderQuestion();
+            },
+            'debug-speak': (el) => SpeechService.speak(el.dataset.word),
+            'header-stop': () => { stopRepeatTimer(); SpeechService.abort(); updateState({ isProcessingSpeech: false }); },
+            'header-back': () => { SpeechService.abort(); stopRepeatTimer(); if (['sublevel', 'debug', 'loading'].includes(state.view)) updateState({ view: 'welcome', level: null }); else updateState({ view: 'sublevel' }); }
+        };
+
+        window.onload = () => {
+            SpeechService.init(); 
+            const menu = document.getElementById('level-menu');
+            Object.keys(DATA).forEach(lvl => menu.appendChild(UIFactory.createCard({ type: 'level', id: lvl, title: `Level ${lvl}`, subtitle: DATA[lvl].title, classes: ['level-card'] })));
+            const root = document.getElementById('debug-content-root');
+            Object.keys(DATA).forEach(lvl => {
+                const sec = document.createElement('div'); sec.className = 'debug-level-section';
+                sec.innerHTML = `<h2>Level ${lvl}: ${DATA[lvl].title}</h2>`;
+                const grid = document.createElement('div'); grid.className = 'debug-grid';
+                DATA[lvl].words.forEach(it => grid.appendChild(UIFactory.createDebugItem(it)));
+                sec.appendChild(grid); root.appendChild(sec);
+            });
+            document.body.addEventListener('click', e => { if (!state.isAnswering) { const t = e.target.closest('[data-action]'); if (t) ActionHandler[t.dataset.action](t); } });
+            render(true, true, true);
+        };
     </script>
 </body>
 </html>
