@@ -70,7 +70,7 @@
             z-index: 10;
         }
 
-        .back-btn {
+        .back-btn, .stop-btn {
             background: #f0f0f0;
             border: none;
             padding: 8px 16px;
@@ -81,17 +81,24 @@
             transition: var(--transition);
             flex-shrink: 0;
             font-family: inherit;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
 
-        .back-btn:active { transform: scale(0.9); }
+        .stop-btn {
+            background: #ffe4e6;
+            color: #e11d48;
+        }
 
-        /* --- PROGRESS STARS --- */
+        .back-btn:active, .stop-btn:active { transform: scale(0.9); }
+
         .stars-container {
             display: flex;
             gap: 4px;
             flex-wrap: nowrap;
             justify-content: center;
-            max-width: 90%;
+            max-width: 60%;
             margin: 0 10px;
         }
 
@@ -115,7 +122,6 @@
             100% { transform: scale(1.1); }
         }
 
-        /* --- SCREENS --- */
         .screen {
             display: none;
             width: 100%;
@@ -133,7 +139,6 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* --- GRID MENUS --- */
         .grid-menu {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -161,7 +166,6 @@
         .level-card { border-color: var(--primary); }
         .sublevel-card { border-color: var(--secondary); }
 
-        /* --- PARENTAL DASHBOARD --- */
         #debug-screen {
             background: var(--parental-bg);
             padding: 20px;
@@ -233,7 +237,6 @@
             justify-content: center;
         }
 
-        /* --- GAMEPLAY UI --- */
         .instruction {
             font-size: 2.2rem;
             font-weight: bold;
@@ -261,20 +264,33 @@
             gap: 15px;
         }
 
+        /* --- CHALLENGE SPECIAL STYLES --- */
         .option-img-container {
             position: relative;
             width: 150px;
             height: 150px;
             border-radius: 24px;
-            overflow: hidden;
+            overflow: visible;
             border: 6px solid white;
             box-shadow: 0 6px 15px rgba(0,0,0,0.12);
             cursor: pointer;
             transition: var(--transition);
+            background: #fff;
+        }
+
+        .option-img-container .content-wrapper {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 18px;
+            overflow: hidden;
+            transition: transform 0.3s ease;
         }
 
         .option-img-container:hover { 
-            transform: scale(1.05);
+            transform: translateY(-5px);
             border-color: var(--primary);
         }
 
@@ -291,7 +307,6 @@
             align-items: center;
             justify-content: center;
             font-size: 65px;
-            background: #fff;
         }
 
         .img-label {
@@ -308,12 +323,26 @@
             text-shadow: 1px 1px 0 #333, 0 2px 4px rgba(0,0,0,0.5);
             background: linear-gradient(transparent, rgba(0,0,0,0.5));
             pointer-events: none;
+            border-radius: 0 0 18px 18px;
+            z-index: 5;
         }
 
-        /* --- MICROPHONE BUTTON --- */
+        .highlight-frame { outline: 8px solid var(--accent); outline-offset: 4px; }
+        .highlight-blink { animation: blinker 1.5s infinite; }
+        @keyframes blinker { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+        .highlight-arrow::before {
+            content: '👇';
+            position: absolute;
+            top: -55px; left: 50%;
+            transform: translateX(-50%);
+            font-size: 3.5rem;
+            animation: bounce-small 0.8s infinite alternate;
+            z-index: 10;
+        }
+        @keyframes bounce-small { from { transform: translateX(-50%) translateY(0); } to { transform: translateX(-50%) translateY(-10px); } }
+
         .mic-btn {
-            width: 110px;
-            height: 110px;
+            width: 110px; height: 110px;
             border-radius: 50%;
             background: var(--primary);
             border: none;
@@ -331,8 +360,7 @@
         .mic-btn.listening::after {
             content: '';
             position: absolute;
-            width: 125%;
-            height: 125%;
+            width: 125%; height: 125%;
             border: 5px dashed var(--primary);
             border-radius: 50%;
             animation: spin 4s linear infinite;
@@ -340,7 +368,6 @@
 
         @keyframes spin { 100% { transform: rotate(360deg); } }
 
-        /* --- BUTTONS --- */
         .skip-btn {
             background: var(--skip-blue);
             color: #0369A1;
@@ -362,8 +389,7 @@
 
         .parental-btn {
             position: absolute;
-            bottom: 20px;
-            right: 20px;
+            bottom: 20px; right: 20px;
             background: #cbd5e1;
             color: #475569;
             border: none;
@@ -376,9 +402,6 @@
             font-family: inherit;
         }
 
-        .parental-btn:hover { opacity: 1; background: #94a3b8; }
-
-        /* --- FEEDBACK OVERLAY --- */
         #feedback-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -400,15 +423,13 @@
             text-align: center;
         }
 
-        @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-25px); } }
-
         @media (max-width: 600px) {
             .option-img-container { width: 120px; height: 120px; }
             .emoji-box { font-size: 40px; }
             .instruction { font-size: 1.5rem; }
             .exercise-text-prompt { font-size: 2.2rem; }
             .feedback-text { font-size: 2.2rem; }
-            .stars-container { flex-wrap: wrap; max-width: 320px; }
+            .stars-container { max-width: 50%; }
         }
     </style>
 </head>
@@ -417,12 +438,10 @@
     <header id="app-header" style="display:none;">
         <button id="header-back-btn" class="back-btn">⬅ Back</button>
         <div class="stars-container" id="stars-bar"></div>
-        <div style="width: 80px;" class="header-spacer"></div> 
+        <button id="header-stop-btn" class="stop-btn">Stop ⏹️</button>
     </header>
 
     <div id="game-container">
-        
-        <!-- Welcome Screen -->
         <div id="welcome-screen" class="screen active">
             <h1 style="font-size: 4rem; color: var(--primary); margin-bottom: 20px; text-align: center;">English Adventure! 🌟</h1>
             <p style="font-size: 1.5rem; margin-bottom: 30px; color: #777;">Ready to learn and play?</p>
@@ -430,13 +449,11 @@
             <button id="open-parental-btn" class="parental-btn">⚙ Parental Dashboard</button>
         </div>
 
-        <!-- Sublevel Selection -->
         <div id="sublevel-screen" class="screen">
             <h2 id="level-title" style="margin-bottom: 30px; color: var(--primary); font-size: 2.5rem;">Select a Lesson</h2>
             <div class="grid-menu" id="sublevel-menu"></div>
         </div>
 
-        <!-- Gameplay Screen -->
         <div id="game-screen" class="screen">
             <div class="instruction" id="question-text">Look and listen!</div>
             <div id="exercise-info" class="exercise-text-prompt" style="display: none;"></div>
@@ -444,23 +461,19 @@
             <div id="status-message" style="margin-top: 20px; font-weight: bold; color: #666; font-size: 1.3rem; min-height: 1.5em; text-align: center;"></div>
         </div>
 
-        <!-- Parental / Debug Screen -->
         <div id="debug-screen" class="screen">
             <h1 style="color: #1e293b; margin-top: 20px; margin-bottom: 10px; font-size: 2.5rem;">Parental Overview</h1>
             <p style="margin-bottom: 30px; color: #64748b; font-size: 1.2rem;">Click any item to hear the voice.</p>
             <div id="debug-content-root" style="width: 100%; display: flex; flex-direction: column; align-items: center;"></div>
         </div>
 
-        <!-- Success Screen -->
         <div id="success-screen" class="screen">
             <h1 style="font-size: 5rem; color: #FFD700;">AMAZING! 🏆</h1>
             <p style="font-size: 2.2rem;">You are an English Star!</p>
-            <button id="success-home-btn" class="card level-card" style="margin-top: 40px; padding: 25px 60px; font-size: 2.5rem;">Play More!</button>
+            <button id="success-home-btn" class="card" style="margin-top: 40px; padding: 25px 60px; font-size: 2.5rem; border-color: var(--primary);">Play More!</button>
         </div>
-
     </div>
 
-    <!-- Feedback Overlay -->
     <div id="feedback-overlay">
         <div class="feedback-text" id="feedback-message">GREAT!</div>
     </div>
@@ -490,7 +503,7 @@
     <script>
         /** * DATA DEFINITIONS */
         const DATA = {
-            1: { title: "Basics", words: [{ word: "Apple", emoji: "🍎" }, { word: "Dog", emoji: "🐶" }, { word: "Cat", emoji: "🐱" }, { word: "Sun", emoji: "☀️" }, { word: "Moon", emoji: "🌙" }, { word: "Bird", emoji: "🐦" }, { word: "Water", emoji: "💧" }, { word: "Bread", emoji: "🍞" }, { word: "Milk", emoji: "🥛" }, { word: "Hello", emoji: "👋", social: true, response: "Hello" }] },
+            1: { title: "Basics", words: [{ word: "Apple", emoji: "🍎", color: "red" }, { word: "Dog", emoji: "🐶", color: "brown" }, { word: "Cat", emoji: "🐱", color: "gray" }, { word: "Sun", emoji: "☀️", color: "yellow" }, { word: "Moon", emoji: "🌙", color: "white" }, { word: "Bird", emoji: "🐦", color: "blue" }, { word: "Water", emoji: "💧", color: "blue" }, { word: "Bread", emoji: "🍞", color: "brown" }, { word: "Milk", emoji: "🥛", color: "white" }, { word: "Hello", emoji: "👋", social: true, response: "Hello" }] },
             2: { title: "Playground", words: [{ word: "Monkey bars", url: "https://images.unsplash.com/vector-1757332570676-facced078968?q=80&w=1160&auto=format&fit=crop" }, { word: "Rope bridge", url: "https://media.istockphoto.com/id/1006459800/photo/child-crossing-a-bridge-of-ropes.jpg?s=612x612&w=0&k=20&c=u6xBBbbU0qTmeE8Tt8RzB5TIVS8vwEEB2OJtY-NjWm8=" }, { word: "Climbing frame", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRod-c9zdPr5uwqEZxCBwHkzqHyB3rrMxPYPQ&s" }, { word: "Seesaw", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTj4Yw4wG2mxsr2p8D65wF5CBECXkjV-IVJqA&s" }, { word: "Springy", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSnY2Z70Pv_IeIUtEqMbK-Xc8hy-c7_9tvH4Q&s" }, { word: "Roundabout", url: "https://fibran.co.il/wp-content/uploads/2018/01/C-2447-foto1-1.jpg" }, { word: "Sandpit", url: "https://upload.wikimedia.org/wikipedia/commons/7/74/Sandpit.jpg" }, { word: "Swing", emoji: "🛝" }, { word: "Jump", emoji: "🏃" }, { word: "Play", emoji: "🎈" }] },
             3: { title: "School", words: [{ word: "Protractor", url: "https://www.artdepot.co.il/16991-thickbox_default/%D7%9E%D7%93-%D7%96%D7%95%D7%95%D7%99%D7%AA-180-10-%D7%A1%D7%9E.jpg" }, { word: "Compass", url: "https://picassoart.co.il/wp-content/uploads/2024/09/%D7%A1%D7%98-%D7%9E%D7%97%D7%95%D7%92%D7%94-STAEDTLER-%D7%9E%D7%90%D7%A8%D7%99%D7%9A.webp" }, { word: "Whiteboard", url: "https://d3m9l0v76dty0.cloudfront.net/system/photos/6300072/large/beae27c0f2f7efd16d9d373de1173d5b.jpg" }, { word: "Exercise book", url: "https://www.holisticfit.co.il/wp-content/uploads/2019/11/book2.jpg" }, { word: "Gluestick", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTciAlKfgYbf97aiA4tmFwyT7Mlxdk2ADHqDw&s" }, { word: "White Glue", url: "https://www.kravitz.co.il/cdn/shop/files/0609040.jpg?v=1717334825" }, { word: "Colouring pencils", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRsGo4kEhv_yB5f0dFLeVPNeTO51K3UO9-v8g&s" }, { word: "Pencil case", emoji: "👝" }, { word: "Teacher", emoji: "👩‍🏫" }, { word: "School bag", emoji: "🎒" }] },
             4: { title: "Feelings", words: [{ word: "Proud", url: "https://storage.hidabroot.org/articles_new/371700_tumb_730X500.webp" }, { word: "Confident", url: "https://www.shaharcohen.co.il/wp-content/uploads/2018/09/%D7%91%D7%99%D7%98%D7%97%D7%95%D7%9F-%D7%A2%D7%A6%D7%9E%D7%99-2.jpg" }, { word: "Stuck", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS0QyZU8mjqWU9B1j6PHIlfa2NQFNEd3m59oA&s" }, { word: "Embarrassed", url: "https://img.haarets.co.il/bs/0000017f-e0b4-d568-ad7f-f3ffd21f0000/44/ed/a1f65e5743e7e23b5dee992725fc/214241096.jpg?precrop=2200,1282,x0,y0&width=420&height=244&cmsprod" }, { word: "Happy", emoji: "😊" }, { word: "Sad", emoji: "😢" }, { word: "Angry", emoji: "😠" }, { word: "Together", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT6JdD8YJ5_gx62VabkzLg67mtKxKgVghWzGg&s" }, { word: "Alone", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRSdvXZEA6OxXd0Lka76fuTVCSpmNQD8rT24w&s" }, { word: "Sleepy", emoji: "😴" }] },
@@ -503,13 +516,14 @@
         const CORRECT_FEEDBACK_TEMPLATES = ["Good job, you found the {target}!", "Well done, that's the {target}!", "Great! That is the {target}!", "You got it! It's a {target}!", "Perfect! You found the {target}!"];
         const QUESTION_PROMPT_TEMPLATES = ["Can you find the {target}?", "Can you spot the {target}?", "Where is the {target}?", "Look for the {target}!", "I'm looking for the {target}. Do you see it?"];
         const DIGIT_MAP = { "1": "one", "2": "two", "3": "three", "4": "four", "5": "five", "6": "six", "7": "seven", "8": "eight", "9": "nine", "10": "ten" };
+        const COLORS = ["Red", "Blue", "Green", "Yellow", "Orange", "Purple", "Pink", "White"];
 
         /** * ASSET SERVICE */
         const AssetService = {
             precache(questions) {
                 const urls = questions.flatMap(q => {
-                    const list = [q.target.url];
-                    if (q.options) q.options.forEach(o => list.push(o.url));
+                    const list = [q?.target?.url];
+                    if (q?.options) q.options.forEach(o => list.push(o.url));
                     return list.filter(Boolean);
                 });
                 const unique = [...new Set(urls)];
@@ -529,6 +543,7 @@
                 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
                 if (SR) { this.recognition = new SR(); this.recognition.lang = 'en-US'; }
             },
+            stop() { window.speechSynthesis.cancel(); },
             speak(text, voice, rate = 0.8) {
                 window.speechSynthesis.cancel();
                 const u = new SpeechSynthesisUtterance(text);
@@ -545,7 +560,6 @@
                     this.recognition.start();
                 });
             },
-            // Implement Levenshtein Distance for "forgiving" matching
             levenshtein(a, b) {
                 const tmp = [];
                 for (let i = 0; i <= a.length; i++) tmp[i] = [i];
@@ -561,29 +575,20 @@
                 const norm = s => s.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
                 const mapNums = s => { let o = s; Object.entries(DIGIT_MAP).forEach(([d, w]) => o = o.replace(new RegExp(`\\b${w}\\b`, 'g'), d)); return o; };
                 const c1 = norm(s1); const c2 = norm(s2);
-                
-                // Exact or number-mapped matches
+                if ((c2 === "small" || c2 === "little") && (c1.includes("little") || c1.includes("small"))) return true;
                 if (c1 === c2 || mapNums(c1) === mapNums(c2)) return true;
-                
-                // Check word overlaps
+                if (c1.includes(c2)) return true;
                 const w1 = c1.split(" "); const w2 = c2.split(" ");
                 let m = 0;
                 w2.forEach(v => {
-                    // Check if current user word matches or is very close to target word
                     if (w1.some(v1 => {
                         if (v1 === v) return true;
-                        if (v.length > 3) {
-                            const dist = this.levenshtein(v, v1);
-                            return dist <= 1; // Allow 1 character difference for shorter words
-                        }
+                        if (v.length > 3) return this.levenshtein(v, v1) <= 1;
                         return false;
                     })) m++;
                 });
-
-                // Overall sentence similarity check via full string Levenshtein
                 const fullDist = this.levenshtein(c1, c2);
-                const threshold = Math.floor(c2.length * 0.3); // Allow 30% edit difference
-                
+                const threshold = Math.floor(c2.length * 0.35);
                 return (m / w2.length) >= 0.7 || fullDist <= threshold;
             }
         };
@@ -601,13 +606,16 @@
                 if (subtitle) p.textContent = subtitle; else p.remove();
                 return clone;
             },
-            createOption(data, isLocked = false) {
+            createOption(data, config = {}) {
                 const tpl = document.getElementById('tpl-option');
                 const clone = tpl.content.cloneNode(true);
                 const cont = clone.querySelector('.option-img-container');
-                cont.dataset.word = data.word;
-                if (isLocked) cont.dataset.locked = "true";
+                cont.dataset.word = config.labelOverride || data.word;
+                if (config.isLocked) cont.dataset.locked = "true";
+                if (config.highlight) cont.classList.add(`highlight-${config.highlight}`);
+                if (config.bgColor) cont.style.backgroundColor = config.bgColor;
                 const wrap = cont.querySelector('.content-wrapper');
+                if (config.scale) wrap.style.transform = `scale(${config.scale})`;
                 if (data.url) {
                     const img = document.createElement('img');
                     img.src = data.url;
@@ -615,10 +623,13 @@
                     wrap.appendChild(img);
                 } else {
                     const emo = document.createElement('div');
-                    emo.className = 'emoji-box'; emo.textContent = data.emoji || data.word;
+                    emo.className = 'emoji-box'; 
+                    emo.textContent = data.emoji || data.word;
                     wrap.appendChild(emo);
                 }
-                cont.querySelector('.img-label').textContent = data.social ? data.response : data.word;
+                const label = cont.querySelector('.img-label');
+                if (config.showLabel === false) label.remove();
+                else label.textContent = config.labelOverride || (data.social ? data.response : data.word);
                 return clone;
             },
             createDebugItem(item) {
@@ -643,17 +654,24 @@
         };
 
         /** * STATE */
-        const state = { view: 'welcome', level: null, sublevel: null, questionIndex: 0, questions: [], stars: Array(15).fill(false), voice: null, repeatTimer: null, isProcessingSpeech: false };
+        const state = { 
+            view: 'welcome', level: null, sublevel: null, 
+            questionIndex: 0, questions: [], stars: Array(15).fill(false), 
+            voice: null, repeatTimer: null, isProcessingSpeech: false,
+            isAnswering: false // LOCKING MECHANISM FOR RACE CONDITIONS
+        };
 
         function updateState(updates) { Object.assign(state, updates); render(); }
 
         /** * RENDERER */
         function render() {
-            document.body.className = state.level ? `theme-lvl-${state.level}` : '';
+            document.body.className = (state.level && DATA[state.level]) ? `theme-lvl-${state.level}` : '';
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             const active = document.getElementById(`${state.view}-screen`);
             if (active) active.classList.add('active');
-            document.getElementById('app-header').style.display = (['game', 'sublevel', 'debug'].includes(state.view)) ? 'flex' : 'none';
+            
+            const header = document.getElementById('app-header');
+            header.style.display = (['game', 'sublevel', 'debug'].includes(state.view)) ? 'flex' : 'none';
 
             const starContainer = document.getElementById('stars-bar');
             starContainer.innerHTML = '';
@@ -679,9 +697,11 @@
 
         function renderSublevelMenu() {
             const lvl = state.level;
+            if (!lvl || !DATA[lvl]) return;
             document.getElementById('level-title').textContent = `Level ${lvl}: ${DATA[lvl].title}`;
             const menu = document.getElementById('sublevel-menu'); menu.innerHTML = '';
-            for (let i = 1; i <= 3; i++) {
+            const count = lvl === 1 ? 4 : 3; 
+            for (let i = 1; i <= count; i++) {
                 menu.appendChild(UIFactory.createCard({ type: 'sublevel', id: i, title: `Lesson ${lvl}.${i}`, classes: ['sublevel-card'] }));
             }
         }
@@ -698,60 +718,152 @@
             });
         }
 
-        /** * GAME LOGIC */
+        /** * GAME LOGIC & EXERCISE GENERATION */
         async function startLesson(lvl, sub) {
-            document.getElementById('status-message').textContent = 'Loading lesson...';
+            if (!lvl || !DATA[lvl]) return;
+            document.getElementById('status-message').textContent = 'Loading adventure...';
             const pool = []; for (let i = 1; i <= lvl; i++) pool.push(...DATA[i].words);
-            const q = []; for (let i = 0; i < 15; i++) {
-                const target = pool[Math.floor(Math.random() * pool.length)];
-                const types = ['audioMatch', 'repeat', 'social', 'counting', 'sayWord'];
-                let type = types[Math.floor(Math.random() * types.length)];
-                if (target.social) type = 'social';
-                const options = [target]; const others = pool.filter(w => w.word !== target.word);
-                while (options.length < 6 && others.length > 0) options.push(others.splice(Math.floor(Math.random()*others.length), 1)[0]);
-                q.push({ type, target, options: options.sort(() => Math.random() - 0.5) });
+            if (pool.length === 0) return;
+            const q = []; 
+            for (let i = 0; i < 15; i++) {
+                if (lvl === 1 && sub === 3) {
+                    const r = Math.random();
+                    if (r > 0.6) q.push(createSizeExercise(pool));
+                    else if (r > 0.3) q.push(createAdjectiveRepeatExercise(pool, "size"));
+                    else q.push(createStandardExercise(pool));
+                } else if (lvl === 1 && sub === 4) {
+                    const r = Math.random();
+                    if (r > 0.6) q.push(createAttributeChoiceExercise(pool));
+                    else if (r > 0.3) q.push(createAdjectiveRepeatExercise(pool, "mixed"));
+                    else q.push(createStandardExercise(pool));
+                } else { q.push(createStandardExercise(pool)); }
             }
-            // Pre-cache images to avoid pop-in
             await AssetService.precache(q);
-            updateState({ view: 'game', level: lvl, sublevel: sub, questionIndex: 0, questions: q, stars: Array(15).fill(false) });
+            updateState({ view: 'game', level: lvl, sublevel: sub, questionIndex: 0, questions: q, stars: Array(15).fill(false), isAnswering: false });
+        }
+
+        function createStandardExercise(pool) {
+            const target = pool[Math.floor(Math.random() * pool.length)];
+            const types = ['audioMatch', 'repeat', 'social', 'counting', 'sayWord'];
+            let type = types[Math.floor(Math.random() * types.length)];
+            if (target.social) type = 'social';
+            const options = [target]; const others = pool.filter(w => w.word !== target.word);
+            while (options.length < 6 && others.length > 0) options.push(others.splice(Math.floor(Math.random()*others.length), 1)[0]);
+            return { type, target, options: options.sort(() => Math.random() - 0.5) };
+        }
+
+        function createAdjectiveRepeatExercise(pool, mode) {
+            const targetWord = pool[Math.floor(Math.random() * pool.length)];
+            let attr;
+            if (mode === "size") {
+                attr = Math.random() > 0.5 ? "big" : "small";
+            } else {
+                const r = Math.random();
+                if (r > 0.6) attr = Math.random() > 0.5 ? "big" : "small";
+                else attr = targetWord.color || COLORS[Math.floor(Math.random()*COLORS.length)];
+            }
+            const label = `${attr} ${targetWord.word}`;
+            return { 
+                type: 'adjectiveRepeat', 
+                target: targetWord, 
+                phrase: label, 
+                attr, 
+                scale: attr === "big" ? 1.4 : (attr === "small" ? 0.7 : 1.0) 
+            };
+        }
+
+        function createSizeExercise(pool) {
+            const targetWord = pool[Math.floor(Math.random() * pool.length)];
+            const size = Math.random() > 0.5 ? "big" : "small";
+            const options = [];
+            const otherPool = pool.filter(w => w.word !== targetWord.word);
+            const others = otherPool.sort(() => Math.random() - 0.5).slice(0, 3);
+            const distinctIcons = [targetWord, ...others];
+            distinctIcons.forEach(item => {
+                options.push({ ...item, scale: 1.4, size: "big" });
+                options.push({ ...item, scale: 0.7, size: "small" });
+            });
+            const target = options.find(o => o.word === targetWord.word && (o.size === size));
+            return { type: 'sizeMatch', target, size, word: targetWord.word, options: options.sort(() => Math.random() - 0.5) };
+        }
+
+        function createAttributeChoiceExercise(pool) {
+            const targetWord = pool[Math.floor(Math.random() * pool.length)];
+            const isSize = Math.random() > 0.5;
+            const highlightType = ["frame", "blink", "arrow"][Math.floor(Math.random() * 3)];
+            const options = [];
+            let targetAttr, otherAttr;
+            if (isSize) {
+                targetAttr = Math.random() > 0.5 ? "big" : "small";
+                otherAttr = targetAttr === "big" ? "small" : "big";
+                options.push({ ...targetWord, size: "big", scale: 1.4, isTarget: targetAttr === "big" });
+                options.push({ ...targetWord, size: "small", scale: 0.7, isTarget: targetAttr === "small" });
+            } else {
+                const cPool = COLORS.filter(c => c !== targetWord.color);
+                targetAttr = targetWord.color || "Red";
+                otherAttr = cPool[Math.floor(Math.random() * cPool.length)];
+                options.push({ ...targetWord, colorName: targetAttr, bgColor: targetAttr, isTarget: true });
+                options.push({ ...targetWord, colorName: otherAttr, bgColor: otherAttr, isTarget: false });
+            }
+            return { type: 'attributeChoice', target: targetWord, targetAttr, otherAttr, highlightType, options: options.sort(() => Math.random() - 0.5) };
         }
 
         function renderQuestion() {
             const q = state.questions[state.questionIndex];
-            if (!q) return;
+            if (!q || !q.target) return;
+            state.isAnswering = false; // Reset lock for new question
+
             const root = document.getElementById('interaction-root'); root.innerHTML = '';
             const info = document.getElementById('exercise-info'); info.style.display = 'none';
-            document.getElementById('status-message').textContent = '';
+            const status = document.getElementById('status-message'); status.textContent = '';
+            const qText = document.getElementById('question-text');
             if (SpeechService.voices.length > 0) state.voice = SpeechService.voices[Math.floor(Math.random()*SpeechService.voices.length)];
-
             let isSpeech = false;
-            if (['audioMatch', 'social'].includes(q.type)) {
-                const prompt = QUESTION_PROMPT_TEMPLATES[Math.floor(Math.random()*QUESTION_PROMPT_TEMPLATES.length)].replace(/{target}/g, q.target.word);
-                document.getElementById('question-text').textContent = "Look and listen!";
+            let prompt = "";
+
+            if (q.type === 'sizeMatch') {
+                prompt = [`Where is the ${q.size} ${q.word}?`, `Can you spot the ${q.size} ${q.word}?`][Math.floor(Math.random()*2)];
+                qText.textContent = "Look and listen!";
+                info.textContent = `${q.size} ${q.word}`; info.style.display = 'block';
+                q.options.forEach(opt => {
+                    const el = UIFactory.createOption(opt, { scale: opt.scale, labelOverride: opt.word });
+                    el.querySelector('.option-img-container').dataset.size = opt.size;
+                    root.appendChild(el);
+                });
+            } else if (q.type === 'attributeChoice') {
+                isSpeech = true;
+                prompt = `Is this the ${q.targetAttr} ${q.target.word} or the ${q.otherAttr} ${q.target.word}?`;
+                qText.textContent = "Listen and Answer!";
                 info.textContent = q.target.word; info.style.display = 'block';
-                SpeechService.speak(prompt, state.voice); startRepeatTimer(prompt);
+                q.options.forEach(opt => {
+                    root.appendChild(UIFactory.createOption(opt, { scale: opt.scale, bgColor: opt.bgColor, highlight: opt.isTarget ? q.highlightType : null, showLabel: false, isLocked: true }));
+                });
+                const mic = document.createElement('button'); mic.className = 'mic-btn'; mic.innerHTML = '🎤'; mic.dataset.target = q.targetAttr;
+                root.appendChild(mic);
+            } else if (q.type === 'adjectiveRepeat') {
+                isSpeech = true;
+                prompt = `Repeat after me: ${q.phrase}`;
+                qText.textContent = "Say the phrase!";
+                info.textContent = q.phrase; info.style.display = 'block';
+                root.appendChild(UIFactory.createOption(q.target, { scale: q.scale, showLabel: false, isLocked: true }));
+                const mic = document.createElement('button'); mic.className = 'mic-btn'; mic.innerHTML = '🎤'; mic.dataset.target = q.phrase;
+                root.appendChild(mic);
+            } else {
+                const standardPrompt = QUESTION_PROMPT_TEMPLATES[Math.floor(Math.random()*QUESTION_PROMPT_TEMPLATES.length)].replace(/{target}/g, q.target.word);
+                prompt = standardPrompt;
+                qText.textContent = "Look and listen!";
+                info.textContent = q.target.word; info.style.display = 'block';
                 q.options.forEach(opt => root.appendChild(UIFactory.createOption(opt)));
-            } else if (['repeat', 'sayWord'].includes(q.type)) {
-                isSpeech = true;
-                document.getElementById('question-text').textContent = q.type === 'repeat' ? 'Can you say...' : 'Repeat after me:';
-                info.textContent = q.target.word; info.style.display = 'block';
-                root.appendChild(UIFactory.createOption(q.target, true));
-                const mic = document.createElement('button'); mic.className = 'mic-btn'; mic.innerHTML = '🎤'; mic.dataset.target = q.target.word;
-                root.appendChild(mic);
-                const prompt = q.type === 'repeat' ? `Can you say ${q.target.word}?` : `Repeat after me: ${q.target.word}`;
-                SpeechService.speak(prompt, state.voice); startRepeatTimer(prompt);
-            } else if (q.type === 'counting') {
-                isSpeech = true;
-                const n = state.level === 1 ? 3 : (state.level === 2 ? 5 : 10);
-                document.getElementById('question-text').textContent = 'Count out loud!';
-                const s = Array.from({length:n}, (_,i)=>i+1).join(" ");
-                info.textContent = s; info.style.display = 'block';
-                const mic = document.createElement('button'); mic.className = 'mic-btn'; mic.innerHTML = '🎤'; mic.dataset.target = s;
-                root.appendChild(mic);
-                const prompt = `Please count from 1 to ${n}`;
-                SpeechService.speak(prompt, state.voice); startRepeatTimer(prompt);
+                if (['repeat', 'sayWord', 'counting'].includes(q.type)) isSpeech = true;
+                if (isSpeech) {
+                   const micTarget = q.type === 'counting' ? info.textContent : q.target.word;
+                   const mic = document.createElement('button'); mic.className = 'mic-btn'; mic.innerHTML = '🎤'; mic.dataset.target = micTarget;
+                   root.appendChild(mic);
+                }
             }
 
+            SpeechService.speak(prompt, state.voice); 
+            startRepeatTimer(prompt);
             if (isSpeech) {
                 const wrap = document.createElement('div'); wrap.style.width = '100%'; wrap.style.display = 'flex'; wrap.style.justifyContent = 'center';
                 const skip = document.createElement('button'); skip.id = 'skip-challenge-btn'; skip.className = 'skip-btn'; skip.textContent = "Skip ➡";
@@ -760,7 +872,7 @@
         }
 
         async function handleMic(btn, target) {
-            if (state.isProcessingSpeech) return;
+            if (state.isProcessingSpeech || state.isAnswering) return;
             stopRepeatTimer(); state.isProcessingSpeech = true; btn.classList.add('listening');
             document.getElementById('status-message').textContent = "Listening...";
             try {
@@ -775,60 +887,90 @@
             } finally { btn.classList.remove('listening'); state.isProcessingSpeech = false; }
         }
 
-        function startRepeatTimer(txt) { stopRepeatTimer(); state.repeatTimer = setInterval(() => SpeechService.speak(txt, state.voice), 10000); }
-        function stopRepeatTimer() { if (state.repeatTimer) clearInterval(state.repeatTimer); }
-
         function checkAnswer(correct, clicked = "") {
+            if (state.isAnswering) return; // RACE CONDITION FIX: EXIT IF ALREADY ANSWERED
             const q = state.questions[state.questionIndex];
             if (correct) {
+                state.isAnswering = true; // LOCK FURTHER INPUTS
                 stopRepeatTimer();
-                const feedback = CORRECT_FEEDBACK_TEMPLATES[Math.floor(Math.random()*CORRECT_FEEDBACK_TEMPLATES.length)].replace(/{target}/g, q.target.word);
+                const targetText = q.type === 'sizeMatch' ? `${q.size} ${q.word}` : (q.type === 'adjectiveRepeat' ? q.phrase : q.target.word);
+                const feedback = CORRECT_FEEDBACK_TEMPLATES[Math.floor(Math.random()*CORRECT_FEEDBACK_TEMPLATES.length)].replace(/{target}/g, targetText);
                 document.getElementById('feedback-message').textContent = feedback;
                 document.getElementById('feedback-overlay').style.display = 'flex';
                 SpeechService.speak(feedback, state.voice, 1.0);
-                const newStars = [...state.stars]; newStars[state.questionIndex] = true;
+                
+                const newStars = [...state.stars]; 
+                newStars[state.questionIndex] = true;
+                
                 setTimeout(() => { 
                     document.getElementById('feedback-overlay').style.display = 'none'; 
                     const idx = state.questionIndex + 1;
-                    if (idx >= 15) updateState({ view: 'success', stars: newStars }); else updateState({ questionIndex: idx, stars: newStars });
+                    if (idx >= 15) updateState({ view: 'success', stars: newStars }); 
+                    else updateState({ questionIndex: idx, stars: newStars, isAnswering: false });
                 }, 2000);
             } else {
-                const feedback = WRONG_FEEDBACK_TEMPLATES[Math.floor(Math.random()*WRONG_FEEDBACK_TEMPLATES.length)].replace(/{clicked}/g, clicked).replace(/{target}/g, q.target.word);
+                const targetText = q.type === 'sizeMatch' ? `${q.size} ${q.word}` : q.target.word;
+                const feedback = WRONG_FEEDBACK_TEMPLATES[Math.floor(Math.random()*WRONG_FEEDBACK_TEMPLATES.length)].replace(/{clicked}/g, clicked).replace(/{target}/g, targetText);
                 SpeechService.speak(feedback, state.voice); document.getElementById('status-message').textContent = feedback;
             }
         }
 
+        function startRepeatTimer(txt) { stopRepeatTimer(); state.repeatTimer = setInterval(() => SpeechService.speak(txt, state.voice), 10000); }
+        function stopRepeatTimer() { if (state.repeatTimer) clearInterval(state.repeatTimer); }
+
         function setupEvents() {
             document.getElementById('game-container').addEventListener('click', e => {
-                const lvl = e.target.closest('.level-card'); if (lvl) return updateState({ view: 'sublevel', level: parseInt(lvl.dataset.lvl) });
-                const sub = e.target.closest('.sublevel-card'); if (sub) return startLesson(state.level, parseInt(sub.dataset.sub));
-                const opt = e.target.closest('.option-img-container'); if (opt) {
-                    if (opt.dataset.locked) SpeechService.speak(opt.dataset.word, state.voice);
-                    else checkAnswer(opt.dataset.word === state.questions[state.questionIndex].target.word, opt.dataset.word);
+                if (state.isAnswering) return; // GLOBAL UI LOCKING DURING FEEDBACK
+
+                if (e.target.id === 'success-home-btn') return updateState({ view: 'welcome', level: null });
+                if (e.target.id === 'skip-challenge-btn') {
+                    if (!state.level || !DATA[state.level]) return;
+                    const pool = []; for (let i = 1; i <= state.level; i++) pool.push(...DATA[i].words);
+                    const sub = state.sublevel;
+                    if (state.level === 1 && sub === 3) state.questions[state.questionIndex] = createSizeExercise(pool);
+                    else if (state.level === 1 && sub === 4) state.questions[state.questionIndex] = createAttributeChoiceExercise(pool);
+                    else state.questions[state.questionIndex] = createStandardExercise(pool);
+                    return renderQuestion();
+                }
+                if (e.target.id === 'open-parental-btn') return updateState({ view: 'debug' });
+
+                const lvlCard = e.target.closest('.level-card'); 
+                if (lvlCard && lvlCard.dataset.lvl) return updateState({ view: 'sublevel', level: parseInt(lvlCard.dataset.lvl) });
+
+                const subCard = e.target.closest('.sublevel-card'); 
+                if (subCard && subCard.dataset.sub) return startLesson(state.level, parseInt(subCard.dataset.sub));
+                
+                const opt = e.target.closest('.option-img-container'); 
+                if (opt) {
+                    const q = state.questions[state.questionIndex];
+                    if (opt.dataset.locked) {
+                        SpeechService.speak(opt.dataset.word, state.voice);
+                    } else if (q.type === 'sizeMatch') {
+                        const isCorrectSize = opt.dataset.size === q.size || (q.size === "small" && opt.dataset.size === "little") || (q.size === "little" && opt.dataset.size === "small");
+                        checkAnswer(opt.dataset.word === q.word && isCorrectSize, `${opt.dataset.size} ${opt.dataset.word}`);
+                    } else {
+                        checkAnswer(opt.dataset.word === q.target.word, opt.dataset.word);
+                    }
                     return;
                 }
                 const mic = e.target.closest('.mic-btn'); if (mic) return handleMic(mic, mic.dataset.target);
-                if (e.target.id === 'skip-challenge-btn') {
-                    const pool = []; for (let i = 1; i <= state.level; i++) pool.push(...DATA[i].words);
-                    const target = pool[Math.floor(Math.random()*pool.length)];
-                    const types = ['audioMatch', 'repeat', 'social', 'counting', 'sayWord'];
-                    let type = types[Math.floor(Math.random() * types.length)];
-                    if (target.social) type = 'social';
-                    const options = [target]; const others = pool.filter(w => w.word !== target.word);
-                    while (options.length < 6 && others.length > 0) options.push(others.splice(Math.floor(Math.random()*others.length), 1)[0]);
-                    state.questions[state.questionIndex] = { type, target, options: options.sort(() => Math.random() - 0.5) };
-                    return renderQuestion();
-                }
-                if (e.target.id === 'success-home-btn') return updateState({ view: 'welcome', level: null });
             });
-            document.getElementById('debug-content-root').addEventListener('click', e => {
-                const w = e.target.closest('.debug-word-card'); if (w) SpeechService.speak(w.dataset.word);
+
+            document.getElementById('header-stop-btn').addEventListener('click', () => {
+                stopRepeatTimer();
+                SpeechService.stop();
             });
+
             document.getElementById('header-back-btn').addEventListener('click', () => {
+                SpeechService.stop();
+                stopRepeatTimer();
                 if (state.view === 'sublevel' || state.view === 'debug') updateState({ view: 'welcome', level: null });
                 else if (state.view === 'game') updateState({ view: 'sublevel' });
             });
-            document.getElementById('open-parental-btn').addEventListener('click', () => updateState({ view: 'debug' }));
+
+            document.getElementById('debug-content-root').addEventListener('click', e => {
+                const w = e.target.closest('.debug-word-card'); if (w) SpeechService.speak(w.dataset.word);
+            });
         }
 
         window.onload = () => { SpeechService.init(); setupEvents(); render(); };
