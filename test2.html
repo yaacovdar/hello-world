@@ -3,36 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fixed Tiny AI</title>
+    <title>Qwen Tiny - Fixed Scroll</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom scrollbar for a cleaner look */
+        #display::-webkit-scrollbar {
+            width: 4px;
+        }
+        #display::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        #display::-webkit-scrollbar-thumb {
+            background: #27272a;
+            border-radius: 10px;
+        }
+        #display::-webkit-scrollbar-thumb:hover {
+            background: #3f3f46;
+        }
+    </style>
 </head>
 <body class="bg-zinc-950 text-zinc-200 min-h-screen flex flex-col items-center justify-center p-4 font-sans">
 
-    <div class="max-w-md w-full bg-zinc-900 border border-zinc-800 rounded-3xl p-8 shadow-2xl">
+    <div class="max-w-md w-full bg-zinc-900 border border-zinc-800 rounded-3xl p-6 md:p-8 shadow-2xl">
         <div class="text-center mb-6">
             <h1 class="text-2xl font-bold text-cyan-400">Qwen Tiny</h1>
-            <p id="status" class="text-zinc-500 text-xs mt-2 uppercase tracking-widest">Initializing...</p>
+            <p id="status" class="text-zinc-500 text-[10px] mt-2 uppercase tracking-[0.2em]">Initializing Local Model...</p>
         </div>
 
-        <div id="display" class="h-48 overflow-y-auto mb-6 text-lg border-l-2 border-cyan-500/30 pl-4 flex flex-col justify-end">
-            <p id="ai-text" class="text-zinc-100">Ready for your voice...</p>
+        <!-- Scrollable Display Container -->
+        <div id="display" class="h-64 overflow-y-auto mb-6 border-l-2 border-cyan-500/20 pl-4 pr-2 transition-all">
+            <div id="ai-text-container" class="space-y-4 py-2">
+                <p id="ai-text" class="text-zinc-100 leading-relaxed whitespace-pre-wrap text-lg">
+                    Ready for your voice...
+                </p>
+            </div>
         </div>
 
         <div class="space-y-4">
-            <p id="user-transcript" class="text-center text-cyan-300 italic min-h-[1.5rem] text-sm"></p>
+            <div class="min-h-[2.5rem] flex items-center justify-center">
+                <p id="user-transcript" class="text-center text-cyan-300 italic text-sm opacity-80"></p>
+            </div>
             
-            <button id="mic-btn" disabled class="w-full bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-800 py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-3">
+            <button id="mic-btn" disabled class="w-full bg-cyan-600 hover:bg-cyan-500 active:scale-[0.98] disabled:bg-zinc-800 disabled:text-zinc-600 py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-3 touch-none select-none">
                 <span id="btn-label">Loading Model...</span>
             </button>
+            <p class="text-[10px] text-center text-zinc-600 uppercase tracking-widest">Hold to speak, release to send</p>
         </div>
     </div>
 
-    <div id="log" class="mt-4 text-[10px] text-zinc-600 font-mono max-w-md w-full text-center"></div>
+    <div id="log" class="mt-6 text-[10px] text-zinc-700 font-mono max-w-md w-full text-center break-all"></div>
 
     <script type="module">
-        import { pipeline } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0-alpha.19';
+        import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0-alpha.19';
+
+        /**
+         * SILENCE ONNX RUNTIME WARNINGS
+         * These specific warnings (VerifyEachNodeIsAssignedToAnEp) occur when ORT
+         * correctly delegates non-GPU tasks to the CPU. They are not errors.
+         */
+        const hideWarnings = (logger) => {
+            const original = console[logger];
+            console[logger] = (...args) => {
+                const msg = args.join(' ');
+                if (msg.includes('VerifyEachNodeIsAssignedToAnEp') || 
+                    msg.includes('Some nodes were not assigned') ||
+                    msg.includes('Rerunning with verbose output')) {
+                    return;
+                }
+                original.apply(console, args);
+            };
+        };
+        hideWarnings('warn');
+        hideWarnings('error');
 
         const status = document.getElementById('status');
+        const display = document.getElementById('display');
         const aiText = document.getElementById('ai-text');
         const transcript = document.getElementById('user-transcript');
         const micBtn = document.getElementById('mic-btn');
@@ -41,25 +86,42 @@
 
         let generator;
 
+        function scrollToBottom() {
+            display.scrollTo({
+                top: display.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+
         async function init() {
             try {
-                // Qwen2.5-0.5B is ~350MB in 4-bit, but much more stable than SmolLM right now
+                // Environment Tweaks
+                env.allowLocalModels = false;
+                // Attempt to disable internal ORT logging to be extra safe
+                if (env.backends && env.backends.onnx) {
+                    env.backends.onnx.logLevel = 'error';
+                }
+                
                 generator = await pipeline('text-generation', 'onnx-community/Qwen2.5-0.5B-Instruct', {
                     device: 'webgpu', 
                     dtype: 'q4',
                     progress_callback: (p) => {
                         if(p.status === 'progress') {
-                            log.innerText = `Loading: ${p.file} (${Math.round(p.loaded / 1024 / 1024)}MB)`;
+                            log.innerText = `Downloading: ${p.file} (${Math.round(p.loaded / 1024 / 1024)}MB / ${Math.round(p.total / 1024 / 1024)}MB)`;
+                        } else if (p.status === 'ready') {
+                            log.innerText = "Model assets ready.";
                         }
                     }
                 });
 
-                status.innerText = "Local Model Ready";
+                status.innerText = "Local Intelligence Ready";
                 micBtn.disabled = false;
                 btnLabel.innerText = "Hold to Speak";
+                log.innerText = "Model loaded successfully via WebGPU. Warnings suppressed.";
             } catch (e) {
                 console.error(e);
-                status.innerText = "Error: " + e.message;
+                status.innerText = "Initialization Failed";
+                log.innerText = "Error: " + e.message + ". WebGPU might be unsupported.";
             }
         }
 
@@ -67,17 +129,30 @@
         recognition.lang = 'en-US';
         recognition.interimResults = false;
 
-        micBtn.onmousedown = () => {
-            recognition.start();
-            btnLabel.innerText = "Listening...";
-            micBtn.classList.replace('bg-cyan-600', 'bg-red-600');
+        const startListening = () => {
+            if (micBtn.disabled) return;
+            try {
+                recognition.start();
+                btnLabel.innerText = "Listening...";
+                micBtn.classList.replace('bg-cyan-600', 'bg-red-600');
+                transcript.innerText = "Go ahead, I'm listening...";
+            } catch (e) {
+                // Ignore silent errors for recognition state
+            }
         };
 
-        micBtn.onmouseup = () => {
+        const stopListening = () => {
+            if (micBtn.disabled) return;
             recognition.stop();
-            btnLabel.innerText = "Thinking...";
+            btnLabel.innerText = "Processing...";
             micBtn.classList.replace('bg-red-600', 'bg-cyan-600');
         };
+
+        micBtn.onmousedown = startListening;
+        micBtn.onmouseup = stopListening;
+        micBtn.onmouseleave = stopListening;
+        micBtn.ontouchstart = (e) => { e.preventDefault(); startListening(); };
+        micBtn.ontouchend = (e) => { e.preventDefault(); stopListening(); };
 
         recognition.onresult = async (event) => {
             const query = event.results[0][0].transcript;
@@ -86,25 +161,27 @@
         };
 
         async function generateResponse(text) {
-            aiText.innerText = "Generating...";
+            aiText.innerText = "Thinking...";
+            btnLabel.innerText = "Generating...";
             
             const messages = [
-                { role: "system", content: "You are a helpful, very brief assistant." },
+                { role: "system", content: "You are a helpful, very brief assistant. Provide concise answers." },
                 { role: "user", content: text }
             ];
 
             try {
                 const output = await generator(messages, { 
-                    max_new_tokens: 64,
-                    temperature: 0.7,
-                    // Removing redundant parameters to avoid the Tensor error
+                    max_new_tokens: 128,
+                    temperature: 0.6,
                 });
 
-                aiText.innerText = output[0].generated_text.at(-1).content;
+                const response = output[0].generated_text.at(-1).content;
+                aiText.innerText = response;
                 btnLabel.innerText = "Hold to Speak";
+                setTimeout(scrollToBottom, 50);
             } catch (err) {
-                aiText.innerText = "Generation Error. Check console.";
-                console.error(err);
+                aiText.innerText = "I encountered an error during generation.";
+                btnLabel.innerText = "Error - Try Again";
             }
         }
 
