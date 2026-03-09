@@ -160,6 +160,8 @@
             transition: transform 0.3s ease, border-color var(--transition-speed) ease;
             border-bottom: 6px solid #ccc;
             font-family: inherit;
+            /* Disable double-tap zoom for better tap response */
+            touch-action: manipulation;
         }
 
         .card:active { transform: translateY(2px); border-bottom-width: 2px; }
@@ -254,6 +256,8 @@
             cursor: pointer;
             transition: transform 0.3s ease, border-color var(--transition-speed) ease;
             background: #fff;
+            /* Disable double-tap zoom for better tap response */
+            touch-action: manipulation;
         }
 
         .option-img-container:hover { border-color: var(--primary); }
