@@ -58,8 +58,6 @@
 
         /**
          * SILENCE ONNX RUNTIME WARNINGS
-         * These specific warnings (VerifyEachNodeIsAssignedToAnEp) occur when ORT
-         * correctly delegates non-GPU tasks to the CPU. They are not errors.
          */
         const hideWarnings = (logger) => {
             const original = console[logger];
@@ -86,6 +84,16 @@
 
         let generator;
 
+        // Text to Speech Helper
+        const speak = (text) => {
+            // Cancel any current speech before starting new one
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            window.speechSynthesis.speak(utterance);
+        };
+
         function scrollToBottom() {
             display.scrollTo({
                 top: display.scrollHeight,
@@ -95,9 +103,7 @@
 
         async function init() {
             try {
-                // Environment Tweaks
                 env.allowLocalModels = false;
-                // Attempt to disable internal ORT logging to be extra safe
                 if (env.backends && env.backends.onnx) {
                     env.backends.onnx.logLevel = 'error';
                 }
@@ -117,7 +123,7 @@
                 status.innerText = "Local Intelligence Ready";
                 micBtn.disabled = false;
                 btnLabel.innerText = "Hold to Speak";
-                log.innerText = "Model loaded successfully via WebGPU. Warnings suppressed.";
+                log.innerText = "Model loaded successfully via WebGPU. Audio enabled.";
             } catch (e) {
                 console.error(e);
                 status.innerText = "Initialization Failed";
@@ -132,12 +138,14 @@
         const startListening = () => {
             if (micBtn.disabled) return;
             try {
+                // Stop AI from talking when user starts speaking
+                window.speechSynthesis.cancel();
                 recognition.start();
                 btnLabel.innerText = "Listening...";
                 micBtn.classList.replace('bg-cyan-600', 'bg-red-600');
                 transcript.innerText = "Go ahead, I'm listening...";
             } catch (e) {
-                // Ignore silent errors for recognition state
+                // Ignore state errors
             }
         };
 
@@ -178,6 +186,10 @@
                 const response = output[0].generated_text.at(-1).content;
                 aiText.innerText = response;
                 btnLabel.innerText = "Hold to Speak";
+                
+                // Speak the response
+                speak(response);
+                
                 setTimeout(scrollToBottom, 50);
             } catch (err) {
                 aiText.innerText = "I encountered an error during generation.";
