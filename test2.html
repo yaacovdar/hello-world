@@ -3,33 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smol Voice AI</title>
+    <title>Fixed Tiny AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-zinc-950 text-zinc-200 min-h-screen flex items-center justify-center p-4">
+<body class="bg-zinc-950 text-zinc-200 min-h-screen flex flex-col items-center justify-center p-4 font-sans">
 
     <div class="max-w-md w-full bg-zinc-900 border border-zinc-800 rounded-3xl p-8 shadow-2xl">
-        <div class="text-center mb-8">
-            <h1 class="text-2xl font-bold text-emerald-400">SmolAI</h1>
-            <p id="status" class="text-zinc-500 text-sm mt-2">Loading engine (~130MB)...</p>
+        <div class="text-center mb-6">
+            <h1 class="text-2xl font-bold text-cyan-400">Qwen Tiny</h1>
+            <p id="status" class="text-zinc-500 text-xs mt-2 uppercase tracking-widest">Initializing...</p>
         </div>
 
-        <div id="display" class="h-48 overflow-y-auto mb-6 text-lg font-medium border-l-2 border-emerald-500/30 pl-4 flex flex-col justify-end">
-            <p id="ai-text" class="text-emerald-100">Hello! I'm a tiny LLM running entirely in your browser.</p>
+        <div id="display" class="h-48 overflow-y-auto mb-6 text-lg border-l-2 border-cyan-500/30 pl-4 flex flex-col justify-end">
+            <p id="ai-text" class="text-zinc-100">Ready for your voice...</p>
         </div>
 
         <div class="space-y-4">
-            <p id="user-transcript" class="text-center text-zinc-400 italic min-h-[1.5rem] text-sm"></p>
+            <p id="user-transcript" class="text-center text-cyan-300 italic min-h-[1.5rem] text-sm"></p>
             
-            <button id="mic-btn" disabled class="w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-800 py-4 rounded-2xl font-bold transition-all transform active:scale-95 flex items-center justify-center gap-3">
-                <span class="text-xl">🎤</span>
-                <span id="btn-label">Wait for it...</span>
+            <button id="mic-btn" disabled class="w-full bg-cyan-600 hover:bg-cyan-500 disabled:bg-zinc-800 py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-3">
+                <span id="btn-label">Loading Model...</span>
             </button>
         </div>
     </div>
 
+    <div id="log" class="mt-4 text-[10px] text-zinc-600 font-mono max-w-md w-full text-center"></div>
+
     <script type="module">
-        // Using Transformers.js v3 for WebGPU support
         import { pipeline } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0-alpha.19';
 
         const status = document.getElementById('status');
@@ -37,45 +37,46 @@
         const transcript = document.getElementById('user-transcript');
         const micBtn = document.getElementById('mic-btn');
         const btnLabel = document.getElementById('btn-label');
+        const log = document.getElementById('log');
 
         let generator;
 
-        // 1. Initialize the Pipeline
         async function init() {
             try {
-                // We use 'text-generation' with a highly compressed tiny model
-                generator = await pipeline('text-generation', 'HuggingFaceTB/SmolLM2-135M-Instruct', {
-                    device: 'webgpu', // Use 'wasm' if you don't have a GPU
-                    dtype: 'q4',      // 4-bit quantization makes it tiny
+                // Qwen2.5-0.5B is ~350MB in 4-bit, but much more stable than SmolLM right now
+                generator = await pipeline('text-generation', 'onnx-community/Qwen2.5-0.5B-Instruct', {
+                    device: 'webgpu', 
+                    dtype: 'q4',
+                    progress_callback: (p) => {
+                        if(p.status === 'progress') {
+                            log.innerText = `Loading: ${p.file} (${Math.round(p.loaded / 1024 / 1024)}MB)`;
+                        }
+                    }
                 });
 
-                status.innerText = "Local Model Ready (WebGPU)";
+                status.innerText = "Local Model Ready";
                 micBtn.disabled = false;
-                btnLabel.innerText = "Push to Talk";
+                btnLabel.innerText = "Hold to Speak";
             } catch (e) {
-                status.innerText = "WebGPU not supported? Falling back to CPU...";
-                // Fallback to CPU if WebGPU fails
-                generator = await pipeline('text-generation', 'HuggingFaceTB/SmolLM2-135M-Instruct', { dtype: 'q4' });
-                status.innerText = "Local Model Ready (CPU)";
-                micBtn.disabled = false;
-                btnLabel.innerText = "Push to Talk";
+                console.error(e);
+                status.innerText = "Error: " + e.message;
             }
         }
 
-        // 2. Speech Recognition Logic
         const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
         recognition.lang = 'en-US';
+        recognition.interimResults = false;
 
         micBtn.onmousedown = () => {
             recognition.start();
             btnLabel.innerText = "Listening...";
-            micBtn.classList.replace('bg-emerald-600', 'bg-red-600');
+            micBtn.classList.replace('bg-cyan-600', 'bg-red-600');
         };
 
         micBtn.onmouseup = () => {
             recognition.stop();
-            btnLabel.innerText = "Processing...";
-            micBtn.classList.replace('bg-red-600', 'bg-emerald-600');
+            btnLabel.innerText = "Thinking...";
+            micBtn.classList.replace('bg-red-600', 'bg-cyan-600');
         };
 
         recognition.onresult = async (event) => {
@@ -84,25 +85,27 @@
             generateResponse(query);
         };
 
-        // 3. Inference Logic
         async function generateResponse(text) {
-            aiText.innerText = "...";
-            aiText.classList.add('animate-pulse');
-
+            aiText.innerText = "Generating...";
+            
             const messages = [
-                { role: "system", content: "You are a helpful, brief assistant." },
+                { role: "system", content: "You are a helpful, very brief assistant." },
                 { role: "user", content: text }
             ];
 
-            // Formats the prompt for SmolLM2
-            const output = await generator(messages, { 
-                max_new_tokens: 50,
-                temperature: 0.7,
-                do_sample: true 
-            });
+            try {
+                const output = await generator(messages, { 
+                    max_new_tokens: 64,
+                    temperature: 0.7,
+                    // Removing redundant parameters to avoid the Tensor error
+                });
 
-            aiText.classList.remove('animate-pulse');
-            aiText.innerText = output[0].generated_text.at(-1).content;
+                aiText.innerText = output[0].generated_text.at(-1).content;
+                btnLabel.innerText = "Hold to Speak";
+            } catch (err) {
+                aiText.innerText = "Generation Error. Check console.";
+                console.error(err);
+            }
         }
 
         init();
