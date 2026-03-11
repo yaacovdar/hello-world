@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Legion! - Tactical Runner</title>
+    <title>Swarm-ah 🌯! - Tactical Runner</title>
     <style>
         :root {
             --blue-gate: rgba(37, 99, 235, 0.9);
             --red-gate: rgba(220, 38, 38, 0.9);
+            --neon-purple: #d8b4fe;
             --health-green: #22c55e;
             --health-red: #ef4444;
             --text-light: #f8fafc;
@@ -152,6 +153,25 @@
             box-shadow: 0 4px 15px rgba(127, 29, 29, 0.4);
         }
 
+        .btn-pause {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 45px;
+            height: 45px;
+            background: rgba(0,0,0,0.5);
+            border: 2px solid rgba(255,255,255,0.2);
+            color: white;
+            border-radius: 12px;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 25;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+        }
+
         .btn:hover { transform: scale(1.05); opacity: 0.9; }
         .btn:active { transform: scale(0.95); }
 
@@ -183,6 +203,41 @@
             margin-bottom: 10px;
             width: 85%;
         }
+
+        /* Superpower Repository UI */
+        #superpower-repo {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 25;
+        }
+
+        .power-slot {
+            width: 45px;
+            height: 45px;
+            background: rgba(0,0,0,0.6);
+            border: 2px solid var(--neon-purple);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(216, 180, 254, 0.3);
+            transition: transform 0.2s, background 0.2s;
+            color: white;
+        }
+
+        .power-slot:hover {
+            transform: scale(1.1);
+            background: rgba(216, 180, 254, 0.2);
+        }
+
+        .power-slot:active {
+            transform: scale(0.9);
+        }
     </style>
 </head>
 <body>
@@ -194,11 +249,15 @@
             </div>
         </div>
 
+        <div id="superpower-repo"></div>
+
+        <button class="btn-pause hidden" id="pause-btn">⏸</button>
+
         <div id="shift-alert">LANES SHIFTING!</div>
         <div id="record-banner">NEW PERSONAL BEST!</div>
 
         <div id="start-screen" class="overlay">
-            <h1 id="game-title" class="title-primary">LEGION!</h1>
+            <h1 id="game-title" class="title-primary">SWARM-AH!</h1>
             <p class="stat-line">Capture energy. Defend the path.</p>
             
             <div class="btn-container">
@@ -209,6 +268,14 @@
             <div style="margin-top: 25px;">
                 <div class="record-text" id="record-classic">Classic Best: 0m</div>
                 <div class="record-text" id="record-challenge" style="color: #ef4444;">Challenge Best: 0m</div>
+            </div>
+        </div>
+
+        <div id="pause-screen" class="overlay hidden">
+            <h1 class="title-primary">PAUSED</h1>
+            <div class="btn-container">
+                <button class="btn" id="resume-btn">Resume Battle</button>
+                <button class="btn" id="quit-btn" style="background: #475569;">Quit to Menu</button>
             </div>
         </div>
 
@@ -239,15 +306,14 @@
             GAME: {
                 LANE_SHIFT_INTERVAL: 500,
                 RECORD_BANNER_DURATION: 5000,
+                SUPERPOWER_RARITY_DIST: 900,
             },
             THEME: {
                 FONTS: {
                     LOCKED: 'bold 20px var(--font-main)',
                     GATE: '26px serif',
-                    GATE_SUB: '24px serif',
                     CHAOS_EMOJI: '45px serif',
                     CHAOS_EMOJI_LARGE: '60px serif',
-                    SWARM_ENEMY: '18px serif',
                     ENEMY_PHALANX: '24px serif',
                     ELITE: '48px serif',
                     PLAYER: '24px serif'
@@ -296,7 +362,6 @@
                 HEALTH_BAR_HEIGHT: 8,
                 CHANCE_PHALANX: 0.2,
                 CHANCE_PERCENTAGE_GATE: 0.4,
-                CHANCE_SECRET_GATE: 0.55,
                 CHANCE_SWARM: 0.5,
                 CHANCE_ELITE_BASE: 0.12,
                 CHANCE_CHAOS_GATE_NEGATIVE: 0.5,
@@ -311,6 +376,8 @@
                 BATTERY: '🔋',
                 HAZARD: '🔥',
                 LOCKED: '🔒',
+                ANNIHILATE: '☢️',
+                GROWTHBURST: '🌯'
             }
         };
 
@@ -355,12 +422,14 @@
         }
 
         class UIManager {
-            constructor() {
+            constructor(game) {
+                this.game = game;
                 this.elements = {
                     distHud: document.getElementById('dist-hud'),
                     recordBanner: document.getElementById('record-banner'),
                     shiftAlert: document.getElementById('shift-alert'),
                     startScreen: document.getElementById('start-screen'),
+                    pauseScreen: document.getElementById('pause-screen'),
                     gameOverScreen: document.getElementById('game-over-screen'),
                     failReason: document.getElementById('fail-reason'),
                     finalDist: document.getElementById('final-dist'),
@@ -368,6 +437,8 @@
                     recordChallenge: document.getElementById('record-challenge'),
                     recordClassicEnd: document.getElementById('record-classic-end'),
                     recordChallengeEnd: document.getElementById('record-challenge-end'),
+                    pauseBtn: document.getElementById('pause-btn'),
+                    repo: document.getElementById('superpower-repo')
                 };
             }
 
@@ -378,12 +449,22 @@
             showStart(records) {
                 this.refreshRecords(records);
                 this.elements.startScreen.classList.remove('hidden');
+                this.elements.pauseScreen.classList.add('hidden');
                 this.elements.gameOverScreen.classList.add('hidden');
+                this.elements.pauseBtn.classList.add('hidden');
+                this.elements.repo.innerHTML = '';
+            }
+
+            showPause() {
+                this.elements.pauseScreen.classList.remove('hidden');
+                this.elements.pauseBtn.classList.add('hidden');
             }
 
             hideOverlays() {
                 this.elements.startScreen.classList.add('hidden');
+                this.elements.pauseScreen.classList.add('hidden');
                 this.elements.gameOverScreen.classList.add('hidden');
+                this.elements.pauseBtn.classList.remove('hidden');
             }
 
             showGameOver(dist, reason, records) {
@@ -391,6 +472,7 @@
                 this.elements.finalDist.innerText = Math.floor(dist);
                 this.refreshRecords(records);
                 this.elements.gameOverScreen.classList.remove('hidden');
+                this.elements.pauseBtn.classList.add('hidden');
             }
 
             refreshRecords(records) {
@@ -400,6 +482,20 @@
                 this.elements.recordChallenge.innerText = x;
                 this.elements.recordClassicEnd.innerText = c;
                 this.elements.recordChallengeEnd.innerText = x;
+            }
+
+            renderPowers(powers) {
+                this.elements.repo.innerHTML = '';
+                powers.forEach((p, idx) => {
+                    const slot = document.createElement('div');
+                    slot.className = 'power-slot';
+                    slot.innerText = CONFIG.ASSETS[p];
+                    slot.onclick = (e) => {
+                        e.stopPropagation();
+                        this.game.activateSuperpower(idx);
+                    };
+                    this.elements.repo.appendChild(slot);
+                });
             }
 
             triggerAlert(type) {
@@ -449,6 +545,16 @@
             }
         }
 
+        class SuperpowerGate extends Gate {
+            constructor(role, lane, y, score, powerType) {
+                super(role, lane, y, 'ULT', 0, true, false);
+                this.type = 'superpowerGate';
+                this.powerType = powerType;
+                this.health = score * 2.5;
+                this.maxHealth = this.health;
+            }
+        }
+
         class Enemy extends Entity {
             constructor(role, lane, y, score, distance, forceType = null) {
                 super(role, lane, y, 'enemy');
@@ -489,12 +595,17 @@
         }
 
         class EntityFactory {
-            static createEntities(role, lane, score, distance) {
+            static createEntities(role, lane, score, distance, lastSuperDist) {
                 const spawnY = -100;
                 if (role === ROLES.GROWTH) {
                     const val = Math.random() < CONFIG.ENTITIES.CHANCE_PERCENTAGE_GATE ? Math.ceil(score * 0.012) : 1;
                     return [new Gate(role, lane, spawnY, '+', val, true)];
                 } else if (role === ROLES.EVOLUTION) {
+                    // Check for superpower rarity
+                    if (distance - lastSuperDist > CONFIG.GAME.SUPERPOWER_RARITY_DIST) {
+                        const pType = Math.random() < 0.5 ? 'ANNIHILATE' : 'GROWTHBURST';
+                        return [new SuperpowerGate(role, lane, spawnY, score, pType)];
+                    }
                     return [new EvolutionGate(role, lane, spawnY, score)];
                 } else {
                     const diffProb = Math.min(0.85, CONFIG.ENTITIES.DIFFICULTY_BASE_PROB + (distance / CONFIG.PHYSICS.SPEED_SCALING * CONFIG.ENTITIES.DIFFICULTY_SCALING_FACTOR));
@@ -518,11 +629,12 @@
         }
 
         class GameEngine {
-            constructor(canvas, uiManager, saveManager) {
+            constructor(canvas, saveManager) {
                 this.canvas = canvas;
-                this.ui = uiManager;
+                this.ui = new UIManager(this);
                 this.saveManager = saveManager;
                 this.active = false;
+                this.paused = false;
                 this.isChallenge = false;
                 this.numLanes = 3;
                 this.score = 10;
@@ -532,7 +644,6 @@
                 this.currentLane = 1;
                 this.targetX = 0;
                 this.playerX = 0;
-                // Consistent initialization to prevent rendering crash before first 'start' call
                 this.laneRoles = [ROLES.GROWTH, ROLES.EVOLUTION, ROLES.CHAOS];
                 this.entities = [];
                 this.particles = [];
@@ -543,6 +654,13 @@
                 this.fireTimer = 0;
                 this.swarm = new Swarm();
                 this.elapsedTime = 0; 
+                
+                // Superpower State
+                this.powers = [];
+                this.lastSuperDist = 0;
+                this.flashOpacity = 0;
+                this.growthBurstRemaining = 0;
+                this.nextBurstDist = 0;
             }
 
             start(isChallenge = false) {
@@ -557,12 +675,11 @@
                 this.particles = [];
                 this.bullets = [];
                 this.lastShiftDist = 0;
+                this.powers = [];
+                this.lastSuperDist = 0;
+                this.growthBurstRemaining = 0;
                 
-                // Shuffle lanes BEFORE marking active or allowing frames to render 
-                // to ensure state consistency for Renderer
                 this.shuffleLanes(true);
-                
-                // Desynchronize lanes with phase offsets
                 this.lastSpawns = new Array(this.numLanes).fill(0).map((_, i) => performance.now() + (i * 450));
                 
                 this.bannerShownThisRun = false;
@@ -572,13 +689,74 @@
                 this.updateTargetX();
                 this.playerX = this.targetX;
                 this.active = true;
+                this.paused = false;
                 this.ui.hideOverlays();
+                this.ui.renderPowers(this.powers);
+            }
+
+            togglePause() {
+                if (!this.active) return;
+                this.paused = !this.paused;
+                if (this.paused) this.ui.showPause();
+                else this.ui.hideOverlays();
+            }
+
+            quit() {
+                this.active = false;
+                this.paused = false;
+                this.ui.showStart(this.saveManager.getRecords());
+            }
+
+            addSuperpower(type) {
+                this.powers.push(type);
+                this.lastSuperDist = this.distance;
+                this.ui.renderPowers(this.powers);
+            }
+
+            activateSuperpower(index) {
+                if (!this.active || this.paused) return;
+                const type = this.powers.splice(index, 1)[0];
+                this.ui.renderPowers(this.powers);
+
+                if (type === 'ANNIHILATE') {
+                    this.flashOpacity = 1.0;
+                    // Kill all enemies
+                    this.entities.forEach(e => {
+                        if (e.type === 'enemy') {
+                            e.isCollected = true;
+                            for (let i = 0; i < 15; i++) {
+                                this.particles.push({ 
+                                    x: e.lane * (this.canvas.width / this.numLanes) + (this.canvas.width / this.numLanes / 2), 
+                                    y: e.y + 40, vx: (Math.random() - 0.5) * 12, vy: (Math.random() - 0.5) * 12, life: 1, color: '#fef08a' 
+                                });
+                            }
+                        }
+                    });
+                    this.entities = this.entities.filter(e => !e.isCollected);
+                } else if (type === 'GROWTHBURST') {
+                    this.growthBurstRemaining = 4;
+                    this.triggerBurst();
+                }
+            }
+
+            triggerBurst() {
+                this.score *= 4;
+                this.growthBurstRemaining--;
+                this.nextBurstDist = this.distance + 100;
+                this.flashOpacity = 0.8;
+                // Burst particles
+                for (let i = 0; i < 30; i++) {
+                    this.particles.push({ 
+                        x: this.playerX, y: this.canvas.height - CONFIG.PLAYER.Y_OFFSET, 
+                        vx: (Math.random() - 0.5) * 15, vy: (Math.random() - 0.5) * 15, 
+                        life: 1.5, color: '#d8b4fe' 
+                    });
+                }
             }
 
             shuffleLanes(silent = false) {
                 let pool = [];
                 if (this.isChallenge) {
-                    // Growth between two Chaos lanes
                     pool = [ROLES.EVOLUTION, ROLES.CHAOS, ROLES.GROWTH, ROLES.CHAOS];
                     const shift = Math.floor(Math.random() * pool.length);
                     for(let i = 0; i < shift; i++) pool.push(pool.shift());
@@ -589,9 +767,8 @@
                         [pool[i], pool[j]] = [pool[j], pool[i]];
                     }
                 }
-                
                 this.laneRoles = pool;
-                this.numLanes = pool.length; // Keep numLanes tied directly to length
+                this.numLanes = pool.length; 
                 if (!silent) this.ui.triggerAlert('shift');
             }
 
@@ -601,7 +778,7 @@
             }
 
             moveToLane(targetLane) {
-                if (!this.active) return;
+                if (!this.active || this.paused) return;
                 if (targetLane < this.currentLane && this.currentLane > 0) this.currentLane--;
                 else if (targetLane > this.currentLane && this.currentLane < this.numLanes - 1) this.currentLane++;
                 this.updateTargetX();
@@ -613,12 +790,18 @@
             }
 
             update(dt) {
-                if (!this.active) return;
+                if (!this.active || this.paused) return;
                 this.elapsedTime += dt;
                 this.distance += this.speed * dt * 5; 
                 this.speed = Math.min(CONFIG.PHYSICS.MAX_SPEED, CONFIG.PHYSICS.INITIAL_SPEED + (this.distance / CONFIG.PHYSICS.SPEED_SCALING));
                 this.peakScoreThisRun = Math.max(this.peakScoreThisRun, this.score);
                 
+                // Superpower logic
+                if (this.flashOpacity > 0) this.flashOpacity -= dt * 2;
+                if (this.growthBurstRemaining > 0 && this.distance >= this.nextBurstDist) {
+                    this.triggerBurst();
+                }
+
                 const rec = this.saveManager.getRecords();
                 const best = this.isChallenge ? rec.challenge : rec.classic;
                 if (!this.bannerShownThisRun && this.distance > best && best > 0) {
@@ -644,7 +827,7 @@
                     const role = this.laneRoles[i];
                     const interval = (role === ROLES.EVOLUTION ? 5500 : (role === ROLES.GROWTH ? 700 : 1800)) / ( (this.speed * role.speedMult) / CONFIG.PHYSICS.INITIAL_SPEED);
                     if (now - this.lastSpawns[i] > interval) {
-                        this.entities.push(...EntityFactory.createEntities(role, i, this.score, this.distance));
+                        this.entities.push(...EntityFactory.createEntities(role, i, this.score, this.distance, this.lastSuperDist));
                         this.lastSpawns[i] = now;
                     }
                 }
@@ -655,7 +838,7 @@
                 let target = null;
                 let minDist = Infinity;
                 this.entities.forEach(e => {
-                    if (((e.type === 'enemy') || (e.type === 'evolutionGate' && !e.isUnlocked)) && e.lane === this.currentLane && e.y < playerY - 40) {
+                    if (((e.type === 'enemy') || (e.type === 'evolutionGate' && !e.isUnlocked) || (e.type === 'superpowerGate' && !e.isUnlocked)) && e.lane === this.currentLane && e.y < playerY - 40) {
                         const d = playerY - e.y;
                         if (d < minDist) { minDist = d; target = e; }
                     }
@@ -677,6 +860,9 @@
                                 });
                             }
                             this.score *= target.isElite ? 2.5 : 1.012;
+                            this.entities = this.entities.filter(ent => ent !== target);
+                        } else if (target.type === 'superpowerGate') {
+                            this.addSuperpower(target.powerType);
                             this.entities = this.entities.filter(ent => ent !== target);
                         } else { target.isUnlocked = true; }
                     }
@@ -710,7 +896,7 @@
                             this.score -= Math.ceil(e.health);
                             this.entities.splice(i, 1);
                         }
-                        if (this.score <= 0) { this.endGame("LEGION ANNIHILATED!"); return; }
+                        if (this.score <= 0) { this.endGame("SWARM ANNIHILATED!"); return; }
                     }
                 }
             }
@@ -720,13 +906,14 @@
                     const p = this.particles[i];
                     p.x += p.vx * dt * CONFIG.PHYSICS.FPS_BASELINE; 
                     p.y += p.vy * dt * CONFIG.PHYSICS.FPS_BASELINE; 
-                    p.life -= CONFIG.PHYSICS.PARTICLE_DECAY * dt; 
+                    p.life -= dt * (1/p.life); // Variable decay
                     if (p.life <= 0) this.particles.splice(i, 1);
                 }
             }
 
             endGame(reason) {
                 this.active = false;
+                this.paused = false;
                 this.saveManager.updateDistance(this.distance, this.isChallenge);
                 this.ui.showGameOver(this.distance, reason, this.saveManager.getRecords());
             }
@@ -739,6 +926,7 @@
                 this.STRATEGIES = {
                     gate: (ctx, e, lw) => this.drawStandardGate(ctx, e, lw),
                     evolutionGate: (ctx, e, lw) => this.drawEvolutionGate(ctx, e, lw),
+                    superpowerGate: (ctx, e, lw) => this.drawSuperpowerGate(ctx, e, lw),
                     enemy: (ctx, e, lw, engine) => this.drawEnemy(ctx, e, lw, engine),
                     player: (ctx, engine) => this.drawPlayer(ctx, engine)
                 };
@@ -748,7 +936,6 @@
                 const ctx = this.ctx;
                 const theme = CONFIG.THEME;
                 
-                // DERIVE lane count from current roles to prevent sync errors (reading undefined .color)
                 const actualLanes = engine.laneRoles.length;
                 if (actualLanes === 0) return;
                 const lw = this.canvas.width / actualLanes;
@@ -781,12 +968,19 @@
                 engine.bullets.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, 4, 0, Math.PI * 2); ctx.fill(); });
 
                 engine.particles.forEach(p => {
-                    ctx.globalAlpha = p.life;
+                    ctx.globalAlpha = Math.max(0, p.life);
                     ctx.fillStyle = p.color;
                     ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2); ctx.fill();
                 });
                 ctx.globalAlpha = 1;
+
                 this.STRATEGIES.player(ctx, engine);
+
+                // Flash overlay
+                if (engine.flashOpacity > 0) {
+                    ctx.fillStyle = `rgba(216, 180, 254, ${engine.flashOpacity})`;
+                    ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                }
             }
 
             _drawGateShell(ctx, x, y, width, height, radius, bgColor, strokeColor) {
@@ -839,6 +1033,27 @@
                 }
             }
 
+            drawSuperpowerGate(ctx, e, lw) {
+                const x = e.lane * lw;
+                const theme = CONFIG.THEME;
+                const gateW = lw * 0.6;
+                const off = (lw - gateW) / 2;
+                
+                // Neon purple shell
+                this._drawGateShell(ctx, x + off - 10, e.y, gateW + 20, e.height, 25, 'rgba(147, 51, 234, 0.9)', '#d8b4fe');
+                ctx.fillStyle = theme.COLORS.TEXT_WHITE; ctx.textAlign = 'center';
+
+                // Always show the power asset even when locked
+                ctx.font = theme.FONTS.LOCKED;
+                ctx.fillText(CONFIG.ASSETS[e.powerType], x + lw / 2, e.y + 35);
+                
+                const barW = gateW - 20, barH = 8, barX = x + off + 10, barY = e.y + 58;
+                ctx.fillStyle = theme.COLORS.BAR_BG;
+                ctx.beginPath(); ctx.roundRect(barX, barY, barW, barH, 4); ctx.fill();
+                ctx.fillStyle = '#d8b4fe'; // Neon purple progress bar
+                ctx.beginPath(); ctx.roundRect(barX, barY, barW * (e.health / e.maxHealth), barH, 4); ctx.fill();
+            }
+
             drawEnemy(ctx, e, lw, engine) {
                 const x = e.lane * lw;
                 const theme = CONFIG.THEME;
@@ -889,8 +1104,7 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const save = new SaveManager();
-        const ui = new UIManager();
-        const game = new GameEngine(canvas, ui, save);
+        const game = new GameEngine(canvas, save);
         const renderer = new Renderer(canvas, ctx);
 
         window.addEventListener('resize', () => {
@@ -908,10 +1122,14 @@
         document.getElementById('start-challenge-btn').addEventListener('click', () => game.start(true));
         document.getElementById('restart-classic-btn').addEventListener('click', () => game.start(false));
         document.getElementById('restart-challenge-btn').addEventListener('click', () => game.start(true));
+        document.getElementById('pause-btn').addEventListener('click', (e) => { e.stopPropagation(); game.togglePause(); });
+        document.getElementById('resume-btn').addEventListener('click', () => game.togglePause());
+        document.getElementById('quit-btn').addEventListener('click', () => game.quit());
 
         window.addEventListener('keydown', (e) => {
             if (e.key === 'ArrowLeft') game.moveToLane(game.currentLane - 1);
             if (e.key === 'ArrowRight') game.moveToLane(game.currentLane + 1);
+            if (e.key === 'Escape' || e.key === 'p') game.togglePause();
         });
         canvas.addEventListener('mousedown', (e) => game.moveToLane(game.getLaneFromCoords(e.clientX)));
         canvas.addEventListener('touchstart', (e) => {
@@ -928,7 +1146,7 @@
             requestAnimationFrame(loop);
         }
 
-        ui.showStart(save.getRecords());
+        game.ui.showStart(save.getRecords());
         requestAnimationFrame(loop);
     </script>
 </body>
