@@ -303,9 +303,9 @@
                     GATE: '26px serif',
                     CHAOS_EMOJI: '45px serif',
                     ENEMY_PHALANX: '24px serif',
-                    ELITE: '48px serif',
+                    ELITE_BASE_SIZE: 48,
                     PLAYER: '24px serif',
-                    ANN_LARGE: 'bold 120px serif'
+                    ANN_BASE_SIZE: 120
                 },
                 COLORS: {
                     BACKGROUND: '#0f172a',
@@ -942,10 +942,13 @@
                 engine.entities.forEach(e => {
                     const s = this.STRATEGIES[e.type];
                     if (s) {
-                        // Ensure each strategy starts with a clean baseline
+                        // EXTREME ISOLATION: 
+                        // Wrap every entity draw in save/restore to prevent ANY state contamination
+                        ctx.save();
                         ctx.textAlign = 'center';
                         ctx.textBaseline = 'alphabetic';
                         s(ctx, e, lw, engine);
+                        ctx.restore();
                     }
                 });
 
@@ -973,9 +976,9 @@
                 if (engine.annihilateVisualTimer > 0) {
                     ctx.save();
                     ctx.translate(this.canvas.width / 2, this.canvas.height / 2);
+                    // Use dynamic font size instead of scale to avoid browser emoji scaling glitches
                     const sc = 0.5 + (1 - engine.annihilateVisualTimer / 0.8) * 1.5;
-                    ctx.scale(sc, sc);
-                    ctx.font = theme.FONTS.ANN_LARGE;
+                    ctx.font = `bold ${Math.floor(CONFIG.THEME.FONTS.ANN_BASE_SIZE * sc)}px serif`;
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
                     ctx.globalAlpha = engine.annihilateVisualTimer / 0.8;
@@ -994,8 +997,6 @@
             drawStandardGate(ctx, e, lw) {
                 const x = e.lane * lw;
                 const theme = CONFIG.THEME;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'alphabetic';
                 
                 if (e.role === ROLES.GROWTH) {
                     const gateW = lw * 0.6;
@@ -1017,9 +1018,6 @@
                 const isL = !e.isUnlocked;
                 const gateW = lw * 0.6;
                 const off = (lw - gateW) / 2;
-                
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'alphabetic';
                 
                 this._drawGateShell(ctx, x + off - 10, e.y, gateW + 20, e.height, 25, isL ? theme.COLORS.LOCKED_GATE_BG : 'rgba(37, 99, 235, 0.9)', isL ? theme.COLORS.LOCKED_GATE_STROKE : '#60a5fa');
                 ctx.fillStyle = theme.COLORS.TEXT_WHITE;
@@ -1045,9 +1043,6 @@
                 const gateW = lw * 0.6;
                 const off = (lw - gateW) / 2;
                 
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'alphabetic';
-                
                 this._drawGateShell(ctx, x + off - 10, e.y, gateW + 20, e.height, 25, 'rgba(147, 51, 234, 0.9)', '#d8b4fe');
                 ctx.fillStyle = theme.COLORS.TEXT_WHITE;
                 ctx.font = theme.FONTS.LOCKED;
@@ -1065,9 +1060,6 @@
                 const theme = CONFIG.THEME;
                 const barW = lw * CONFIG.ENTITIES.HEALTH_BAR_MAGNITUDE, barH = CONFIG.ENTITIES.HEALTH_BAR_HEIGHT, barX = x + lw/2 - barW/2, barY = e.y - 15;
                 
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'alphabetic';
-
                 ctx.fillStyle = theme.COLORS.BAR_BG;
                 ctx.beginPath(); ctx.roundRect(barX, barY, barW, barH, 4); ctx.fill();
                 ctx.fillStyle = theme.COLORS.HEALTH_ENEMY;
@@ -1085,14 +1077,10 @@
                     ctx.fillText(CONFIG.ASSETS.ENEMY, x + lw/2 + e.phalanxXOffset, e.y + 45);
                 } else {
                     const sc = (0.6 + (Math.max(0, e.health) / e.maxHealth) * 0.6) * (e.isElite ? 1.4 : 1.1);
-                    ctx.save(); 
-                    ctx.translate(x + lw/2, e.y + 45); 
-                    ctx.scale(sc, sc);
-                    ctx.font = theme.FONTS.ELITE; 
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'alphabetic';
-                    ctx.fillText(e.isElite ? CONFIG.ASSETS.ELITE : CONFIG.ASSETS.ENEMY, 0, 10);
-                    ctx.restore();
+                    // Standardize scaling by building it into the font string directly.
+                    // This is much more robust for emojis than ctx.scale().
+                    ctx.font = `${Math.floor(theme.FONTS.ELITE_BASE_SIZE * sc)}px serif`; 
+                    ctx.fillText(e.isElite ? CONFIG.ASSETS.ELITE : CONFIG.ASSETS.ENEMY, x + lw/2, e.y + 55);
                 }
             }
 
