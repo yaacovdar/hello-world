@@ -427,7 +427,7 @@
             },
             templates: {
                 feedback: {
-                    correct: ["Good job, you found the {target}!", "Well done, that's the {target}!", "Great! That is the {target}!", "You got it! It's a {target}!"],
+                    correct: ["Good job, you found {target}!", "Well done, that's {target}!", "Great! That is {target}!", "You got it! It's a {target}!"],
                     wrong: ["No, that was a {clicked}, can you find the {target}?", "Oops! That's a {clicked}. Where is the {target}?", "Try looking for the {target}."]
                 },
                 questions: ["Can you find the {target}?", "Can you spot the {target}?", "Where is the {target}?", "Look for the {target}!"]
@@ -557,6 +557,32 @@
                     if (w1.some(v1 => (v1 === v || (v.length > 3 && this.levenshtein(v, v1) <= 1)))) matches++;
                 });
                 return (matches / w2.length) >= 0.7 || this.levenshtein(c1, c2) <= Math.floor(c2.length * CONFIG.settings.similarityThreshold);
+            }
+        };
+
+        /** * GRAMMAR SERVICE */
+        const GrammarService = {
+            fix(template, label) {
+                let text = template;
+                // If label starts with a digit, it's plural or numbered
+                if (/^\d/.test(label)) {
+                    // Remove "a/an/the" before {target}
+                    text = text.replace(/\b(a|an|the)\s+{target}/gi, '{target}');
+                    // Change "that's" or "it's" or "that was" for plurals
+                    text = text.replace(/that's/gi, "those are");
+                    text = text.replace(/it's/gi, "they are");
+                    text = text.replace(/that\s+was\s+a/gi, "those were");
+                    text = text.replace(/is\s+{target}/gi, "are {target}");
+                } else {
+                    // Check for vowel sound for "a" vs "an"
+                    const isVowel = /^[aeiou]/i.test(label);
+                    if (isVowel) {
+                        text = text.replace(/\ba\s+{target}/gi, 'an {target}');
+                    } else {
+                        text = text.replace(/\ban\s+{target}/gi, 'a {target}');
+                    }
+                }
+                return text.replace(/{target}/g, label);
             }
         };
 
@@ -807,7 +833,11 @@
             if (correct) {
                 state.isAnswering = true; stopRepeatTimer();
                 const label = q.type === 'counting' ? q.feedbackLabel : q.targetLabel;
-                const feedback = CONFIG.templates.feedback.correct[Math.floor(Math.random()*4)].replace(/{target}/g, label);
+                
+                // Use GrammarService to fix "a {count}" or "a apple" etc.
+                const rawTemplate = CONFIG.templates.feedback.correct[Math.floor(Math.random()*4)];
+                const feedback = GrammarService.fix(rawTemplate, label);
+
                 document.getElementById('feedback-message').textContent = feedback;
                 document.getElementById('feedback-overlay').style.display = 'flex';
                 SpeechService.speak(feedback, state.voice, 1.0);
@@ -815,13 +845,19 @@
                 setTimeout(() => { 
                     document.getElementById('feedback-overlay').style.display = 'none'; 
                     const idx = state.questionIndex + 1;
-                    if (idx >= CONFIG.settings.questionsPerLesson) updateState({ view: 'success', stars: newStars }); 
-                    else updateState({ questionIndex: idx, stars: newStars, isAnswering: false });
+                    if (idx >= CONFIG.settings.questionsPerLesson) {
+                        updateState({ view: 'success', stars: newStars, isAnswering: false }); 
+                    } else {
+                        updateState({ questionIndex: idx, stars: newStars, isAnswering: false });
+                    }
                 }, 2000);
             } else {
                 const label = q.type === 'counting' ? q.feedbackLabel : q.targetLabel;
-                const feedback = CONFIG.templates.feedback.wrong[Math.floor(Math.random()*3)].replace(/{clicked}/g, clicked).replace(/{target}/g, label);
-                SpeechService.speak(feedback, state.voice); document.getElementById('status-message').textContent = feedback;
+                const rawTemplate = CONFIG.templates.feedback.wrong[Math.floor(Math.random()*3)];
+                const feedback = GrammarService.fix(rawTemplate, label).replace(/{clicked}/g, clicked);
+                
+                SpeechService.speak(feedback, state.voice); 
+                document.getElementById('status-message').textContent = feedback;
             }
         }
 
@@ -853,7 +889,7 @@
                 const pool = []; for (let i = 1; i <= lvl; i++) pool.push(...DATA[i].words);
                 const q = []; for (let i = 0; i < CONFIG.settings.questionsPerLesson; i++) q.push(ExerciseGenerator.getRandomChallenge(pool, lvl, sub));
                 await AssetService.precache(q);
-                updateState({ view: 'game', sublevel: sub, questionIndex: 0, questions: q, stars: Array(CONFIG.settings.questionsPerLesson).fill(false) });
+                updateState({ view: 'game', sublevel: sub, questionIndex: 0, questions: q, stars: Array(CONFIG.settings.questionsPerLesson).fill(false), isAnswering: false });
             },
             'select-option': (el) => el.dataset.locked === "true" ? SpeechService.speak(el.dataset.label, state.voice) : checkAnswer(el.dataset.isCorrect === "true", el.dataset.label),
             'mic': (el) => handleMic(el, el.dataset.target),
@@ -879,7 +915,12 @@
                 DATA[lvl].words.forEach(it => grid.appendChild(UIFactory.createDebugItem(it)));
                 sec.appendChild(grid); root.appendChild(sec);
             });
-            document.body.addEventListener('click', e => { if (!state.isAnswering) { const t = e.target.closest('[data-action]'); if (t) ActionHandler[t.dataset.action](t); } });
+            document.body.addEventListener('click', e => { 
+                if (!state.isAnswering) { 
+                    const t = e.target.closest('[data-action]'); 
+                    if (t) ActionHandler[t.dataset.action](t); 
+                } 
+            });
             render(true, true, true);
         };
     </script>
