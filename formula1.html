@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pit Wall: F1 Strategy Sim</title>
+    <style>
+        :root {
+            --f1-red: #EF1A2D;
+            --f1-orange: #FF8000;
+            --f1-blue: #0600EF;
+            --f1-mercedes: #27F4D2;
+            --f1-aston: #229971;
+            --f1-williams: #64C4FF;
+            --f1-haas: #B6BABD;
+            --f1-vcarb: #6692FF;
+            --f1-sauber: #52E252;
+            --f1-alpine: #0093cc;
+            
+            --dark-bg: #050505;
+            --card-bg: #121212;
+            --tower-bg: rgba(0, 0, 0, 0.85);
+            --text-main: #ffffff;
+            --text-dim: #999;
+            
+            --soft-tire: #e10600;
+            --med-tire: #ffd000;
+            --hard-tire: #ffffff;
+            --inter-tire: #47b019;
+            --wet-tire: #0082fa;
+            --drs-green: #00ff00;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .bold { font-weight: 900; text-transform: uppercase; }
+        .italic { font-style: italic; }
+
+        /* --- SCREENS --- */
+        .screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: none;
+            flex-direction: column;
+            padding: 15px;
+            z-index: 10;
+            background: var(--dark-bg);
+            overflow-y: auto;
+        }
+        .screen.active { display: flex; }
+
+        /* --- MENU --- */
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .btn-opt {
+            background: var(--card-bg);
+            border: 1px solid #333;
+            color: white;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: left;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-opt.selected {
+            border-color: var(--f1-red);
+            background: #222;
+            box-shadow: 0 0 10px rgba(239, 26, 45, 0.4);
+        }
+        .btn-start {
+            background: var(--f1-red);
+            color: white;
+            border: none;
+            padding: 18px;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            margin-top: 10px;
+            z-index: 20;
+        }
+
+        /* --- GAME LAYOUT --- */
+        #game-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* --- TOWER --- */
+        #tower {
+            width: 90px;
+            background: var(--tower-bg);
+            border-right: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            font-size: 0.7rem;
+            overflow-y: hidden;
+        }
+        .tower-row {
+            display: flex;
+            align-items: center;
+            height: 4.8%; /* Fits 20 drivers */
+            border-bottom: 1px solid #222;
+            padding: 0 4px;
+            position: relative;
+        }
+        .tower-row.player { background: rgba(255, 128, 0, 0.2); }
+        .tower-team-bar {
+            width: 3px;
+            height: 70%;
+            margin-right: 4px;
+        }
+        .tower-code { width: 30px; font-weight: bold; }
+        .tower-gap { flex: 1; text-align: right; font-family: monospace; color: #ccc; }
+        .tower-status {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.5rem;
+            margin-left: 4px;
+            font-weight: 900;
+            color: black;
+        }
+
+        /* --- MAIN VIEW --- */
+        #main-view {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            position: relative;
+        }
+
+        .telemetry-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .stat-card {
+            background: var(--card-bg);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-label { font-size: 0.6rem; color: var(--text-dim); text-transform: uppercase; }
+        .stat-value { font-size: 1.1rem; margin-top: 2px; }
+
+        .wear-meter {
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            margin-top: 6px;
+            overflow: hidden;
+        }
+        .wear-fill { height: 100%; transition: width 0.3s; }
+
+        /* --- CONTROLS --- */
+        .control-section {
+            background: rgba(255,255,255,0.03);
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: auto;
+        }
+        .mode-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .btn-mode {
+            height: 40px;
+            background: #222;
+            border: 1px solid #444;
+            color: #aaa;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+        .btn-mode.active { background: white; color: black; border-color: white; }
+
+        .btn-drs {
+            width: 100%;
+            height: 45px;
+            background: #111;
+            border: 2px solid #333;
+            color: #444;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            font-weight: 900;
+            font-size: 1.2rem;
+            transition: 0.2s;
+        }
+        .btn-drs.available {
+            border-color: var(--drs-green);
+            color: var(--drs-green);
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.2);
+            cursor: pointer;
+        }
+        .btn-drs.active {
+            background: var(--drs-green);
+            color: black;
+            animation: pulse-drs 0.5s infinite alternate;
+        }
+        @keyframes pulse-drs {
+            from { opacity: 1; }
+            to { opacity: 0.7; }
+        }
+
+        .pit-controls {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 5px;
+        }
+        .btn-pit {
+            height: 45px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 900;
+            font-size: 0.8rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.7;
+        }
+        .btn-pit:active { opacity: 1; transform: translateY(2px); }
+        .btn-pit.selected { border: 2px solid white; opacity: 1; }
+
+        /* --- TOASTS --- */
+        #notification {
+            position: absolute;
+            top: 10px; left: 50%; transform: translateX(-50%);
+            width: 90%;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: 900;
+            z-index: 100;
+            display: none;
+            font-size: 0.8rem;
+        }
+
+        /* --- OVERLAYS --- */
+        .overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 500;
+            text-align: center;
+        }
+
+        /* --- FIREWORKS --- */
+        #fireworks-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+            pointer-events: none;
+        }
+        #report-details {
+            position: relative;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- START SCREEN -->
+    <div id="screen-start" class="screen active">
+        <h1 class="bold italic" style="color: var(--f1-red); font-size: 2.2rem; margin-bottom: 0;">PIT WALL</h1>
+        <p style="color: var(--text-dim); margin-top: 0; font-size: 0.8rem;">2025 SEASON STRATEGY SIM</p>
+
+        <label class="stat-label">1. Team & Driver</label>
+        <div id="grid-teams" class="menu-grid"></div>
+
+        <label class="stat-label">2. Circuit</label>
+        <div id="grid-tracks" class="menu-grid"></div>
+
+        <label class="stat-label">3. Starting Tire</label>
+        <div id="grid-tires" class="menu-grid"></div>
+
+        <button class="btn-start bold" id="btn-begin" onclick="attemptStart()">START GRAND PRIX</button>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div id="screen-game" class="screen" style="padding: 0;">
+        <div style="padding: 10px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center;">
+            <div id="ui-lap" class="bold italic" style="font-size: 0.9rem;">LAP 1/15</div>
+            <div id="ui-weather" style="font-size: 0.8rem; font-weight: bold;">SUNNY • 0%</div>
+        </div>
+
+        <div id="game-container">
+            <!-- TOWER LEADERBOARD -->
+            <div id="tower"></div>
+
+            <!-- MAIN TELEMETRY -->
+            <div id="main-view">
+                <div id="notification">YELLOW FLAG</div>
+
+                <div class="telemetry-row">
+                    <div class="stat-card">
+                        <div class="stat-label">Tire Condition</div>
+                        <div id="ui-wear-val" class="stat-value">100%</div>
+                        <div class="wear-meter"><div id="ui-wear-fill" class="wear-fill" style="width: 100%; background: #47b019;"></div></div>
+                        <div id="ui-compound" class="stat-label" style="margin-top: 5px; color: #fff;">SOFT</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Fuel</div>
+                        <div id="ui-fuel-val" class="stat-value">100.0 kg</div>
+                        <div class="wear-meter"><div id="ui-fuel-fill" class="wear-fill" style="width: 100%; background: var(--f1-williams);"></div></div>
+                    </div>
+                </div>
+
+                <div class="telemetry-row">
+                    <div class="stat-card">
+                        <div class="stat-label">Gap Ahead</div>
+                        <div id="ui-gap-ahead" class="bold" style="font-size: 1.4rem; color: var(--f1-red);">+0.00s</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Gap Behind</div>
+                        <div id="ui-gap-behind" class="bold" style="font-size: 1.4rem; color: #47b019;">+0.00s</div>
+                    </div>
+                </div>
+
+                <div class="stat-card" style="margin-bottom: 10px;">
+                    <div class="stat-label">Gap to Leader</div>
+                    <div id="ui-main-gap" style="font-size: 1.8rem; font-weight: 900; color: #fff;">+0.00s</div>
+                </div>
+
+                <div class="control-section">
+                    <button id="btn-drs" class="btn-drs" onclick="activateDRS()">DRS</button>
+                    
+                    <label class="stat-label">Engine Mode</label>
+                    <div class="mode-grid">
+                        <button class="btn-mode" id="mode-CONSERVE" onclick="setMode('CONSERVE')">CONSERVE</button>
+                        <button class="btn-mode active" id="mode-NEUTRAL" onclick="setMode('NEUTRAL')">NEUTRAL</button>
+                        <button class="btn-mode" id="mode-PUSH" onclick="setMode('PUSH')">PUSH</button>
+                    </div>
+
+                    <label class="stat-label">Pit Strategy</label>
+                    <div class="pit-controls">
+                        <button class="btn-pit" style="background: var(--soft-tire); color: white;" onclick="queuePit('SOFT')">S</button>
+                        <button class="btn-pit" style="background: var(--med-tire); color: black;" onclick="queuePit('MEDIUM')">M</button>
+                        <button class="btn-pit" style="background: var(--hard-tire); color: black;" onclick="queuePit('HARD')">H</button>
+                        <button class="btn-pit" style="background: var(--inter-tire); color: white;" onclick="queuePit('INTERS')">I</button>
+                        <button class="btn-pit" style="background: var(--wet-tire); color: white;" onclick="queuePit('WETS')">W</button>
+                    </div>
+                    <p id="pit-status" style="font-size: 0.6rem; text-align: center; margin-top: 5px; color: var(--f1-orange); visibility: hidden;">BOXING THIS LAP</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- POST RACE -->
+    <div id="screen-report" class="screen">
+        <canvas id="fireworks-canvas"></canvas>
+        <h1 class="bold italic" id="report-title">RESULTS</h1>
+        <div id="report-details" style="background: rgba(17,17,17,0.8); padding: 20px; border-radius: 8px;"></div>
+        <button class="btn-start" onclick="location.reload()" style="margin-top: 20px; width: 100%;">RETRY</button>
+    </div>
+
+    <!-- OVERLAYS -->
+    <div id="overlay-status" class="overlay">
+        <h1 class="bold italic" id="overlay-msg" style="font-size: 3rem; color: var(--f1-red);">DNF</h1>
+        <p id="overlay-sub" style="color: #aaa;"></p>
+    </div>
+
+    <script>
+        const TEAMS = [
+            { id: 'mclaren', name: 'McLaren', color: '#FF8000', drivers: [{name: 'Norris', code: 'NOR'}, {name: 'Piastri', code: 'PIA'}], mult: 1.05 },
+            { id: 'ferrari', name: 'Ferrari', color: '#EF1A2D', drivers: [{name: 'Leclerc', code: 'LEC'}, {name: 'Hamilton', code: 'HAM'}], mult: 1.05 },
+            { id: 'redbull', name: 'Red Bull', color: '#0600EF', drivers: [{name: 'Verstappen', code: 'VER'}, {name: 'Lawson', code: 'LAW'}], mult: 1.05 },
+            { id: 'mercedes', name: 'Mercedes', color: '#27F4D2', drivers: [{name: 'Russell', code: 'RUS'}, {name: 'Antonelli', code: 'ANT'}], mult: 1.02 },
+            { id: 'aston', name: 'Aston Martin', color: '#229971', drivers: [{name: 'Alonso', code: 'ALO'}, {name: 'Stroll', code: 'STR'}], mult: 0.99 },
+            { id: 'williams', name: 'Williams', color: '#64C4FF', drivers: [{name: 'Albon', code: 'ALB'}, {name: 'Sainz', code: 'SAI'}], mult: 0.98 },
+            { id: 'haas', name: 'Haas', color: '#B6BABD', drivers: [{name: 'Bearman', code: 'BEA'}, {name: 'Ocon', code: 'OCO'}], mult: 0.97 },
+            { id: 'vcarb', name: 'VCARB', color: '#6692FF', drivers: [{name: 'Tsunoda', code: 'TSU'}, {name: 'Hadjar', code: 'HAD'}], mult: 0.96 },
+            { id: 'sauber', name: 'Sauber', color: '#52E252', drivers: [{name: 'Hülkenberg', code: 'HUL'}, {name: 'Bortoleto', code: 'BOR'}], mult: 0.94 },
+            { id: 'alpine', name: 'Alpine', color: '#0093cc', drivers: [{name: 'Gasly', code: 'GAS'}, {name: 'Doohan', code: 'DOO'}], mult: 0.95 }
+        ];
+
+        const TRACKS = [
+            { name: 'Melbourne', laps: 15, len: 5300, baseLap: 80 },
+            { name: 'Silverstone', laps: 14, len: 5900, baseLap: 88 },
+            { name: 'Suzuka', laps: 14, len: 5800, baseLap: 90 },
+            { name: 'Monaco', laps: 18, len: 3300, baseLap: 75 }
+        ];
+
+        const TIRES = {
+            'SOFT': { code: 'S', color: 'var(--soft-tire)', wearRate: 0.12, grip: 1.08, threshold: 0.35 },
+            'MEDIUM': { code: 'M', color: 'var(--med-tire)', wearRate: 0.07, grip: 1.04, threshold: 0.5 },
+            'HARD': { code: 'H', color: 'var(--hard-tire)', wearRate: 0.035, grip: 1.0, threshold: 0.8 },
+            'INTERS': { code: 'I', color: 'var(--inter-tire)', wearRate: 0.2, grip: 0.7, rainGrip: 1.0, threshold: 0.3 },
+            'WETS': { code: 'W', color: 'var(--wet-tire)', wearRate: 0.25, grip: 0.5, rainGrip: 1.1, threshold: 0.6 }
+        };
+
+        const MODES = {
+            'CONSERVE': { pace: 0.96, fuel: 0.6, wear: 0.5 },
+            'NEUTRAL': { pace: 1.0, fuel: 1.0, wear: 1.0 },
+            'PUSH': { pace: 1.04, fuel: 1.1, wear: 2.2 } 
+        };
+
+        // --- STATE ---
+        let race = {
+            active: false,
+            track: null,
+            team: null,
+            driver: null,
+            lap: 1,
+            weather: 'DRY',
+            wetness: 0,
+            status: 'GREEN',
+            towerMode: 'INTERVAL',
+            timer: 0
+        };
+
+        let player = {
+            dist: 0,
+            tire: 'SOFT',
+            wear: 1.0,
+            fuel: 100,
+            mode: 'NEUTRAL',
+            nextPitTire: null,
+            isPitting: false,
+            pitTime: 0,
+            gapAhead: 0,
+            gapBehind: 0,
+            gapLeader: 0,
+            drsAvailable: false,
+            drsActive: false,
+            drsTimer: 0
+        };
+
+        let drivers = [];
+        let particles = [];
+        let fireworksActive = false;
+
+        // --- INIT ---
+        window.onload = () => {
+            renderMenus();
+            setInterval(() => {
+                race.towerMode = race.towerMode === 'INTERVAL' ? 'LEADER' : 'INTERVAL';
+            }, 6000);
+        };
+
+        function renderMenus() {
+            const teamCont = document.getElementById('grid-teams');
+            TEAMS.forEach(t => {
+                t.drivers.forEach(d => {
+                    const btn = document.createElement('button');
+                    btn.className = 'btn-opt';
+                    btn.style.borderLeft = `4px solid ${t.color}`;
+                    btn.innerHTML = `<span class="bold">${d.code}</span><br><span style="font-size:0.7rem; color:#888">${t.name}</span>`;
+                    btn.onclick = () => {
+                        document.querySelectorAll('.btn-opt').forEach(b => b.classList.remove('selected'));
+                        btn.classList.add('selected');
+                        race.team = t;
+                        race.driver = d;
+                    };
+                    teamCont.appendChild(btn);
+                });
+            });
+
+            const trackCont = document.getElementById('grid-tracks');
+            TRACKS.forEach(tr => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-opt track-opt';
+                btn.innerHTML = `<span class="bold">${tr.name}</span><br><span style="font-size:0.7rem; color:#888">${tr.laps} Laps</span>`;
+                btn.onclick = () => {
+                    document.querySelectorAll('.track-opt').forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
+                    race.track = tr;
+                };
+                trackCont.appendChild(btn);
+            });
+
+            const tireCont = document.getElementById('grid-tires');
+            ['SOFT', 'MEDIUM', 'HARD'].forEach(type => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-opt tire-opt';
+                btn.style.borderLeft = `4px solid ${TIRES[type].color}`;
+                btn.innerHTML = `<span class="bold">${type}</span>`;
+                btn.onclick = () => {
+                    document.querySelectorAll('.tire-opt').forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
+                    player.tire = type;
+                };
+                tireCont.appendChild(btn);
+            });
+        }
+
+        function attemptStart() {
+            if(!race.track || !race.team || !race.driver || !player.tire) {
+                alert("Select Driver, Track, and Starting Tire.");
+                return;
+            }
+            startGP();
+        }
+
+        function startGP() {
+            document.getElementById('screen-start').classList.remove('active');
+            document.getElementById('screen-game').classList.add('active');
+            
+            drivers = [];
+            TEAMS.forEach(t => {
+                t.drivers.forEach(d => {
+                    const isPlayer = d.code === race.driver.code;
+                    drivers.push({
+                        ...d,
+                        team: t,
+                        dist: 0,
+                        lap: 1,
+                        isPlayer: isPlayer,
+                        tire: isPlayer ? player.tire : (Math.random() > 0.5 ? 'SOFT' : 'MEDIUM'),
+                        wear: 1.0,
+                        isDNF: false,
+                        isPit: false,
+                        gapToLeader: 0,
+                        gapToAhead: 0,
+                        paceBonus: 0.98 + (Math.random() * 0.04)
+                    });
+                });
+            });
+
+            drivers.sort(() => Math.random() - 0.5);
+            race.active = true;
+            requestAnimationFrame(gameLoop);
+        }
+
+        function gameLoop(time) {
+            if(!race.active) return;
+            const dt = (time - lastTime) / 1000;
+            lastTime = time;
+
+            if(race.status !== 'RED') {
+                updateSimulation(dt);
+            }
+            updateGaps();
+            updateUI();
+            checkEvents(dt);
+            requestAnimationFrame(gameLoop);
+        }
+
+        let lastTime = 0;
+        function updateSimulation(dt) {
+            const timeScale = 18;
+            const pDriver = drivers.find(d => d.isPlayer);
+            
+            if(player.isPitting) {
+                player.pitTime -= dt * timeScale;
+                if(player.pitTime <= 0) {
+                    player.isPitting = false;
+                    pDriver.isPit = false;
+                    player.tire = player.nextPitTire;
+                    player.wear = 1.0;
+                    pDriver.tire = player.tire;
+                    pDriver.wear = 1.0;
+                    player.nextPitTire = null;
+                    document.getElementById('pit-status').style.visibility = 'hidden';
+                }
+            } else {
+                let speed = (race.track.len / race.track.baseLap) * race.team.mult * MODES[player.mode].pace;
+                
+                // DRS Boost
+                if(player.drsActive) {
+                    speed *= 1.12;
+                    player.drsTimer -= dt * timeScale;
+                    if(player.drsTimer <= 0) player.drsActive = false;
+                }
+
+                let grip = TIRES[player.tire].grip;
+                if(race.wetness > 0.3) {
+                    if(['INTERS','WETS'].includes(player.tire)) grip = TIRES[player.tire].rainGrip;
+                    else grip *= (1 - race.wetness);
+                }
+                
+                const wearPenalty = (player.wear < 0.4) ? (player.wear / 0.4) : 1.0;
+                speed *= grip * wearPenalty;
+                
+                if(race.status === 'YELLOW') speed *= 0.6;
+                
+                const step = speed * dt * timeScale;
+                player.dist += step;
+                
+                const usage = MODES[player.mode];
+                player.wear -= (TIRES[player.tire].wearRate * usage.wear * step) / race.track.len;
+                player.fuel -= (usage.fuel * step) / race.track.len * 1.0; 
+
+                if(player.wear <= 0) finishRace(true, "PUNCTURE");
+
+                pDriver.dist = player.dist;
+                pDriver.wear = player.wear;
+
+                if(player.dist >= race.track.len) {
+                    player.dist = 0;
+                    pDriver.dist = 0;
+                    pDriver.lap++;
+                    race.lap = Math.max(race.lap, pDriver.lap);
+                    if(player.nextPitTire) triggerPitStop();
+                    if(pDriver.lap > race.track.laps) finishRace(false);
+                }
+            }
+
+            drivers.forEach(d => {
+                if(d.isPlayer || d.isDNF) return;
+                if(d.isPit) {
+                    d.pitTime -= dt * timeScale;
+                    if(d.pitTime <= 0) { d.isPit = false; d.wear = 1.0; }
+                } else {
+                    let aiSpeed = (race.track.len / race.track.baseLap) * d.team.mult * d.paceBonus;
+                    if(race.status === 'YELLOW') aiSpeed *= 0.6;
+                    d.dist += aiSpeed * dt * timeScale;
+                    d.wear -= (TIRES[d.tire].wearRate * aiSpeed * dt * timeScale) / race.track.len;
+                    if(d.dist >= race.track.len) {
+                        d.dist = 0;
+                        d.lap++;
+                        if(d.wear < 0.3) { d.isPit = true; d.pitTime = 20; }
+                    }
+                }
+            });
+        }
+
+        function updateGaps() {
+            const sorted = [...drivers].sort((a,b) => {
+                const aTotal = a.dist + (a.lap * race.track.len);
+                const bTotal = b.dist + (b.lap * race.track.len);
+                return bTotal - aTotal;
+            });
+
+            const leaderDist = sorted[0].dist + (sorted[0].lap * race.track.len);
+            
+            sorted.forEach((d, i) => {
+                const total = d.dist + (d.lap * race.track.len);
+                d.gapToLeader = (leaderDist - total) / 100;
+                if(i > 0) {
+                    const aheadTotal = sorted[i-1].dist + (sorted[i-1].lap * race.track.len);
+                    d.gapToAhead = (aheadTotal - total) / 100;
+                } else d.gapToAhead = 0;
+
+                if(d.isPlayer) {
+                    player.gapAhead = d.gapToAhead;
+                    player.gapLeader = d.gapToLeader;
+                    if(i < sorted.length - 1) {
+                        const behindTotal = sorted[i+1].dist + (sorted[i+1].lap * race.track.len);
+                        player.gapBehind = (total - behindTotal) / 100;
+                    } else player.gapBehind = 0;
+
+                    player.drsAvailable = (d.gapToAhead > 0 && d.gapToAhead < 1.0 && !player.isPitting);
+                }
+            });
+
+            renderTower(sorted);
+        }
+
+        function renderTower(sorted) {
+            const tower = document.getElementById('tower');
+            tower.innerHTML = '';
+            sorted.forEach((d, i) => {
+                const row = document.createElement('div');
+                row.className = `tower-row ${d.isPlayer ? 'player' : ''}`;
+                const gapText = race.towerMode === 'LEADER' ? (i === 0 ? 'LEADER' : `+${d.gapToLeader.toFixed(1)}`) : (i === 0 ? 'INTERVAL' : `+${d.gapToAhead.toFixed(1)}`);
+                row.innerHTML = `<div class="tower-team-bar" style="background:${d.team.color}"></div><div class="tower-code">${d.code}</div><div class="tower-gap">${gapText}</div><div class="tower-status" style="background:${TIRES[d.tire].color}">${d.isPit ? 'P' : TIRES[d.tire].code}</div>`;
+                tower.appendChild(row);
+            });
+        }
+
+        function updateUI() {
+            document.getElementById('ui-lap').innerText = `LAP ${race.lap} / ${race.track.laps}`;
+            document.getElementById('ui-wear-val').innerText = `${Math.round(player.wear * 100)}%`;
+            document.getElementById('ui-wear-fill').style.width = `${player.wear * 100}%`;
+            document.getElementById('ui-wear-fill').style.background = player.wear > 0.5 ? '#47b019' : (player.wear > 0.2 ? '#ffd000' : '#e10600');
+            document.getElementById('ui-fuel-val').innerText = `${player.fuel.toFixed(1)} kg`;
+            document.getElementById('ui-fuel-fill').style.width = `${player.fuel}%`;
+            document.getElementById('ui-gap-ahead').innerText = `+${player.gapAhead.toFixed(2)}s`;
+            document.getElementById('ui-gap-behind').innerText = `+${player.gapBehind.toFixed(2)}s`;
+            document.getElementById('ui-main-gap').innerText = `+${player.gapLeader.toFixed(2)}s`;
+            document.getElementById('ui-compound').innerText = player.tire;
+
+            const drsBtn = document.getElementById('btn-drs');
+            if(player.drsActive) {
+                drsBtn.className = 'btn-drs active';
+            } else if(player.drsAvailable) {
+                drsBtn.className = 'btn-drs available';
+            } else {
+                drsBtn.className = 'btn-drs';
+            }
+        }
+
+        function activateDRS() {
+            if(player.drsAvailable && !player.drsActive) {
+                player.drsActive = true;
+                player.drsTimer = 4;
+            }
+        }
+
+        function checkEvents(dt) {
+            if(Math.random() < 0.0001) {
+                race.weather = Math.random() > 0.5 ? 'RAIN' : 'DRY';
+                showToast(`WEATHER UPDATE: ${race.weather}`, race.weather === 'RAIN' ? '#0082fa' : '#555');
+            }
+            if(race.weather === 'RAIN' && race.wetness < 1.0) race.wetness += 0.0005;
+            if(race.weather === 'DRY' && race.wetness > 0) race.wetness -= 0.0005;
+            document.getElementById('ui-weather').innerText = `${race.weather} • ${Math.round(race.wetness * 100)}% WET`;
+
+            if(Math.random() < 0.0002 && race.status === 'GREEN') {
+                Math.random() > 0.95 ? triggerRedFlag() : triggerYellowFlag();
+            }
+        }
+
+        function triggerYellowFlag() {
+            race.status = 'YELLOW';
+            showToast("YELLOW FLAG - CAUTION", "#ffd000", "black");
+            setTimeout(() => { race.status = 'GREEN'; showToast("GREEN FLAG", "#47b019"); }, 6000);
+        }
+
+        function triggerRedFlag() {
+            race.status = 'RED';
+            document.getElementById('overlay-msg').innerText = "RED FLAG";
+            document.getElementById('overlay-sub').innerText = "Race suspended.";
+            document.getElementById('overlay-status').style.display = 'flex';
+            setTimeout(() => { document.getElementById('overlay-status').style.display = 'none'; race.status = 'GREEN'; showToast("RACE RESTARTING", "#47b019"); }, 5000);
+        }
+
+        function showToast(msg, bg, color = "white") {
+            const t = document.getElementById('notification');
+            t.innerText = msg; t.style.background = bg; t.style.color = color; t.style.display = 'block';
+            setTimeout(() => t.style.display = 'none', 3000);
+        }
+
+        function setMode(m) {
+            player.mode = m;
+            document.querySelectorAll('.btn-mode').forEach(b => b.classList.remove('active'));
+            document.getElementById(`mode-${m}`).classList.add('active');
+        }
+
+        function queuePit(tire) {
+            player.nextPitTire = tire;
+            document.querySelectorAll('.btn-pit').forEach(b => b.classList.remove('selected'));
+            event.currentTarget.classList.add('selected');
+            document.getElementById('pit-status').style.visibility = 'visible';
+            document.getElementById('pit-status').innerText = `BOXING FOR ${tire}`;
+        }
+
+        function triggerPitStop() {
+            player.isPitting = true;
+            player.pitTime = 22;
+            const pDriver = drivers.find(d => d.isPlayer);
+            pDriver.isPit = true;
+            showToast("PIT STOP IN PROGRESS", "#555");
+        }
+
+        // --- FIREWORKS SYSTEM ---
+        function startFireworks() {
+            const canvas = document.getElementById('fireworks-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            fireworksActive = true;
+            
+            function createParticle(x, y) {
+                const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ffffff'];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                for (let i = 0; i < 30; i++) {
+                    particles.push({
+                        x: x,
+                        y: y,
+                        vx: (Math.random() - 0.5) * 10,
+                        vy: (Math.random() - 0.5) * 10,
+                        alpha: 1,
+                        color: color
+                    });
+                }
+            }
+
+            function animate() {
+                if (!fireworksActive) return;
+                ctx.fillStyle = 'rgba(5, 5, 5, 0.2)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                if (Math.random() < 0.05) {
+                    createParticle(Math.random() * canvas.width, Math.random() * canvas.height * 0.5);
+                }
+
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    const p = particles[i];
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += 0.1; // gravity
+                    p.alpha -= 0.01;
+                    if (p.alpha <= 0) {
+                        particles.splice(i, 1);
+                        continue;
+                    }
+                    ctx.globalAlpha = p.alpha;
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        function finishRace(isDNF, reason = "") {
+            race.active = false;
+            document.getElementById('screen-game').classList.remove('active');
+            document.getElementById('screen-report').classList.add('active');
+            const report = document.getElementById('report-details');
+            
+            if(isDNF) {
+                document.getElementById('report-title').innerText = "RACE ENDED: DNF";
+                report.innerHTML = `<h2 style="color:var(--f1-red)">${reason}</h2><p>You failed to finish the race.</p>`;
+            } else {
+                const pos = drivers.sort((a,b) => (b.dist + b.lap*race.track.len) - (a.dist + a.lap*race.track.len)).findIndex(d => d.isPlayer) + 1;
+                let podiumClass = "";
+                if (pos === 1) podiumClass = "color: #ffd700; font-size: 3rem;";
+                else if (pos === 2) podiumClass = "color: #c0c0c0; font-size: 2.5rem;";
+                else if (pos === 3) podiumClass = "color: #cd7f32; font-size: 2rem;";
+
+                report.innerHTML = `<h1 class="bold italic" style="${podiumClass}">P${pos}</h1>
+                                   <p class="bold" style="margin-bottom: 5px;">GRAND PRIX COMPLETE</p>
+                                   <p style="color:#aaa;">Driver: ${race.driver.code} | Track: ${race.track.name}</p>`;
+                
+                if (pos <= 3) {
+                    startFireworks();
+                    document.getElementById('report-title').innerText = "PODIUM FINISH!";
+                } else {
+                    document.getElementById('report-title').innerText = "RACE RESULTS";
+                }
+            }
+        }
+    </script>
+</body>
+</html>
