@@ -357,16 +357,22 @@
 
         // --- KEYPAD LOGIC ---
         function keyPress(num) {
-            if (currentState.currentInput.length < 6) {
+            if (currentState.currentInput.length < 10) {
                 sounds.tap();
                 currentState.currentInput += num;
                 updateKeypadDisplay();
             }
         }
 
+        /**
+         * UPDATED: Removes only the last digit instead of clearing all.
+         */
         function keyClear() {
-            currentState.currentInput = '';
-            updateKeypadDisplay();
+            if (currentState.currentInput.length > 0) {
+                sounds.tap();
+                currentState.currentInput = currentState.currentInput.slice(0, -1);
+                updateKeypadDisplay();
+            }
         }
 
         function updateKeypadDisplay() {
@@ -463,7 +469,8 @@
         function handleFailure() {
             sounds.fail();
             flashLED('red');
-            if (currentState.activeScreen === 'keypad') keyClear();
+            // We keep the input for the user to fix the last digit if needed.
+            // if (currentState.activeScreen === 'keypad') keyClear();
         }
 
         function flashLED(status) {
@@ -505,7 +512,6 @@
             script.onload = function() {
                 if (window.EXTERNAL_RIDDLES) {
                     RIDDLES = window.EXTERNAL_RIDDLES;
-                    // Clear message on success or show specific confirmation if desired
                     setStatus('External riddles loaded', 'חידות חיצוניות נטענו');
                     setTimeout(() => setStatus('', ''), 3000);
                 } else {
