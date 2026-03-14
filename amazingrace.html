@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Amazing Race Hub</title>
+
+    <script>
+        /**
+         * ==========================================
+         * RIDDLE CONFIGURATION (Modify Here)
+         * ==========================================
+         */
+        const RIDDLES = [
+            { type: 'code', answer: '12345', text: 'Great job! Now look under the blue sofa in the living room.' },
+            { type: 'code', answer: '0852', text: 'You found it! Your next clue is taped to the bottom of the kitchen table.' },
+            { type: 'sequence', answer: ['red', 'blue', 'blue', 'red'], text: 'The pattern is unlocked. Go to the garden and find the tallest tree.' },
+            { type: 'sequence', answer: ['red', 'blue', 'green', 'red'], text: 'A secret path opens... Check inside the mailbox!' },
+            { type: 'text', answer: ["za'atar", "zaatar", "זעתר"], text: 'Spicy! The next clue is hidden in the spice rack.' },
+            { type: 'text', answer: ["password", "pass word"], text: 'Simple but effective. Look behind the big mirror in the hallway.' }
+        ];
+    </script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-blue: #00f2ff;
+            --neon-red: #ff0055;
+            --neon-green: #39ff14;
+            --neon-yellow: #fefe33;
+            --bg-dark: #0a0a0c;
+            --card-bg: #16161a;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: #e0e0e0;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
+
+        /* Neon Glows */
+        .glow-blue { box-shadow: 0 0 15px var(--neon-blue); border-color: var(--neon-blue); }
+        .glow-red { box-shadow: 0 0 15px var(--neon-red); border-color: var(--neon-red); }
+        .glow-green { box-shadow: 0 0 15px var(--neon-green); border-color: var(--neon-green); }
+        .glow-yellow { box-shadow: 0 0 15px var(--neon-yellow); border-color: var(--neon-yellow); }
+
+        .btn-mode {
+            background: var(--card-bg);
+            transition: all 0.3s ease;
+            border: 1px solid #333;
+        }
+
+        .btn-mode:active {
+            transform: scale(0.95);
+            background: #222;
+        }
+
+        /* Color Block Styles */
+        .color-block {
+            aspect-ratio: 1/1;
+            border-radius: 12px;
+            transition: opacity 0.1s, transform 0.1s;
+            cursor: pointer;
+        }
+        .color-block:active {
+            opacity: 0.6;
+            transform: scale(0.92);
+        }
+
+        /* Keypad Styles */
+        .key {
+            background: #222;
+            border: 1px solid #444;
+            border-radius: 50%;
+            aspect-ratio: 1/1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-family: 'Orbitron', sans-serif;
+        }
+        .key:active { background: #444; }
+
+        /* Screen Transitions */
+        .screen {
+            position: absolute;
+            inset: 0;
+            display: none;
+            flex-direction: column;
+            padding: 1.5rem;
+            animation: fadeIn 0.4s ease-out;
+        }
+        .screen.active { display: flex; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* LED Indicator */
+        .led {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #333;
+            transition: background 0.3s;
+        }
+        .led.active-red { background: var(--neon-red); box-shadow: 0 0 10px var(--neon-red); }
+        .led.active-green { background: var(--neon-green); box-shadow: 0 0 10px var(--neon-green); }
+
+        /* Custom Modal */
+        #riddle-modal {
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app" class="relative h-screen w-full max-w-md mx-auto overflow-hidden">
+        
+        <!-- HOME SCREEN -->
+        <div id="screen-home" class="screen active justify-center">
+            <!-- Centered Titles for the Main Screen -->
+            <div class="flex flex-col items-center mb-12 w-full px-2 text-center">
+                <h1 class="font-orbitron text-xl tracking-widest text-white opacity-80 uppercase">AMAZING RACE</h1>
+                <h1 class="text-4xl text-[var(--neon-blue)] font-bold mt-1" dir="rtl">המירוץ למיליון!</h1>
+            </div>
+            
+            <div class="space-y-4">
+                <button onclick="switchScreen('keypad')" class="btn-mode w-full p-6 rounded-2xl flex items-center group">
+                    <span class="text-2xl w-10">🔢</span>
+                    <div class="flex-grow flex justify-between items-center font-bold px-2">
+                        <span class="text-sm uppercase tracking-wider opacity-60">Code Entry</span>
+                        <span class="text-lg" dir="rtl">הכנס קוד</span>
+                    </div>
+                    <span class="text-gray-500 group-hover:text-[var(--neon-blue)] ml-2">→</span>
+                </button>
+
+                <button onclick="switchScreen('simon')" class="btn-mode w-full p-6 rounded-2xl flex items-center group">
+                    <span class="text-2xl w-10">🟦</span>
+                    <div class="flex-grow flex justify-between items-center font-bold px-2">
+                        <span class="text-sm uppercase tracking-wider opacity-60">Color Sequence</span>
+                        <span class="text-lg" dir="rtl">רצף צבעים</span>
+                    </div>
+                    <span class="text-gray-500 group-hover:text-[var(--neon-green)] ml-2">→</span>
+                </button>
+
+                <button onclick="switchScreen('text')" class="btn-mode w-full p-6 rounded-2xl flex items-center group">
+                    <span class="text-2xl w-10">✍️</span>
+                    <div class="flex-grow flex justify-between items-center font-bold px-2">
+                        <span class="text-sm uppercase tracking-wider opacity-60">Word Cipher</span>
+                        <span class="text-lg" dir="rtl">הכנס מילה</span>
+                    </div>
+                    <span class="text-gray-500 group-hover:text-[var(--neon-yellow)] ml-2">→</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- KEYPAD SCREEN -->
+        <div id="screen-keypad" class="screen">
+            <div class="flex items-center justify-between mb-8">
+                <button onclick="goHome()" class="text-gray-400 font-bold flex items-center gap-1">
+                    <span>← Back</span>
+                    <span class="mx-1 opacity-40">|</span>
+                    <span dir="rtl">חזרה</span>
+                </button>
+                <div id="led-keypad" class="led"></div>
+            </div>
+            <div class="text-center mb-6">
+                <h2 class="text-lg font-bold">
+                    <span class="font-orbitron text-xs text-gray-500 uppercase tracking-widest">ENTER ACCESS CODE</span>
+                    <span class="mx-1 opacity-30">-</span>
+                    <span dir="rtl">הכנס קוד גישה</span>
+                </h2>
+            </div>
+            <div id="keypad-display" class="bg-black/50 border border-white/10 p-4 rounded-lg text-center font-orbitron text-2xl h-16 flex items-center justify-center mb-8 text-[var(--neon-blue)]">
+                <!-- Display digits here -->
+            </div>
+            <div class="grid grid-cols-3 gap-4 px-4">
+                <button class="key" onclick="keyPress('1')">1</button>
+                <button class="key" onclick="keyPress('2')">2</button>
+                <button class="key" onclick="keyPress('3')">3</button>
+                <button class="key" onclick="keyPress('4')">4</button>
+                <button class="key" onclick="keyPress('5')">5</button>
+                <button class="key" onclick="keyPress('6')">6</button>
+                <button class="key" onclick="keyPress('7')">7</button>
+                <button class="key" onclick="keyPress('8')">8</button>
+                <button class="key" onclick="keyPress('9')">9</button>
+                <button class="key text-[9px] text-red-500 font-bold flex flex-col items-center justify-center leading-tight" onclick="keyClear()">
+                    <span>CLR</span>
+                    <span>מחק</span>
+                </button>
+                <button class="key" onclick="keyPress('0')">0</button>
+                <button class="key text-[9px] text-green-500 font-bold flex flex-col items-center justify-center leading-tight" onclick="keySubmit()">
+                    <span>OK</span>
+                    <span>אישור</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- SIMON SCREEN -->
+        <div id="screen-simon" class="screen">
+            <div class="flex items-center justify-between mb-8">
+                <button onclick="goHome()" class="text-gray-400 font-bold flex items-center gap-1">
+                    <span>← Back</span>
+                    <span class="mx-1 opacity-40">|</span>
+                    <span dir="rtl">חזרה</span>
+                </button>
+                <div id="led-simon" class="led"></div>
+            </div>
+            <div class="text-center mb-8">
+                <h2 class="text-lg font-bold">
+                    <span class="font-orbitron text-xs text-gray-500 uppercase tracking-widest">TAP SEQUENCE</span>
+                    <span class="mx-1 opacity-30">-</span>
+                    <span dir="rtl">הקש את הרצף</span>
+                </h2>
+            </div>
+            <div class="grid grid-cols-2 gap-4 aspect-square max-w-[300px] mx-auto w-full">
+                <div onclick="simonTap('red')" class="color-block bg-[var(--neon-red)] opacity-80 glow-red"></div>
+                <div onclick="simonTap('green')" class="color-block bg-[var(--neon-green)] opacity-80 glow-green"></div>
+                <div onclick="simonTap('blue')" class="color-block bg-[var(--neon-blue)] opacity-80 glow-blue"></div>
+                <div onclick="simonTap('yellow')" class="color-block bg-[var(--neon-yellow)] opacity-80 glow-yellow"></div>
+            </div>
+            <div class="mt-8 text-center text-gray-500 text-[10px] font-orbitron tracking-widest uppercase font-bold">
+                Monitoring Input Stream - מנטר קלט...
+            </div>
+            <div class="mt-4 flex justify-center gap-2" id="simon-progress">
+                <!-- dots for current sequence history -->
+            </div>
+        </div>
+
+        <!-- TEXT SCREEN -->
+        <div id="screen-text" class="screen">
+            <div class="flex items-center justify-between mb-8">
+                <button onclick="goHome()" class="text-gray-400 font-bold flex items-center gap-1">
+                    <span>← Back</span>
+                    <span class="mx-1 opacity-40">|</span>
+                    <span dir="rtl">חזרה</span>
+                </button>
+                <div id="led-text" class="led"></div>
+            </div>
+            <div class="text-center mb-8">
+                <h2 class="text-lg font-bold">
+                    <span class="font-orbitron text-xs text-gray-500 uppercase tracking-widest">ENTRY CIPHER</span>
+                    <span class="mx-1 opacity-30">-</span>
+                    <span dir="rtl">פענוח צופן</span>
+                </h2>
+            </div>
+            <div class="space-y-6">
+                <input type="text" id="text-input" placeholder="Enter word... / הכנס מילה..." 
+                    onkeydown="if(event.key === 'Enter') { event.preventDefault(); event.stopPropagation(); textSubmit(); }"
+                    class="w-full bg-black/50 border-b-2 border-[var(--neon-blue)] p-4 text-xl text-center focus:outline-none text-white placeholder-gray-700">
+                <button onclick="textSubmit()" class="w-full p-6 bg-[var(--neon-blue)] text-black font-bold rounded-2xl active:scale-95 transition-transform flex justify-between items-center px-8">
+                    <span class="font-orbitron tracking-widest text-xs opacity-70">VALIDATE</span>
+                    <span class="text-xl">אישור</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- RIDDLE RESULT MODAL -->
+        <div id="riddle-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-8">
+            <div class="bg-[var(--card-bg)] w-full rounded-3xl border border-white/20 p-8 text-center glow-blue">
+                <div class="text-5xl mb-6">🔓</div>
+                <div class="mb-4">
+                    <h3 class="font-bold text-[var(--neon-blue)] text-xl flex flex-col">
+                        <span class="font-orbitron text-xs tracking-widest opacity-70 mb-1">ACCESS GRANTED</span>
+                        <span dir="rtl">גישה אושרה</span>
+                    </h3>
+                </div>
+                <div id="riddle-content" class="text-lg mb-8 leading-relaxed">
+                    <!-- Next riddle text -->
+                </div>
+                <button onclick="closeModal()" class="w-full py-4 bg-white text-black font-bold rounded-xl flex justify-between items-center px-8">
+                    <span class="font-orbitron text-xs opacity-70">OK</span>
+                    <span class="text-lg">אישור</span>
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        /**
+         * ==========================================
+         * CORE ENGINE (Logic & Behavior)
+         * ==========================================
+         */
+
+        // --- STATE MANAGEMENT ---
+        let currentState = {
+            currentInput: '',
+            currentSequence: [], // Used for Simon mode
+            activeScreen: 'home'
+        };
+
+        // --- AUDIO ENGINE ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playTone(freq, type, duration) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        const sounds = {
+            tap: () => playTone(440, 'sine', 0.1),
+            success: () => {
+                playTone(523.25, 'sine', 0.2);
+                setTimeout(() => playTone(659.25, 'sine', 0.2), 150);
+                setTimeout(() => playTone(783.99, 'sine', 0.4), 300);
+            },
+            fail: () => {
+                playTone(200, 'sawtooth', 0.2);
+                playTone(150, 'sawtooth', 0.4);
+            }
+        };
+
+        // --- CORE NAVIGATION ---
+        function switchScreen(screenId) {
+            sounds.tap();
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(`screen-${screenId}`).classList.add('active');
+            currentState.activeScreen = screenId;
+            keyClear();
+            simonReset();
+            const textInput = document.getElementById('text-input');
+            textInput.value = '';
+            if (screenId === 'text') {
+                setTimeout(() => textInput.focus(), 100);
+            }
+        }
+
+        function goHome() {
+            switchScreen('home');
+        }
+
+        // --- KEYPAD LOGIC ---
+        function keyPress(num) {
+            if (currentState.currentInput.length < 6) {
+                sounds.tap();
+                currentState.currentInput += num;
+                updateKeypadDisplay();
+            }
+        }
+
+        function keyClear() {
+            currentState.currentInput = '';
+            updateKeypadDisplay();
+        }
+
+        function updateKeypadDisplay() {
+            const el = document.getElementById('keypad-display');
+            if (el) el.innerText = currentState.currentInput;
+        }
+
+        function keySubmit() {
+            validateInput('code', currentState.currentInput);
+        }
+
+        // --- SIMON LOGIC (STATE MACHINE) ---
+        function simonTap(color) {
+            sounds.tap();
+            currentState.currentSequence.push(color);
+            
+            // Limit sequence history (last 12 taps)
+            if (currentState.currentSequence.length > 12) {
+                currentState.currentSequence.shift();
+            }
+            
+            updateSimonProgress();
+            
+            // State Machine check
+            const matchingRiddle = RIDDLES.find(r => {
+                if (r.type !== 'sequence') return false;
+                const ans = r.answer;
+                if (currentState.currentSequence.length < ans.length) return false;
+                const recentHistory = currentState.currentSequence.slice(-ans.length);
+                return JSON.stringify(recentHistory) === JSON.stringify(ans);
+            });
+
+            if (matchingRiddle) {
+                handleSuccess(matchingRiddle.text);
+            }
+        }
+
+        function simonReset() {
+            currentState.currentSequence = [];
+            updateSimonProgress();
+        }
+
+        function updateSimonProgress() {
+            const container = document.getElementById('simon-progress');
+            if (!container) return;
+            container.innerHTML = '';
+            currentState.currentSequence.forEach(color => {
+                const dot = document.createElement('div');
+                const colorMap = {
+                    red: 'bg-red-500',
+                    blue: 'bg-cyan-500',
+                    green: 'bg-green-500',
+                    yellow: 'bg-yellow-400'
+                };
+                dot.className = `w-3 h-3 rounded-full ${colorMap[color]} opacity-60 shadow-lg`;
+                container.appendChild(dot);
+            });
+        }
+
+        // --- TEXT LOGIC ---
+        function textSubmit() {
+            const val = document.getElementById('text-input').value.trim();
+            validateInput('text', val);
+        }
+
+        // --- VALIDATION ENGINE ---
+        function validateInput(type, input) {
+            let foundRiddle = null;
+
+            if (type === 'code' || type === 'text') {
+                foundRiddle = RIDDLES.find(r => {
+                    if (r.type !== type) return false;
+                    if (Array.isArray(r.answer)) {
+                        return r.answer.some(a => a.toLowerCase() === input.toLowerCase());
+                    }
+                    return r.answer.toLowerCase() === input.toLowerCase();
+                });
+            }
+
+            if (foundRiddle) {
+                handleSuccess(foundRiddle.text);
+            } else {
+                handleFailure();
+            }
+        }
+
+        function handleSuccess(text) {
+            sounds.success();
+            flashLED('green');
+            document.getElementById('riddle-content').innerText = text;
+            document.getElementById('riddle-modal').classList.remove('hidden');
+        }
+
+        function handleFailure() {
+            sounds.fail();
+            flashLED('red');
+            if (currentState.activeScreen === 'keypad') keyClear();
+        }
+
+        function flashLED(status) {
+            const led = document.getElementById(`led-${currentState.activeScreen}`);
+            if (!led) return;
+            const className = status === 'green' ? 'active-green' : 'active-red';
+            led.classList.add(className);
+            setTimeout(() => led.classList.remove(className), 1000);
+        }
+
+        function closeModal() {
+            document.getElementById('riddle-modal').classList.add('hidden');
+            goHome();
+        }
+
+        // --- GLOBAL EVENT LISTENERS ---
+        
+        // Listen for Enter key globally to close the modal if it's open
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const modal = document.getElementById('riddle-modal');
+                if (modal && !modal.classList.contains('hidden')) {
+                    closeModal();
+                }
+            }
+        });
+
+        document.body.addEventListener('click', () => {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }, { once: true });
+
+    </script>
+</body>
+</html>
