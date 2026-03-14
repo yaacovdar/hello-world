@@ -200,7 +200,7 @@
                 <button class="key" onclick="keyPress('7')">7</button>
                 <button class="key" onclick="keyPress('8')">8</button>
                 <button class="key" onclick="keyPress('9')">9</button>
-                <button class="key text-[9px] text-red-500 font-bold flex flex-col items-center justify-center leading-tight" onclick="keyClear()">
+                <button class="key text-[9px] text-red-500 font-bold flex flex-col items-center justify-center leading-tight" onclick="keyBackspace()">
                     <span>CLR</span>
                     <span>מחק</span>
                 </button>
@@ -342,8 +342,11 @@
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(`screen-${screenId}`).classList.add('active');
             currentState.activeScreen = screenId;
-            keyClear();
+            
+            // Fixed: Use keyFullReset instead of the backspace-style clear
+            keyFullReset();
             simonReset();
+            
             const textInput = document.getElementById('text-input');
             if (textInput) textInput.value = '';
             if (screenId === 'text') {
@@ -365,14 +368,22 @@
         }
 
         /**
-         * UPDATED: Removes only the last digit instead of clearing all.
+         * Removes only the last digit (for manual CLR button).
          */
-        function keyClear() {
+        function keyBackspace() {
             if (currentState.currentInput.length > 0) {
                 sounds.tap();
                 currentState.currentInput = currentState.currentInput.slice(0, -1);
                 updateKeypadDisplay();
             }
+        }
+
+        /**
+         * Clears everything (for automatic screen transitions).
+         */
+        function keyFullReset() {
+            currentState.currentInput = '';
+            updateKeypadDisplay();
         }
 
         function updateKeypadDisplay() {
@@ -469,8 +480,6 @@
         function handleFailure() {
             sounds.fail();
             flashLED('red');
-            // We keep the input for the user to fix the last digit if needed.
-            // if (currentState.activeScreen === 'keypad') keyClear();
         }
 
         function flashLED(status) {
