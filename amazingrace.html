@@ -8,10 +8,10 @@
     <script>
         /**
          * ==========================================
-         * RIDDLE CONFIGURATION (Modify Here)
+         * DEFAULT RIDDLE CONFIGURATION
          * ==========================================
          */
-        const RIDDLES = [
+        const DEFAULT_RIDDLES = [
             { type: 'code', answer: '12345', text: 'Great job! Now look under the blue sofa in the living room.' },
             { type: 'code', answer: '0852', text: 'You found it! Your next clue is taped to the bottom of the kitchen table.' },
             { type: 'sequence', answer: ['red', 'blue', 'blue', 'red'], text: 'The pattern is unlocked. Go to the garden and find the tallest tree.' },
@@ -19,6 +19,9 @@
             { type: 'text', answer: ["za'atar", "zaatar", "זעתר"], text: 'Spicy! The next clue is hidden in the spice rack.' },
             { type: 'text', answer: ["password", "pass word"], text: 'Simple but effective. Look behind the big mirror in the hallway.' }
         ];
+
+        // This will be the active list of riddles
+        let RIDDLES = DEFAULT_RIDDLES;
     </script>
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -159,6 +162,11 @@
                     </div>
                     <span class="text-gray-500 group-hover:text-[var(--neon-yellow)] ml-2">→</span>
                 </button>
+            </div>
+
+            <!-- Loader Warning Indicator -->
+            <div id="loader-warning" class="absolute bottom-10 left-0 right-0 text-center opacity-40 text-[10px] uppercase font-bold tracking-widest flex flex-col gap-1 transition-opacity duration-500">
+                <!-- Status text injected here -->
             </div>
         </div>
 
@@ -337,7 +345,7 @@
             keyClear();
             simonReset();
             const textInput = document.getElementById('text-input');
-            textInput.value = '';
+            if (textInput) textInput.value = '';
             if (screenId === 'text') {
                 setTimeout(() => textInput.focus(), 100);
             }
@@ -471,9 +479,49 @@
             goHome();
         }
 
+        // --- DATA LOADER LOGIC ---
+
+        function setStatus(en, he) {
+            const el = document.getElementById('loader-warning');
+            if (!el) return;
+            el.innerHTML = `
+                <span>${en}</span>
+                <span dir="rtl">${he}</span>
+            `;
+        }
+
+        function initDataLoader() {
+            const params = new URLSearchParams(window.location.search);
+            const externalFile = params.get('data');
+
+            if (!externalFile) {
+                setStatus('Using default riddles', 'משתמש בחידות ברירת המחדל');
+                return;
+            }
+
+            const script = document.createElement('script');
+            script.src = externalFile;
+            
+            script.onload = function() {
+                if (window.EXTERNAL_RIDDLES) {
+                    RIDDLES = window.EXTERNAL_RIDDLES;
+                    // Clear message on success or show specific confirmation if desired
+                    setStatus('External riddles loaded', 'חידות חיצוניות נטענו');
+                    setTimeout(() => setStatus('', ''), 3000);
+                } else {
+                    setStatus("Can't open riddles file (data missing)", "לא ניתן לפתוח את קובץ החידות (נתונים חסרים)");
+                }
+            };
+
+            script.onerror = function() {
+                setStatus("Can't open riddles file", "לא ניתן לפתוח את קובץ החידות");
+            };
+
+            document.head.appendChild(script);
+        }
+
         // --- GLOBAL EVENT LISTENERS ---
         
-        // Listen for Enter key globally to close the modal if it's open
         window.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 const modal = document.getElementById('riddle-modal');
@@ -488,6 +536,9 @@
                 audioCtx.resume();
             }
         }, { once: true });
+
+        // Run loader on startup
+        window.onload = initDataLoader;
 
     </script>
 </body>
