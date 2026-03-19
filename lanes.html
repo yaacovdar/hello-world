@@ -303,6 +303,7 @@
                     GATE: '26px serif',
                     CHAOS_EMOJI: '45px serif',
                     ENEMY_PHALANX: '24px serif',
+                    SWARM_ENEMY: '16px serif',
                     ELITE_BASE_SIZE: 48,
                     PLAYER: '24px serif',
                     ANN_BASE_SIZE: 120
@@ -313,6 +314,7 @@
                     BULLET: '#facc15',
                     LOCKED_GATE_BG: 'rgba(71, 85, 105, 0.9)',
                     LOCKED_GATE_STROKE: '#94a3b8',
+                    ACTIVE_GATE_BAR: '#60a5fa',
                     BAR_BG: 'rgba(0,0,0,0.5)',
                     BAR_BG_SOLID: 'rgba(0,0,0,0.6)',
                     HEALTH_ENEMY: '#ef4444',
@@ -662,7 +664,17 @@
                 this.annihilateVisualTimer = 0;
                 this.growthBurstRemaining = 0;
                 
-                this.shuffleLanes(true);
+                if (this.isChallenge) {
+                    this.laneRoles = [ROLES.EVOLUTION, ROLES.CHAOS, ROLES.GROWTH, ROLES.CHAOS];
+                } else {
+                    this.laneRoles = [ROLES.GROWTH, ROLES.EVOLUTION, ROLES.CHAOS];
+                }
+
+                for (let i = this.laneRoles.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [this.laneRoles[i], this.laneRoles[j]] = [this.laneRoles[j], this.laneRoles[i]];
+                }
+                
                 this.lastSpawns = new Array(this.numLanes).fill(0).map((_, i) => performance.now() + (i * 450));
                 
                 this.bannerShownThisRun = false;
@@ -731,20 +743,14 @@
             }
 
             shuffleLanes(silent = false) {
-                let pool = [];
-                if (this.isChallenge) {
-                    pool = [ROLES.EVOLUTION, ROLES.CHAOS, ROLES.GROWTH, ROLES.CHAOS];
-                    const shift = Math.floor(Math.random() * pool.length);
-                    for(let i = 0; i < shift; i++) pool.push(pool.shift());
-                } else {
-                    pool = [ROLES.GROWTH, ROLES.EVOLUTION, ROLES.CHAOS];
-                    for (let i = pool.length - 1; i > 0; i--) {
-                        const j = Math.floor(Math.random() * (i + 1));
-                        [pool[i], pool[j]] = [pool[j], pool[i]];
-                    }
-                }
-                this.laneRoles = pool;
-                this.numLanes = pool.length; 
+                const n = this.laneRoles.length;
+                if (n < 2) return;
+                const i = Math.floor(Math.random() * n);
+                let j = Math.floor(Math.random() * (n - 1));
+                if (j >= i) j++; 
+                const temp = this.laneRoles[i];
+                this.laneRoles[i] = this.laneRoles[j];
+                this.laneRoles[j] = temp;
                 if (!silent) this.ui.triggerAlert('shift');
             }
 
@@ -815,7 +821,7 @@
                 let target = null;
                 let minDist = Infinity;
                 this.entities.forEach(e => {
-                    if (((e.type === 'enemy') || (e.type === 'evolutionGate' && !e.isUnlocked) || (e.type === 'superpowerGate' && !e.isUnlocked)) && e.lane === this.currentLane && e.y < playerY - 40) {
+                    if (((e.type === 'enemy') || (e.type === 'evolutionGate') || (e.type === 'superpowerGate' && !e.isUnlocked)) && e.lane === this.currentLane && e.y < playerY - 40) {
                         const d = playerY - e.y;
                         if (d < minDist) { minDist = d; target = e; }
                     }
@@ -841,7 +847,22 @@
                         } else if (target.type === 'superpowerGate') {
                             this.triggerSuperpower(target.powerType);
                             this.entities = this.entities.filter(ent => ent !== target);
-                        } else { target.isUnlocked = true; }
+                        } else if (target.type === 'evolutionGate') {
+                            if (!target.isUnlocked) {
+                                target.isUnlocked = true;
+                                target.health = target.maxHealth * 0.8;
+                                target.maxHealth = target.health;
+                            } else {
+                                this.score *= target.val;
+                                for (let i = 0; i < 15; i++) {
+                                    this.particles.push({ 
+                                        x: target.lane * (this.canvas.width / this.numLanes) + (this.canvas.width / this.numLanes / 2), 
+                                        y: target.y + 40, vx: (Math.random() - 0.5) * 10, vy: (Math.random() - 0.5) * 10, life: 1.5, color: '#60a5fa' 
+                                    });
+                                }
+                                this.entities = this.entities.filter(ent => ent !== target);
+                            }
+                        }
                     }
                 }
                 for (let i = this.bullets.length - 1; i >= 0; i--) {
@@ -912,29 +933,23 @@
             draw(engine) {
                 const ctx = this.ctx;
                 const theme = CONFIG.THEME;
-                
-                const actualLanes = engine.laneRoles.length;
-                if (actualLanes === 0) return;
-                const lw = this.canvas.width / actualLanes;
+                const lw = this.canvas.width / engine.laneRoles.length;
 
-                // Reset global state at start of frame to prevent leaks
                 ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
                 ctx.fillStyle = theme.COLORS.BACKGROUND;
                 ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'alphabetic';
 
-                for (let i = 0; i < actualLanes; i++) {
+                for (let i = 0; i < engine.laneRoles.length; i++) {
                     const role = engine.laneRoles[i];
-                    if (role) {
-                        ctx.fillStyle = role.color;
-                        ctx.fillRect(i * lw, 0, lw, this.canvas.height);
-                    }
+                    ctx.fillStyle = role.color;
+                    ctx.fillRect(i * lw, 0, lw, this.canvas.height);
                 }
 
                 ctx.strokeStyle = theme.COLORS.GRID;
                 ctx.setLineDash(theme.STYLES.GRID_DASH);
-                for (let i = 1; i < actualLanes; i++) {
+                for (let i = 1; i < engine.laneRoles.length; i++) {
                     ctx.beginPath(); ctx.moveTo(i * lw, 0); ctx.lineTo(i * lw, this.canvas.height); ctx.stroke();
                 }
                 ctx.setLineDash([]);
@@ -942,8 +957,6 @@
                 engine.entities.forEach(e => {
                     const s = this.STRATEGIES[e.type];
                     if (s) {
-                        // EXTREME ISOLATION: 
-                        // Wrap every entity draw in save/restore to prevent ANY state contamination
                         ctx.save();
                         ctx.textAlign = 'center';
                         ctx.textBaseline = 'alphabetic';
@@ -976,7 +989,6 @@
                 if (engine.annihilateVisualTimer > 0) {
                     ctx.save();
                     ctx.translate(this.canvas.width / 2, this.canvas.height / 2);
-                    // Use dynamic font size instead of scale to avoid browser emoji scaling glitches
                     const sc = 0.5 + (1 - engine.annihilateVisualTimer / 0.8) * 1.5;
                     ctx.font = `bold ${Math.floor(CONFIG.THEME.FONTS.ANN_BASE_SIZE * sc)}px serif`;
                     ctx.textAlign = 'center';
@@ -997,7 +1009,6 @@
             drawStandardGate(ctx, e, lw) {
                 const x = e.lane * lw;
                 const theme = CONFIG.THEME;
-                
                 if (e.role === ROLES.GROWTH) {
                     const gateW = lw * 0.6;
                     const off = (lw - gateW) / 2;
@@ -1022,14 +1033,15 @@
                 this._drawGateShell(ctx, x + off - 10, e.y, gateW + 20, e.height, 25, isL ? theme.COLORS.LOCKED_GATE_BG : 'rgba(37, 99, 235, 0.9)', isL ? theme.COLORS.LOCKED_GATE_STROKE : '#60a5fa');
                 ctx.fillStyle = theme.COLORS.TEXT_WHITE;
 
+                const barW = gateW - 20, barH = 8, barX = x + off + 10, barY = e.y + 58;
+                ctx.fillStyle = theme.COLORS.BAR_BG;
+                ctx.beginPath(); ctx.roundRect(barX, barY, barW, barH, 4); ctx.fill();
+                ctx.fillStyle = isL ? theme.COLORS.TEXT_WHITE : theme.COLORS.ACTIVE_GATE_BAR;
+                ctx.beginPath(); ctx.roundRect(barX, barY, barW * (e.health / e.maxHealth), barH, 4); ctx.fill();
+
                 if (isL) {
                     ctx.font = theme.FONTS.LOCKED;
                     ctx.fillText(CONFIG.ASSETS.LOCKED, x + lw / 2, e.y + 35);
-                    const barW = gateW - 20, barH = 8, barX = x + off + 10, barY = e.y + 58;
-                    ctx.fillStyle = theme.COLORS.BAR_BG;
-                    ctx.beginPath(); ctx.roundRect(barX, barY, barW, barH, 4); ctx.fill();
-                    ctx.fillStyle = theme.COLORS.TEXT_WHITE;
-                    ctx.beginPath(); ctx.roundRect(barX, barY, barW * (e.health / e.maxHealth), barH, 4); ctx.fill();
                 } else {
                     ctx.font = theme.FONTS.GATE;
                     const bat = e.val > 3 ? CONFIG.ASSETS.BATTERY.repeat(3) : (e.val > 2 ? CONFIG.ASSETS.BATTERY.repeat(2) : CONFIG.ASSETS.BATTERY);
@@ -1068,17 +1080,20 @@
                 if (e.isSwarm) {
                     ctx.font = theme.FONTS.SWARM_ENEMY;
                     const tf = engine.elapsedTime * 6.67; 
-                    e.swarmOffsets.forEach((o, i) => {
+                    // Calculate visible population based on health ratio
+                    // Ensuring at least one emoji remains while unit is alive
+                    const visiblePop = Math.max(1, Math.ceil(e.swarmOffsets.length * (e.health / e.maxHealth)));
+                    
+                    for (let i = 0; i < visiblePop; i++) {
+                        const o = e.swarmOffsets[i];
                         const jx = Math.sin(tf + i) * 3, jy = Math.cos(tf + i) * 3;
                         ctx.fillText(CONFIG.ASSETS.ENEMY, x + lw/2 + o.x + jx, e.y + 40 + o.y + jy);
-                    });
+                    }
                 } else if (e.forceType === 'phalanx') {
                     ctx.font = theme.FONTS.ENEMY_PHALANX;
                     ctx.fillText(CONFIG.ASSETS.ENEMY, x + lw/2 + e.phalanxXOffset, e.y + 45);
                 } else {
                     const sc = (0.6 + (Math.max(0, e.health) / e.maxHealth) * 0.6) * (e.isElite ? 1.4 : 1.1);
-                    // Standardize scaling by building it into the font string directly.
-                    // This is much more robust for emojis than ctx.scale().
                     ctx.font = `${Math.floor(theme.FONTS.ELITE_BASE_SIZE * sc)}px serif`; 
                     ctx.fillText(e.isElite ? CONFIG.ASSETS.ELITE : CONFIG.ASSETS.ENEMY, x + lw/2, e.y + 55);
                 }
@@ -1088,7 +1103,6 @@
                 const theme = CONFIG.THEME;
                 const pY = this.canvas.height - CONFIG.PLAYER.Y_OFFSET;
                 const sc = engine.swarm.getActiveCount(engine.score);
-                
                 ctx.font = theme.FONTS.PLAYER; 
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'alphabetic';
