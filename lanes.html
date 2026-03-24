@@ -479,11 +479,13 @@
                 this.data = this.load();
             }
             load() {
+                const defaults = { classic: 0, challenge: 0, silly: 0 };
                 try {
                     const saved = localStorage.getItem(this.STORAGE_KEY);
-                    return saved ? JSON.parse(saved) : { classic: 0, challenge: 0, silly: 0 };
+                    // Merge existing save with defaults to prevent missing keys
+                    return saved ? { ...defaults, ...JSON.parse(saved) } : defaults;
                 } catch (e) {
-                    return { classic: 0, challenge: 0, silly: 0 };
+                    return defaults;
                 }
             }
             updateDistance(dist, mode) {
@@ -609,12 +611,13 @@
         }
 
         class Gate extends Entity {
-            constructor(role, lane, y, op, val, isPositive, isUnlocked = true) {
+            constructor(role, lane, y, op, val, isPositive, isUnlocked = true, emoji = null) {
                 super(role, lane, y, 'gate');
                 this.op = op;
                 this.val = val;
                 this.isPositive = isPositive;
                 this.isUnlocked = isUnlocked;
+                this.emoji = emoji; // Store instance emoji to prevent flicker
                 this.isPercentage = (role === ROLES.GROWTH && val > 1) || (op === 'x');
                 if (!isPositive) {
                     this.health = CONFIG.SUPERPOWERS.AQUA.HAZARD_HEALTH; 
@@ -684,11 +687,16 @@
         }
 
         class EntityFactory {
-            static createEntities(role, lane, score, distance, lastSuperDist) {
+            static createEntities(role, lane, score, distance, lastSuperDist, mode) {
                 const spawnY = -100;
                 if (role === ROLES.GROWTH) {
-                    const val = Math.random() < CONFIG.ENTITIES.CHANCE.PERCENTAGE_GATE ? Math.ceil(score * 0.012) : 1;
-                    return [new Gate(role, lane, spawnY, '+', val, true)];
+                    const isPerc = Math.random() < CONFIG.ENTITIES.CHANCE.PERCENTAGE_GATE;
+                    const val = isPerc ? Math.ceil(score * 0.012) : 1;
+                    let emoji = null;
+                    if (isPerc && mode === 'silly') {
+                        emoji = Math.random() < 0.5 ? '🎉' : '🥳';
+                    }
+                    return [new Gate(role, lane, spawnY, '+', val, true, true, emoji)];
                 } else if (role === ROLES.EVOLUTION) {
                     if (distance - lastSuperDist > CONFIG.GAME.SUPERPOWER_RARITY_DIST) {
                         const r = Math.random();
@@ -775,7 +783,6 @@
 
                 // Lane Role Setup
                 if (mode === 'silly') {
-                    // 2 Chaos, 1 Growth, 2 Evolution
                     this.laneRoles = [ROLES.CHAOS, ROLES.CHAOS, ROLES.GROWTH, ROLES.EVOLUTION, ROLES.EVOLUTION];
                 } else if (mode === 'challenge') {
                     this.laneRoles = [ROLES.EVOLUTION, ROLES.CHAOS, ROLES.GROWTH, ROLES.CHAOS];
@@ -942,7 +949,7 @@
                     const baseInterval = (role === ROLES.EVOLUTION ? 5500 : (role === ROLES.GROWTH ? 700 : 1800));
                     const interval = baseInterval / ((this.speed * role.speedMult) / CONFIG.PHYSICS.INITIAL_SPEED);
                     if (now - this.lastSpawns[i] > interval) {
-                        this.entities.push(...EntityFactory.createEntities(role, i, this.score, this.distance, this.lastSuperDist));
+                        this.entities.push(...EntityFactory.createEntities(role, i, this.score, this.distance, this.lastSuperDist, this.mode));
                         this.lastSpawns[i] = now;
                     }
                 }
@@ -1180,7 +1187,7 @@
                     ctx.fillStyle = theme.COLORS.TEXT_WHITE;
                     ctx.font = theme.FONTS.GATE;
                     if (e.isPercentage) {
-                        const emoji = engine.mode === 'silly' ? (Math.random() < 0.5 ? '🎉' : '🥳') : engine.assets.POWERUP;
+                        const emoji = e.emoji || engine.assets.POWERUP;
                         this._drawTightEmojis(ctx, emoji, 3, x + lw / 2, e.y + 53, 26);
                     } else {
                         ctx.fillText(engine.assets.POWERUP, x + lw / 2, e.y + 53);
