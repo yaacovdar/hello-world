@@ -15,6 +15,11 @@
             --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
+        @keyframes blink {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.3; transform: scale(1.1); }
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -204,14 +209,20 @@
             width: 85%;
         }
 
-        /* Growthburst Charges UI */
-        #growth-charges {
+        /* Powerup Repository UI */
+        #power-repository {
             position: absolute;
             top: 20px;
             left: 20px;
             display: flex;
-            gap: 8px;
+            flex-direction: column;
+            gap: 10px;
             z-index: 25;
+        }
+
+        .repo-group {
+            display: flex;
+            gap: 8px;
         }
 
         .charge-icon {
@@ -227,6 +238,16 @@
             box-shadow: 0 0 12px rgba(216, 180, 254, 0.4);
             transition: opacity 0.3s, transform 0.3s;
         }
+
+        .aqua-icon {
+            border-color: #60a5fa;
+            box-shadow: 0 0 12px rgba(96, 165, 250, 0.4);
+            background: rgba(30, 58, 138, 0.4);
+        }
+
+        .blink-fast {
+            animation: blink 0.2s infinite;
+        }
     </style>
 </head>
 <body>
@@ -238,7 +259,10 @@
             </div>
         </div>
 
-        <div id="growth-charges"></div>
+        <div id="power-repository">
+            <div id="growth-charges" class="repo-group"></div>
+            <div id="aqua-status" class="repo-group"></div>
+        </div>
 
         <button class="btn-pause hidden" id="pause-btn">⏸</button>
 
@@ -368,7 +392,8 @@
                 HAZARD: '🔥',
                 LOCKED: '🔒',
                 ANNIHILATE: '☢️',
-                GROWTHBURST: '🌯'
+                GROWTHBURST: '🌯',
+                AQUA: '💦'
             }
         };
 
@@ -429,6 +454,7 @@
                     recordChallengeEnd: document.getElementById('record-challenge-end'),
                     pauseBtn: document.getElementById('pause-btn'),
                     growthCharges: document.getElementById('growth-charges'),
+                    aquaStatus: document.getElementById('aqua-status'),
                 };
             }
 
@@ -443,6 +469,7 @@
                 this.elements.gameOverScreen.classList.add('hidden');
                 this.elements.pauseBtn.classList.add('hidden');
                 this.renderGrowthCharges(0);
+                this.renderAquaStatus(0);
             }
 
             showPause() {
@@ -484,6 +511,17 @@
                 }
             }
 
+            renderAquaStatus(timer) {
+                this.elements.aquaStatus.innerHTML = '';
+                if (timer > 0) {
+                    const icon = document.createElement('div');
+                    icon.className = 'charge-icon aqua-icon';
+                    if (timer <= 1.0) icon.classList.add('blink-fast');
+                    icon.innerText = CONFIG.ASSETS.AQUA;
+                    this.elements.aquaStatus.appendChild(icon);
+                }
+            }
+
             triggerAlert(type) {
                 if (type === 'shift') {
                     this.elements.shiftAlert.style.opacity = '1';
@@ -518,6 +556,11 @@
                 this.isPositive = isPositive;
                 this.isUnlocked = isUnlocked;
                 this.isPercentage = (role === ROLES.GROWTH && val > 1) || (op === 'x');
+                // Give hazards health so they can be "put out"
+                if (!isPositive) {
+                    this.health = 25; 
+                    this.maxHealth = 25;
+                }
             }
         }
 
@@ -588,7 +631,8 @@
                     return [new Gate(role, lane, spawnY, '+', val, true)];
                 } else if (role === ROLES.EVOLUTION) {
                     if (distance - lastSuperDist > CONFIG.GAME.SUPERPOWER_RARITY_DIST) {
-                        const pType = Math.random() < 0.5 ? 'ANNIHILATE' : 'GROWTHBURST';
+                        const r = Math.random();
+                        const pType = r < 0.33 ? 'ANNIHILATE' : (r < 0.66 ? 'GROWTHBURST' : 'AQUA');
                         return [new SuperpowerGate(role, lane, spawnY, score, pType)];
                     }
                     return [new EvolutionGate(role, lane, spawnY, score)];
@@ -646,6 +690,7 @@
                 this.annihilateVisualTimer = 0;
                 this.growthBurstRemaining = 0;
                 this.nextBurstDist = 0;
+                this.aquaTimer = 0;
             }
 
             start(isChallenge = false) {
@@ -663,6 +708,7 @@
                 this.lastSuperDist = 0;
                 this.annihilateVisualTimer = 0;
                 this.growthBurstRemaining = 0;
+                this.aquaTimer = 0;
                 
                 if (this.isChallenge) {
                     this.laneRoles = [ROLES.EVOLUTION, ROLES.CHAOS, ROLES.GROWTH, ROLES.CHAOS];
@@ -687,6 +733,7 @@
                 this.paused = false;
                 this.ui.hideOverlays();
                 this.ui.renderGrowthCharges(0);
+                this.ui.renderAquaStatus(0);
             }
 
             togglePause() {
@@ -724,6 +771,9 @@
                     this.growthBurstRemaining = 4;
                     this.ui.renderGrowthCharges(this.growthBurstRemaining);
                     this.triggerBurst();
+                } else if (type === 'AQUA') {
+                    this.aquaTimer = 15;
+                    this.ui.renderAquaStatus(this.aquaTimer);
                 }
             }
 
@@ -785,6 +835,18 @@
                     this.triggerBurst();
                 }
 
+                if (this.aquaTimer > 0) {
+                    const prevTimer = this.aquaTimer;
+                    this.aquaTimer -= dt;
+                    // Trigger UI update when crossing the 1s threshold to start blinking
+                    if (prevTimer > 1.0 && this.aquaTimer <= 1.0) {
+                        this.ui.renderAquaStatus(this.aquaTimer);
+                    } else if (this.aquaTimer <= 0) {
+                        this.aquaTimer = 0;
+                        this.ui.renderAquaStatus(0);
+                    }
+                }
+
                 const rec = this.saveManager.getRecords();
                 const best = this.isChallenge ? rec.challenge : rec.classic;
                 if (!this.bannerShownThisRun && this.distance > best && best > 0) {
@@ -820,14 +882,22 @@
                 const playerY = this.canvas.height - CONFIG.PLAYER.Y_OFFSET;
                 let target = null;
                 let minDist = Infinity;
+                
                 this.entities.forEach(e => {
-                    if (((e.type === 'enemy') || (e.type === 'evolutionGate') || (e.type === 'superpowerGate' && !e.isUnlocked)) && e.lane === this.currentLane && e.y < playerY - 40) {
+                    // Aqua allows targeting fire hazards (negative gates)
+                    const isShootableHazard = this.aquaTimer > 0 && e.type === 'gate' && !e.isPositive;
+                    
+                    if (((e.type === 'enemy') || (e.type === 'evolutionGate') || (e.type === 'superpowerGate' && !e.isUnlocked) || isShootableHazard) && e.lane === this.currentLane && e.y < playerY - 40) {
                         const d = playerY - e.y;
                         if (d < minDist) { minDist = d; target = e; }
                     }
                 });
+
                 if (target) {
-                    target.health -= ((this.score * 0.72) + 21) * dt;
+                    let damage = ((this.score * 0.72) + 21) * dt;
+                    if (this.aquaTimer > 0) damage *= 1.25; // Pressurized firepower multiplier
+                    
+                    target.health -= damage;
                     this.fireTimer += dt;
                     if (this.fireTimer >= CONFIG.PLAYER.FIRE_RATE) {
                         this.bullets.push({ x: this.playerX + (Math.random() - 0.5) * 20, y: playerY - 20, targetY: target.y + 40 });
@@ -862,6 +932,15 @@
                                 }
                                 this.entities = this.entities.filter(ent => ent !== target);
                             }
+                        } else if (target.type === 'gate' && !target.isPositive) {
+                            // Hazard Extinguished!
+                            for (let i = 0; i < 10; i++) {
+                                this.particles.push({ 
+                                    x: target.lane * (this.canvas.width / this.numLanes) + (this.canvas.width / this.numLanes / 2), 
+                                    y: target.y + 40, vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6, life: 1, color: '#60a5fa' 
+                                });
+                            }
+                            this.entities = this.entities.filter(ent => ent !== target);
                         }
                     }
                 }
@@ -883,13 +962,20 @@
                         continue;
                     }
                     if (!e.isCollected && e.lane === this.currentLane && e.y + e.height > playerY && e.y < playerY + CONFIG.PLAYER.COLLISION_HEIGHT) {
-                        if ((e.type === 'gate' || e.type === 'evolutionGate') && e.isUnlocked) {
-                            e.isCollected = true;
-                            if (e.op === '+') this.score += e.val;
-                            else if (e.op === '-') this.score -= e.val;
-                            else if (e.op === 'x') this.score *= e.val;
-                            else if (e.op === '/') this.score = Math.floor(this.score / e.val);
-                            this.entities.splice(i, 1);
+                        if ((e.type === 'gate' || e.type === 'evolutionGate')) {
+                            const skipHazard = !e.isPositive && this.aquaTimer > 0;
+                            if (e.isUnlocked && !skipHazard) {
+                                e.isCollected = true;
+                                if (e.op === '+') this.score += e.val;
+                                else if (e.op === '-') this.score -= e.val;
+                                else if (e.op === 'x') this.score *= e.val;
+                                else if (e.op === '/') this.score = Math.floor(this.score / e.val);
+                                this.entities.splice(i, 1);
+                            } else if (skipHazard) {
+                                // Just ignore the hazard collision visually and logically
+                                e.isCollected = true;
+                                this.entities.splice(i, 1);
+                            }
                         } else if (e.type === 'enemy') {
                             this.score -= Math.ceil(e.health);
                             this.entities.splice(i, 1);
@@ -922,7 +1008,7 @@
                 this.canvas = canvas;
                 this.ctx = ctx;
                 this.STRATEGIES = {
-                    gate: (ctx, e, lw) => this.drawStandardGate(ctx, e, lw),
+                    gate: (ctx, e, lw, engine) => this.drawStandardGate(ctx, e, lw, engine),
                     evolutionGate: (ctx, e, lw) => this.drawEvolutionGate(ctx, e, lw),
                     superpowerGate: (ctx, e, lw) => this.drawSuperpowerGate(ctx, e, lw),
                     enemy: (ctx, e, lw, engine) => this.drawEnemy(ctx, e, lw, engine),
@@ -1006,7 +1092,7 @@
                 ctx.strokeStyle = strokeColor; ctx.lineWidth = 3; ctx.stroke();
             }
 
-            drawStandardGate(ctx, e, lw) {
+            drawStandardGate(ctx, e, lw, engine) {
                 const x = e.lane * lw;
                 const theme = CONFIG.THEME;
                 if (e.role === ROLES.GROWTH) {
@@ -1020,6 +1106,17 @@
                     ctx.fillStyle = theme.COLORS.TEXT_WHITE;
                     ctx.font = theme.FONTS.CHAOS_EMOJI;
                     ctx.fillText(CONFIG.ASSETS.HAZARD, x + lw / 2, e.y + 50);
+
+                    // If Aqua is active, show health bar for hazards to signal they can be extinguished
+                    if (engine.aquaTimer > 0) {
+                        const gateW = lw * 0.6;
+                        const off = (lw - gateW) / 2;
+                        const barW = gateW - 20, barH = 6, barX = x + off + 10, barY = e.y + 65;
+                        ctx.fillStyle = theme.COLORS.BAR_BG;
+                        ctx.beginPath(); ctx.roundRect(barX, barY, barW, barH, 3); ctx.fill();
+                        ctx.fillStyle = '#60a5fa';
+                        ctx.beginPath(); ctx.roundRect(barX, barY, barW * (e.health / e.maxHealth), barH, 3); ctx.fill();
+                    }
                 }
             }
 
@@ -1080,8 +1177,6 @@
                 if (e.isSwarm) {
                     ctx.font = theme.FONTS.SWARM_ENEMY;
                     const tf = engine.elapsedTime * 6.67; 
-                    // Calculate visible population based on health ratio
-                    // Ensuring at least one emoji remains while unit is alive
                     const visiblePop = Math.max(1, Math.ceil(e.swarmOffsets.length * (e.health / e.maxHealth)));
                     
                     for (let i = 0; i < visiblePop; i++) {
@@ -1103,14 +1198,30 @@
                 const theme = CONFIG.THEME;
                 const pY = this.canvas.height - CONFIG.PLAYER.Y_OFFSET;
                 const sc = engine.swarm.getActiveCount(engine.score);
+                
+                ctx.save();
                 ctx.font = theme.FONTS.PLAYER; 
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'alphabetic';
 
+                // Aqua Power Aura
+                if (engine.aquaTimer > 0) {
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = 'rgba(96, 165, 250, 0.8)';
+                    ctx.fillStyle = 'rgba(96, 165, 250, 0.15)';
+                    ctx.beginPath();
+                    ctx.ellipse(engine.playerX, pY + 15, 60, 45, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+
+                ctx.fillStyle = theme.COLORS.TEXT_WHITE;
                 for (let i = 0; i < sc; i++) {
                     const pos = engine.swarm.getMemberPosition(i, engine.playerX, pY, engine.elapsedTime);
                     ctx.fillText(CONFIG.ASSETS.PLAYER, pos.x, pos.y);
                 }
+                ctx.restore();
+
                 const barW = CONFIG.PLAYER.HEALTH_BAR_WIDTH, barH = CONFIG.PLAYER.HEALTH_BAR_HEIGHT;
                 const barX = engine.playerX - barW / 2, barY = pY - 35;
                 ctx.fillStyle = theme.COLORS.BAR_BG_SOLID;
