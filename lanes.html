@@ -57,7 +57,6 @@
             cursor: pointer;
         }
 
-        /* Overlays & UI */
         .overlay {
             position: absolute;
             top: 0;
@@ -154,7 +153,7 @@
         }
 
         .btn-alt {
-            background: #7f1d1d; /* Dark Scary Red */
+            background: #7f1d1d;
             box-shadow: 0 4px 15px rgba(127, 29, 29, 0.4);
         }
 
@@ -201,15 +200,6 @@
             border: 2px solid rgba(255,255,255,0.2);
         }
 
-        .final-stats-box {
-            background: rgba(255,255,255,0.05);
-            padding: 20px;
-            border-radius: 15px;
-            margin-bottom: 10px;
-            width: 85%;
-        }
-
-        /* Powerup Repository UI */
         #power-repository {
             position: absolute;
             top: 20px;
@@ -313,13 +303,15 @@
 
     <script>
         /**
-         * Central Game Configuration
+         * CENTRAL GAME CONFIGURATION
+         * Centralized Magic Numbers for easy balancing.
          */
         const CONFIG = {
             GAME: {
                 LANE_SHIFT_INTERVAL: 500,
                 RECORD_BANNER_DURATION: 5000,
                 SUPERPOWER_RARITY_DIST: 900,
+                SHIFT_ALERT_DURATION: 2000,
             },
             THEME: {
                 FONTS: {
@@ -343,11 +335,15 @@
                     BAR_BG_SOLID: 'rgba(0,0,0,0.6)',
                     HEALTH_ENEMY: '#ef4444',
                     HEALTH_PLAYER: '#22c55e',
-                    TEXT_WHITE: '#ffffff'
+                    TEXT_WHITE: '#ffffff',
+                    AQUA_AURA: 'rgba(96, 165, 250, 0.15)',
+                    AQUA_SHADOW: 'rgba(96, 165, 250, 0.8)',
+                    PURPLE_BURST: '#d8b4fe'
                 },
                 STYLES: {
                     GRID_DASH: [15, 15]
-                }
+                },
+                EMOJI_TIGHTNESS: 0.75
             },
             PLAYER: {
                 START_SCORE: 10,
@@ -360,14 +356,43 @@
                 HEALTH_BAR_WIDTH: 100,
                 HEALTH_BAR_HEIGHT: 10,
                 FIRE_RATE: 0.05,
+                DAMAGE: {
+                    BASE_COEFF: 0.72,
+                    BASE_FLAT: 21
+                },
+                SWARM_ANIMATION: {
+                    TIME_FACTOR: 5.55,
+                    JITTER_MAGNITUDE: 4,
+                    X_OFFSET: -12
+                }
+            },
+            SUPERPOWERS: {
+                AQUA: {
+                    DURATION: 15,
+                    DAMAGE_MULT: 1.25,
+                    BLINK_THRESHOLD: 1.0,
+                    HAZARD_HEALTH: 25
+                },
+                ANNIHILATE: {
+                    VISUAL_DURATION: 0.8,
+                    PARTICLE_COUNT: 20,
+                    FLASH_OPACITY: 1.0
+                },
+                GROWTHBURST: {
+                    CHARGES: 4,
+                    MULT: 4,
+                    BURST_COOLDOWN_DIST: 100,
+                    PARTICLE_COUNT: 30
+                }
             },
             PHYSICS: {
                 INITIAL_SPEED: 3.5,
                 MAX_SPEED: 14,
                 SPEED_SCALING: 3500,
                 BULLET_SPEED: 32,
-                PARTICLE_DECAY: 2.4,
+                PARTICLE_DECAY_RATE: 2.4, // Custom rate logic
                 FPS_BASELINE: 60,
+                DIST_PER_SPEED: 5,
             },
             ENTITIES: {
                 GATE_HEIGHT: 80,
@@ -375,13 +400,33 @@
                 PHALANX_SPACING: 60,
                 HEALTH_BAR_MAGNITUDE: 0.55,
                 HEALTH_BAR_HEIGHT: 8,
-                CHANCE_PHALANX: 0.2,
-                CHANCE_PERCENTAGE_GATE: 0.4,
-                CHANCE_SWARM: 0.5,
-                CHANCE_ELITE_BASE: 0.12,
-                CHANCE_CHAOS_GATE_NEGATIVE: 0.5,
-                DIFFICULTY_BASE_PROB: 0.4,
-                DIFFICULTY_SCALING_FACTOR: 1.5,
+                CHANCE: {
+                    PHALANX: 0.2,
+                    PERCENTAGE_GATE: 0.4,
+                    SWARM: 0.5,
+                    ELITE_BASE: 0.12,
+                    CHAOS_NEG: 0.5,
+                },
+                DIFFICULTY: {
+                    BASE_PROB: 0.4,
+                    MAX_PROB: 0.85,
+                    SCALING_FACTOR: 1.5,
+                },
+                HEALTH: {
+                    EVOLUTION_MULT: 1.75,
+                    EVOLUTION_UNLOCKED_RESET: 0.8,
+                    SUPERPOWER_MULT: 2.5,
+                    ENEMY_BASE_MULT: 0.45,
+                    ENEMY_BASE_FLAT: 12,
+                    ELITE_MULT: 2,
+                    PHALANX_MULT: 0.08,
+                    ENEMY_DEATH_PARTICLES: 12
+                },
+                SWARM_ENEMY: {
+                    TIME_FACTOR: 6.67,
+                    JITTER: 3,
+                    POPULATION: 15
+                }
             },
             ASSETS: {
                 PLAYER: '🏃',
@@ -408,7 +453,6 @@
                 this.STORAGE_KEY = 'legion_tactical_v2_save';
                 this.data = this.load();
             }
-
             load() {
                 try {
                     const saved = localStorage.getItem(this.STORAGE_KEY);
@@ -417,7 +461,6 @@
                     return { classic: 0, challenge: 0 };
                 }
             }
-
             updateDistance(dist, isChallenge) {
                 const key = isChallenge ? 'challenge' : 'classic';
                 if (dist > this.data[key]) {
@@ -427,13 +470,11 @@
                 }
                 return false;
             }
-
             persist() {
                 try {
                     localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.data));
                 } catch (e) {}
             }
-
             getRecords() { return this.data; }
         }
 
@@ -457,11 +498,9 @@
                     aquaStatus: document.getElementById('aqua-status'),
                 };
             }
-
             updateDistance(dist) {
                 this.elements.distHud.innerText = Math.floor(dist);
             }
-
             showStart(records) {
                 this.refreshRecords(records);
                 this.elements.startScreen.classList.remove('hidden');
@@ -471,19 +510,16 @@
                 this.renderGrowthCharges(0);
                 this.renderAquaStatus(0);
             }
-
             showPause() {
                 this.elements.pauseScreen.classList.remove('hidden');
                 this.elements.pauseBtn.classList.add('hidden');
             }
-
             hideOverlays() {
                 this.elements.startScreen.classList.add('hidden');
                 this.elements.pauseScreen.classList.add('hidden');
                 this.elements.gameOverScreen.classList.add('hidden');
                 this.elements.pauseBtn.classList.remove('hidden');
             }
-
             showGameOver(dist, reason, records) {
                 this.elements.failReason.innerText = reason;
                 this.elements.finalDist.innerText = Math.floor(dist);
@@ -491,7 +527,6 @@
                 this.elements.gameOverScreen.classList.remove('hidden');
                 this.elements.pauseBtn.classList.add('hidden');
             }
-
             refreshRecords(records) {
                 const c = `Classic Best: ${Math.floor(records.classic)}m`;
                 const x = `Challenge Best: ${Math.floor(records.challenge)}m`;
@@ -500,7 +535,6 @@
                 this.elements.recordClassicEnd.innerText = c;
                 this.elements.recordChallengeEnd.innerText = x;
             }
-
             renderGrowthCharges(count) {
                 this.elements.growthCharges.innerHTML = '';
                 for(let i = 0; i < count; i++) {
@@ -510,22 +544,20 @@
                     this.elements.growthCharges.appendChild(icon);
                 }
             }
-
             renderAquaStatus(timer) {
                 this.elements.aquaStatus.innerHTML = '';
                 if (timer > 0) {
                     const icon = document.createElement('div');
                     icon.className = 'charge-icon aqua-icon';
-                    if (timer <= 1.0) icon.classList.add('blink-fast');
+                    if (timer <= CONFIG.SUPERPOWERS.AQUA.BLINK_THRESHOLD) icon.classList.add('blink-fast');
                     icon.innerText = CONFIG.ASSETS.AQUA;
                     this.elements.aquaStatus.appendChild(icon);
                 }
             }
-
             triggerAlert(type) {
                 if (type === 'shift') {
                     this.elements.shiftAlert.style.opacity = '1';
-                    setTimeout(() => this.elements.shiftAlert.style.opacity = '0', 2000);
+                    setTimeout(() => this.elements.shiftAlert.style.opacity = '0', CONFIG.GAME.SHIFT_ALERT_DURATION);
                 } else if (type === 'record') {
                     this.elements.recordBanner.classList.add('show');
                     setTimeout(() => this.elements.recordBanner.classList.remove('show'), CONFIG.GAME.RECORD_BANNER_DURATION);
@@ -556,10 +588,9 @@
                 this.isPositive = isPositive;
                 this.isUnlocked = isUnlocked;
                 this.isPercentage = (role === ROLES.GROWTH && val > 1) || (op === 'x');
-                // Give hazards health so they can be "put out"
                 if (!isPositive) {
-                    this.health = 25; 
-                    this.maxHealth = 25;
+                    this.health = CONFIG.SUPERPOWERS.AQUA.HAZARD_HEALTH; 
+                    this.maxHealth = CONFIG.SUPERPOWERS.AQUA.HAZARD_HEALTH;
                 }
             }
         }
@@ -569,7 +600,7 @@
                 const val = 1.3 + Math.random() * 2.7;
                 super(role, lane, y, 'x', val, true, false);
                 this.type = 'evolutionGate'; 
-                this.health = score * 1.75;
+                this.health = score * CONFIG.ENTITIES.HEALTH.EVOLUTION_MULT;
                 this.maxHealth = this.health;
             }
         }
@@ -579,7 +610,7 @@
                 super(role, lane, y, 'ULT', 0, true, false);
                 this.type = 'superpowerGate';
                 this.powerType = powerType;
-                this.health = score * 2.5;
+                this.health = score * CONFIG.ENTITIES.HEALTH.SUPERPOWER_MULT;
                 this.maxHealth = this.health;
             }
         }
@@ -589,15 +620,15 @@
                 super(role, lane, y, 'enemy');
                 this.forceType = forceType;
                 this.phalanxXOffset = forceType === 'phalanx' ? (Math.random() - 0.5) * 20 : 0;
-                const eliteChance = CONFIG.ENTITIES.CHANCE_ELITE_BASE + (distance / 10000);
+                const eliteChance = CONFIG.ENTITIES.CHANCE.ELITE_BASE + (distance / 10000);
                 this.isElite = forceType === 'phalanx' ? false : (Math.random() < eliteChance);
-                const baseH = Math.floor(score * 0.45) + 12;
-                this.health = this.isElite ? baseH * 2 : (forceType === 'phalanx' ? score * 0.08 : baseH);
+                const baseH = Math.floor(score * CONFIG.ENTITIES.HEALTH.ENEMY_BASE_MULT) + CONFIG.ENTITIES.HEALTH.ENEMY_BASE_FLAT;
+                this.health = this.isElite ? baseH * CONFIG.ENTITIES.HEALTH.ELITE_MULT : (forceType === 'phalanx' ? score * CONFIG.ENTITIES.HEALTH.PHALANX_MULT : baseH);
                 this.maxHealth = this.health;
-                this.isSwarm = Math.random() < CONFIG.ENTITIES.CHANCE_SWARM && !this.isElite && !forceType;
+                this.isSwarm = Math.random() < CONFIG.ENTITIES.CHANCE.SWARM && !this.isElite && !forceType;
                 if (this.isSwarm) {
                     this.swarmOffsets = [];
-                    for (let j = 0; j < 15; j++) {
+                    for (let j = 0; j < CONFIG.ENTITIES.SWARM_ENEMY.POPULATION; j++) {
                         this.swarmOffsets.push({ x: (Math.random() - 0.5) * 55, y: (Math.random() - 0.5) * 45 });
                     }
                 }
@@ -616,10 +647,11 @@
             }
             getMemberPosition(index, leaderX, leaderY, gameTime) {
                 const offset = this.offsets[index % this.offsets.length];
-                const timeFactor = gameTime * 5.55; 
-                const jitterX = Math.sin(timeFactor + index) * 4;
-                const jitterY = Math.cos(timeFactor + index) * 4;
-                return { x: leaderX + offset.x + jitterX - 12, y: leaderY + offset.y + jitterY };
+                const anim = CONFIG.PLAYER.SWARM_ANIMATION;
+                const timeFactor = gameTime * anim.TIME_FACTOR; 
+                const jitterX = Math.sin(timeFactor + index) * anim.JITTER_MAGNITUDE;
+                const jitterY = Math.cos(timeFactor + index) * anim.JITTER_MAGNITUDE;
+                return { x: leaderX + offset.x + jitterX + anim.X_OFFSET, y: leaderY + offset.y + jitterY };
             }
         }
 
@@ -627,7 +659,7 @@
             static createEntities(role, lane, score, distance, lastSuperDist) {
                 const spawnY = -100;
                 if (role === ROLES.GROWTH) {
-                    const val = Math.random() < CONFIG.ENTITIES.CHANCE_PERCENTAGE_GATE ? Math.ceil(score * 0.012) : 1;
+                    const val = Math.random() < CONFIG.ENTITIES.CHANCE.PERCENTAGE_GATE ? Math.ceil(score * 0.012) : 1;
                     return [new Gate(role, lane, spawnY, '+', val, true)];
                 } else if (role === ROLES.EVOLUTION) {
                     if (distance - lastSuperDist > CONFIG.GAME.SUPERPOWER_RARITY_DIST) {
@@ -637,8 +669,9 @@
                     }
                     return [new EvolutionGate(role, lane, spawnY, score)];
                 } else {
-                    const diffProb = Math.min(0.85, CONFIG.ENTITIES.DIFFICULTY_BASE_PROB + (distance / CONFIG.PHYSICS.SPEED_SCALING * CONFIG.ENTITIES.DIFFICULTY_SCALING_FACTOR));
-                    if (Math.random() < CONFIG.ENTITIES.CHANCE_PHALANX) { 
+                    const diff = CONFIG.ENTITIES.DIFFICULTY;
+                    const diffProb = Math.min(diff.MAX_PROB, diff.BASE_PROB + (distance / CONFIG.PHYSICS.SPEED_SCALING * diff.SCALING_FACTOR));
+                    if (Math.random() < CONFIG.ENTITIES.CHANCE.PHALANX) { 
                         const phalanx = [];
                         for (let k = 0; k < CONFIG.ENTITIES.PHALANX_COUNT; k++) {
                             phalanx.push(new Enemy(role, lane, spawnY - (k * CONFIG.ENTITIES.PHALANX_SPACING), score, distance, 'phalanx'));
@@ -647,7 +680,7 @@
                     } else {
                         if (Math.random() < diffProb) return [new Enemy(role, lane, spawnY, score, distance)];
                         else {
-                            const isNeg = Math.random() < CONFIG.ENTITIES.CHANCE_CHAOS_GATE_NEGATIVE;
+                            const isNeg = Math.random() < CONFIG.ENTITIES.CHANCE.CHAOS_NEG;
                             const op = isNeg ? '-' : '/';
                             const val = op === '-' ? Math.floor(score * 0.2) + 10 : 2;
                             return [new Gate(role, lane, spawnY, op, val, false)];
@@ -683,8 +716,6 @@
                 this.fireTimer = 0;
                 this.swarm = new Swarm();
                 this.elapsedTime = 0; 
-                
-                // Superpower State
                 this.lastSuperDist = 0;
                 this.flashOpacity = 0;
                 this.annihilateVisualTimer = 0;
@@ -722,11 +753,9 @@
                 }
                 
                 this.lastSpawns = new Array(this.numLanes).fill(0).map((_, i) => performance.now() + (i * 450));
-                
                 this.bannerShownThisRun = false;
                 this.fireTimer = 0;
                 this.elapsedTime = 0;
-                
                 this.updateTargetX();
                 this.playerX = this.targetX;
                 this.active = true;
@@ -751,14 +780,15 @@
 
             triggerSuperpower(type) {
                 this.lastSuperDist = this.distance;
+                const sp = CONFIG.SUPERPOWERS;
 
                 if (type === 'ANNIHILATE') {
-                    this.flashOpacity = 1.0;
-                    this.annihilateVisualTimer = 0.8; 
+                    this.flashOpacity = sp.ANNIHILATE.FLASH_OPACITY;
+                    this.annihilateVisualTimer = sp.ANNIHILATE.VISUAL_DURATION; 
                     this.entities.forEach(e => {
                         if (e.type === 'enemy') {
                             e.isCollected = true;
-                            for (let i = 0; i < 20; i++) {
+                            for (let i = 0; i < sp.ANNIHILATE.PARTICLE_COUNT; i++) {
                                 this.particles.push({ 
                                     x: e.lane * (this.canvas.width / this.numLanes) + (this.canvas.width / this.numLanes / 2), 
                                     y: e.y + 40, vx: (Math.random() - 0.5) * 14, vy: (Math.random() - 0.5) * 14, life: 1.2, color: '#fef08a' 
@@ -768,26 +798,27 @@
                     });
                     this.entities = this.entities.filter(e => !e.isCollected);
                 } else if (type === 'GROWTHBURST') {
-                    this.growthBurstRemaining = 4;
+                    this.growthBurstRemaining = sp.GROWTHBURST.CHARGES;
                     this.ui.renderGrowthCharges(this.growthBurstRemaining);
                     this.triggerBurst();
                 } else if (type === 'AQUA') {
-                    this.aquaTimer = 15;
+                    this.aquaTimer = sp.AQUA.DURATION;
                     this.ui.renderAquaStatus(this.aquaTimer);
                 }
             }
 
             triggerBurst() {
-                this.score *= 4;
+                const sp = CONFIG.SUPERPOWERS.GROWTHBURST;
+                this.score *= sp.MULT;
                 this.growthBurstRemaining--;
                 this.ui.renderGrowthCharges(this.growthBurstRemaining);
-                this.nextBurstDist = this.distance + 100;
+                this.nextBurstDist = this.distance + sp.BURST_COOLDOWN_DIST;
                 this.flashOpacity = 0.8;
-                for (let i = 0; i < 30; i++) {
+                for (let i = 0; i < sp.PARTICLE_COUNT; i++) {
                     this.particles.push({ 
                         x: this.playerX, y: this.canvas.height - CONFIG.PLAYER.Y_OFFSET, 
                         vx: (Math.random() - 0.5) * 15, vy: (Math.random() - 0.5) * 15, 
-                        life: 1.5, color: '#d8b4fe' 
+                        life: 1.5, color: CONFIG.THEME.COLORS.PURPLE_BURST 
                     });
                 }
             }
@@ -823,9 +854,10 @@
 
             update(dt) {
                 if (!this.active || this.paused) return;
+                const phys = CONFIG.PHYSICS;
                 this.elapsedTime += dt;
-                this.distance += this.speed * dt * 5; 
-                this.speed = Math.min(CONFIG.PHYSICS.MAX_SPEED, CONFIG.PHYSICS.INITIAL_SPEED + (this.distance / CONFIG.PHYSICS.SPEED_SCALING));
+                this.distance += this.speed * dt * phys.DIST_PER_SPEED; 
+                this.speed = Math.min(phys.MAX_SPEED, phys.INITIAL_SPEED + (this.distance / phys.SPEED_SCALING));
                 this.peakScoreThisRun = Math.max(this.peakScoreThisRun, this.score);
                 
                 if (this.flashOpacity > 0) this.flashOpacity -= dt * 2;
@@ -838,8 +870,8 @@
                 if (this.aquaTimer > 0) {
                     const prevTimer = this.aquaTimer;
                     this.aquaTimer -= dt;
-                    // Trigger UI update when crossing the 1s threshold to start blinking
-                    if (prevTimer > 1.0 && this.aquaTimer <= 1.0) {
+                    const threshold = CONFIG.SUPERPOWERS.AQUA.BLINK_THRESHOLD;
+                    if (prevTimer > threshold && this.aquaTimer <= threshold) {
                         this.ui.renderAquaStatus(this.aquaTimer);
                     } else if (this.aquaTimer <= 0) {
                         this.aquaTimer = 0;
@@ -870,7 +902,8 @@
                 const now = performance.now();
                 for (let i = 0; i < this.numLanes; i++) {
                     const role = this.laneRoles[i];
-                    const interval = (role === ROLES.EVOLUTION ? 5500 : (role === ROLES.GROWTH ? 700 : 1800)) / ( (this.speed * role.speedMult) / CONFIG.PHYSICS.INITIAL_SPEED);
+                    const baseInterval = (role === ROLES.EVOLUTION ? 5500 : (role === ROLES.GROWTH ? 700 : 1800));
+                    const interval = baseInterval / ((this.speed * role.speedMult) / CONFIG.PHYSICS.INITIAL_SPEED);
                     if (now - this.lastSpawns[i] > interval) {
                         this.entities.push(...EntityFactory.createEntities(role, i, this.score, this.distance, this.lastSuperDist));
                         this.lastSpawns[i] = now;
@@ -884,9 +917,7 @@
                 let minDist = Infinity;
                 
                 this.entities.forEach(e => {
-                    // Aqua allows targeting fire hazards (negative gates)
                     const isShootableHazard = this.aquaTimer > 0 && e.type === 'gate' && !e.isPositive;
-                    
                     if (((e.type === 'enemy') || (e.type === 'evolutionGate') || (e.type === 'superpowerGate' && !e.isUnlocked) || isShootableHazard) && e.lane === this.currentLane && e.y < playerY - 40) {
                         const d = playerY - e.y;
                         if (d < minDist) { minDist = d; target = e; }
@@ -894,8 +925,9 @@
                 });
 
                 if (target) {
-                    let damage = ((this.score * 0.72) + 21) * dt;
-                    if (this.aquaTimer > 0) damage *= 1.25; // Pressurized firepower multiplier
+                    const dmg = CONFIG.PLAYER.DAMAGE;
+                    let damage = ((this.score * dmg.BASE_COEFF) + dmg.BASE_FLAT) * dt;
+                    if (this.aquaTimer > 0) damage *= CONFIG.SUPERPOWERS.AQUA.DAMAGE_MULT; 
                     
                     target.health -= damage;
                     this.fireTimer += dt;
@@ -904,9 +936,10 @@
                         this.fireTimer = 0;
                     }
                     if (target.health <= 0) {
+                        const h = CONFIG.ENTITIES.HEALTH;
                         if (target.type === 'enemy') {
                             target.isCollected = true;
-                            for (let i = 0; i < 12; i++) {
+                            for (let i = 0; i < h.ENEMY_DEATH_PARTICLES; i++) {
                                 this.particles.push({ 
                                     x: target.lane * (this.canvas.width / this.numLanes) + (this.canvas.width / this.numLanes / 2), 
                                     y: target.y + 40, vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8, life: 1, color: '#ef4444' 
@@ -920,7 +953,7 @@
                         } else if (target.type === 'evolutionGate') {
                             if (!target.isUnlocked) {
                                 target.isUnlocked = true;
-                                target.health = target.maxHealth * 0.8;
+                                target.health = target.maxHealth * h.EVOLUTION_UNLOCKED_RESET;
                                 target.maxHealth = target.health;
                             } else {
                                 this.score *= target.val;
@@ -933,7 +966,6 @@
                                 this.entities = this.entities.filter(ent => ent !== target);
                             }
                         } else if (target.type === 'gate' && !target.isPositive) {
-                            // Hazard Extinguished!
                             for (let i = 0; i < 10; i++) {
                                 this.particles.push({ 
                                     x: target.lane * (this.canvas.width / this.numLanes) + (this.canvas.width / this.numLanes / 2), 
@@ -972,7 +1004,6 @@
                                 else if (e.op === '/') this.score = Math.floor(this.score / e.val);
                                 this.entities.splice(i, 1);
                             } else if (skipHazard) {
-                                // Just ignore the hazard collision visually and logically
                                 e.isCollected = true;
                                 this.entities.splice(i, 1);
                             }
@@ -990,7 +1021,7 @@
                     const p = this.particles[i];
                     p.x += p.vx * dt * CONFIG.PHYSICS.FPS_BASELINE; 
                     p.y += p.vy * dt * CONFIG.PHYSICS.FPS_BASELINE; 
-                    p.life -= dt * (1/p.life);
+                    p.life -= dt * (CONFIG.PHYSICS.PARTICLE_DECAY_RATE / p.life);
                     if (p.life <= 0) this.particles.splice(i, 1);
                 }
             }
@@ -1073,13 +1104,14 @@
                 }
 
                 if (engine.annihilateVisualTimer > 0) {
+                    const ann = CONFIG.SUPERPOWERS.ANNIHILATE;
                     ctx.save();
                     ctx.translate(this.canvas.width / 2, this.canvas.height / 2);
-                    const sc = 0.5 + (1 - engine.annihilateVisualTimer / 0.8) * 1.5;
+                    const sc = 0.5 + (1 - engine.annihilateVisualTimer / ann.VISUAL_DURATION) * 1.5;
                     ctx.font = `bold ${Math.floor(CONFIG.THEME.FONTS.ANN_BASE_SIZE * sc)}px serif`;
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    ctx.globalAlpha = engine.annihilateVisualTimer / 0.8;
+                    ctx.globalAlpha = engine.annihilateVisualTimer / ann.VISUAL_DURATION;
                     ctx.fillText(CONFIG.ASSETS.ANNIHILATE, 0, 0);
                     ctx.restore();
                 }
@@ -1092,6 +1124,15 @@
                 ctx.strokeStyle = strokeColor; ctx.lineWidth = 3; ctx.stroke();
             }
 
+            _drawTightEmojis(ctx, emoji, count, centerX, centerY, fontSize) {
+                const spacing = fontSize * CONFIG.THEME.EMOJI_TIGHTNESS;
+                const totalWidth = (count - 1) * spacing;
+                const startX = centerX - (totalWidth / 2);
+                for (let i = 0; i < count; i++) {
+                    ctx.fillText(emoji, startX + (i * spacing), centerY);
+                }
+            }
+
             drawStandardGate(ctx, e, lw, engine) {
                 const x = e.lane * lw;
                 const theme = CONFIG.THEME;
@@ -1101,13 +1142,15 @@
                     this._drawGateShell(ctx, x + off - 10, e.y, gateW + 20, e.height, 25, 'rgba(37, 99, 235, 0.9)', '#60a5fa');
                     ctx.fillStyle = theme.COLORS.TEXT_WHITE;
                     ctx.font = theme.FONTS.GATE;
-                    ctx.fillText(e.isPercentage ? CONFIG.ASSETS.POWERUP.repeat(3) : CONFIG.ASSETS.POWERUP, x + lw / 2, e.y + 53);
+                    if (e.isPercentage) {
+                        this._drawTightEmojis(ctx, CONFIG.ASSETS.POWERUP, 3, x + lw / 2, e.y + 53, 26);
+                    } else {
+                        ctx.fillText(CONFIG.ASSETS.POWERUP, x + lw / 2, e.y + 53);
+                    }
                 } else { 
                     ctx.fillStyle = theme.COLORS.TEXT_WHITE;
                     ctx.font = theme.FONTS.CHAOS_EMOJI;
                     ctx.fillText(CONFIG.ASSETS.HAZARD, x + lw / 2, e.y + 55);
-
-                    // If Aqua is active, show health bar for hazards to signal they can be extinguished
                     if (engine.aquaTimer > 0) {
                         const gateW = lw * 0.6;
                         const off = (lw - gateW) / 2;
@@ -1126,23 +1169,20 @@
                 const isL = !e.isUnlocked;
                 const gateW = lw * 0.6;
                 const off = (lw - gateW) / 2;
-                
                 this._drawGateShell(ctx, x + off - 10, e.y, gateW + 20, e.height, 25, isL ? theme.COLORS.LOCKED_GATE_BG : 'rgba(37, 99, 235, 0.9)', isL ? theme.COLORS.LOCKED_GATE_STROKE : '#60a5fa');
                 ctx.fillStyle = theme.COLORS.TEXT_WHITE;
-
                 const barW = gateW - 20, barH = 8, barX = x + off + 10, barY = e.y + 58;
                 ctx.fillStyle = theme.COLORS.BAR_BG;
                 ctx.beginPath(); ctx.roundRect(barX, barY, barW, barH, 4); ctx.fill();
                 ctx.fillStyle = isL ? theme.COLORS.TEXT_WHITE : theme.COLORS.ACTIVE_GATE_BAR;
                 ctx.beginPath(); ctx.roundRect(barX, barY, barW * (e.health / e.maxHealth), barH, 4); ctx.fill();
-
                 if (isL) {
                     ctx.font = theme.FONTS.LOCKED;
                     ctx.fillText(CONFIG.ASSETS.LOCKED, x + lw / 2, e.y + 48);
                 } else {
                     ctx.font = theme.FONTS.GATE;
-                    const bat = e.val > 3 ? CONFIG.ASSETS.BATTERY.repeat(3) : (e.val > 2 ? CONFIG.ASSETS.BATTERY.repeat(2) : CONFIG.ASSETS.BATTERY);
-                    ctx.fillText(bat, x + lw / 2, e.y + 48);
+                    const count = e.val > 3 ? 3 : (e.val > 2 ? 2 : 1);
+                    this._drawTightEmojis(ctx, CONFIG.ASSETS.BATTERY, count, x + lw / 2, e.y + 48, 26);
                 }
             }
 
@@ -1151,12 +1191,10 @@
                 const theme = CONFIG.THEME;
                 const gateW = lw * 0.6;
                 const off = (lw - gateW) / 2;
-                
                 this._drawGateShell(ctx, x + off - 10, e.y, gateW + 20, e.height, 25, 'rgba(147, 51, 234, 0.9)', '#d8b4fe');
                 ctx.fillStyle = theme.COLORS.TEXT_WHITE;
                 ctx.font = theme.FONTS.LOCKED;
                 ctx.fillText(CONFIG.ASSETS[e.powerType], x + lw / 2, e.y + 48);
-                
                 const barW = gateW - 20, barH = 8, barX = x + off + 10, barY = e.y + 58;
                 ctx.fillStyle = theme.COLORS.BAR_BG;
                 ctx.beginPath(); ctx.roundRect(barX, barY, barW, barH, 4); ctx.fill();
@@ -1168,20 +1206,18 @@
                 const x = e.lane * lw;
                 const theme = CONFIG.THEME;
                 const barW = lw * CONFIG.ENTITIES.HEALTH_BAR_MAGNITUDE, barH = CONFIG.ENTITIES.HEALTH_BAR_HEIGHT, barX = x + lw/2 - barW/2, barY = e.y - 15;
-                
                 ctx.fillStyle = theme.COLORS.BAR_BG;
                 ctx.beginPath(); ctx.roundRect(barX, barY, barW, barH, 4); ctx.fill();
                 ctx.fillStyle = theme.COLORS.HEALTH_ENEMY;
                 ctx.beginPath(); ctx.roundRect(barX, barY, barW * (e.health / e.maxHealth), barH, 4); ctx.fill();
-                
                 if (e.isSwarm) {
                     ctx.font = theme.FONTS.SWARM_ENEMY;
-                    const tf = engine.elapsedTime * 6.67; 
+                    const anim = CONFIG.ENTITIES.SWARM_ENEMY;
+                    const tf = engine.elapsedTime * anim.TIME_FACTOR; 
                     const visiblePop = Math.max(1, Math.ceil(e.swarmOffsets.length * (e.health / e.maxHealth)));
-                    
                     for (let i = 0; i < visiblePop; i++) {
                         const o = e.swarmOffsets[i];
-                        const jx = Math.sin(tf + i) * 3, jy = Math.cos(tf + i) * 3;
+                        const jx = Math.sin(tf + i) * anim.JITTER, jy = Math.cos(tf + i) * anim.JITTER;
                         ctx.fillText(CONFIG.ASSETS.ENEMY, x + lw/2 + o.x + jx, e.y + 40 + o.y + jy);
                     }
                 } else if (e.forceType === 'phalanx') {
@@ -1198,30 +1234,25 @@
                 const theme = CONFIG.THEME;
                 const pY = this.canvas.height - CONFIG.PLAYER.Y_OFFSET;
                 const sc = engine.swarm.getActiveCount(engine.score);
-                
                 ctx.save();
                 ctx.font = theme.FONTS.PLAYER; 
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'alphabetic';
-
-                // Aqua Power Aura
                 if (engine.aquaTimer > 0) {
                     ctx.shadowBlur = 15;
-                    ctx.shadowColor = 'rgba(96, 165, 250, 0.8)';
-                    ctx.fillStyle = 'rgba(96, 165, 250, 0.15)';
+                    ctx.shadowColor = theme.COLORS.AQUA_SHADOW;
+                    ctx.fillStyle = theme.COLORS.AQUA_AURA;
                     ctx.beginPath();
                     ctx.ellipse(engine.playerX, pY + 15, 60, 45, 0, 0, Math.PI * 2);
                     ctx.fill();
                     ctx.shadowBlur = 0;
                 }
-
                 ctx.fillStyle = theme.COLORS.TEXT_WHITE;
                 for (let i = 0; i < sc; i++) {
                     const pos = engine.swarm.getMemberPosition(i, engine.playerX, pY, engine.elapsedTime);
                     ctx.fillText(CONFIG.ASSETS.PLAYER, pos.x, pos.y);
                 }
                 ctx.restore();
-
                 const barW = CONFIG.PLAYER.HEALTH_BAR_WIDTH, barH = CONFIG.PLAYER.HEALTH_BAR_HEIGHT;
                 const barX = engine.playerX - barW / 2, barY = pY - 35;
                 ctx.fillStyle = theme.COLORS.BAR_BG_SOLID;
@@ -1276,7 +1307,6 @@
             renderer.draw(game);
             requestAnimationFrame(loop);
         }
-
         game.ui.showStart(save.getRecords());
         requestAnimationFrame(loop);
     </script>
