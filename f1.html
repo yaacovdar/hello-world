@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pit Wall Command v1.4 - The Engineer's Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;800&display=swap');
+
+        :root {
+            --f1-red: #E8002D;
+            --f1-dark: #0a0a0f;
+            --f1-card: #16161d;
+            --f1-accent: #3b82f6;
+            --f1-purple: #b24bf3;
+        }
+
+        body {
+            background-color: var(--f1-dark);
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        
+        .glass {
+            background: rgba(22, 22, 29, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-active {
+            border-bottom: 3px solid var(--f1-red);
+            color: white;
+            background: rgba(232, 0, 45, 0.1);
+        }
+
+        /* Tire UI */
+        .tire-S { border: 2px solid #ef4444; color: #ef4444; }
+        .tire-M { border: 2px solid #eab308; color: #eab308; }
+        .tire-H { border: 2px solid #f8fafc; color: #f8fafc; }
+        .tire-I { border: 2px solid #10b981; color: #10b981; }
+        .tire-W { border: 2px solid #3b82f6; color: #3b82f6; }
+
+        .purple-lap { color: var(--f1-purple); }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        .sc-active { animation: blink 1s infinite; background: #eab308; color: black; }
+        
+        #history-graph-container svg {
+            filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.5));
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+    </style>
+</head>
+<body class="p-0 md:p-4">
+
+    <div id="app" class="max-w-4xl mx-auto min-h-screen flex flex-col">
+        
+        <!-- START SCREEN -->
+        <div id="start-screen" class="flex flex-col items-center justify-center py-12 px-4">
+            <h1 class="text-5xl font-extrabold mb-4 italic tracking-tighter text-center uppercase">Pit Wall <span class="text-[var(--f1-red)]">Command</span></h1>
+            
+            <div class="flex gap-4 mb-8">
+                <button onclick="setGameMode('GP')" id="mode-gp" class="px-6 py-2 rounded-full border-2 border-[var(--f1-red)] bg-[var(--f1-red)] text-white font-bold text-xs">GRAND PRIX (57L)</button>
+                <button onclick="setGameMode('SPRINT')" id="mode-sprint" class="px-6 py-2 rounded-full border-2 border-white/20 hover:border-white/50 text-white font-bold text-xs transition-all">SPRINT (19L)</button>
+            </div>
+
+            <p class="text-slate-500 mb-8 text-center max-w-sm text-sm">Welcome, Engineer. Manage pace, sector times, and radio chatter across the race weekend.</p>
+            
+            <div id="driver-selection" class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full"></div>
+        </div>
+
+        <!-- MAIN GAME UI -->
+        <div id="game-ui" class="hidden flex-grow flex flex-col">
+            
+            <!-- TOP HUD -->
+            <div class="glass m-2 p-3 rounded-xl grid grid-cols-3 items-center sticky top-2 z-50">
+                <div class="flex items-center gap-2">
+                    <div id="flag-indicator" class="w-3 h-3 rounded-full bg-green-500"></div>
+                    <span id="flag-text" class="text-[10px] font-black uppercase tracking-tighter">Green Flag</span>
+                </div>
+                <div class="text-center italic font-black text-xl mono" id="lap-counter">01/57</div>
+                <div class="text-right">
+                    <span id="weather-icon" class="text-lg">☀️</span>
+                    <span id="weather-text" class="text-[10px] font-bold ml-1 uppercase">Dry</span>
+                </div>
+            </div>
+
+            <!-- TAB NAV -->
+            <div class="flex px-2 mb-2">
+                <button onclick="switchTab('track')" id="tab-track" class="flex-1 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 transition-all rounded-t-lg">Track</button>
+                <button onclick="switchTab('race')" id="tab-race" class="flex-1 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 transition-all rounded-t-lg">Race</button>
+                <button onclick="switchTab('car')" id="tab-car" class="flex-1 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 transition-all rounded-t-lg">Car</button>
+                <button onclick="switchTab('comms')" id="tab-comms" class="flex-1 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 transition-all rounded-t-lg">Comms</button>
+            </div>
+
+            <!-- TAB CONTENT -->
+            <div id="swipe-area" class="flex-grow px-2 pb-32 overflow-hidden touch-none relative">
+                <!-- Track Tab -->
+                <div id="content-track" class="tab-content hidden space-y-4">
+                    <div class="glass p-4 rounded-xl">
+                        <h3 class="text-xs font-bold text-slate-500 uppercase mb-4">Weather Forecast</h3>
+                        <div id="weather-forecast" class="flex justify-between items-center px-4"></div>
+                    </div>
+                    <div class="glass p-4 rounded-xl">
+                        <h3 class="text-xs font-bold text-slate-500 uppercase mb-2">Race Control Incidents</h3>
+                        <div id="incident-log" class="text-xs space-y-2 opacity-80 h-64 overflow-y-auto"></div>
+                    </div>
+                </div>
+
+                <!-- Race Tab -->
+                <div id="content-race" class="tab-content hidden">
+                    <div class="glass rounded-xl overflow-hidden">
+                        <div class="grid grid-cols-12 bg-black/40 p-2 text-[8px] uppercase font-bold text-slate-500">
+                            <div class="col-span-1">P</div>
+                            <div class="col-span-3">Driver</div>
+                            <div class="col-span-2 text-right">Gap</div>
+                            <div class="col-span-2 text-right">Int</div>
+                            <div class="col-span-2 text-right">Last</div>
+                            <div class="col-span-2 text-right">Tire</div>
+                        </div>
+                        <div id="leaderboard" class="divide-y divide-white/5 max-h-[60vh] overflow-y-auto"></div>
+                    </div>
+                </div>
+
+                <!-- Car Tab -->
+                <div id="content-car" class="tab-content hidden space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="glass p-4 rounded-xl">
+                            <div class="text-[10px] text-slate-500 uppercase font-bold mb-2">Tire Life</div>
+                            <div class="text-3xl font-black italic mb-1" id="ui-tire-wear">100%</div>
+                            <div class="h-1 w-full bg-slate-800 rounded-full overflow-hidden"><div id="bar-tire-wear" class="h-full bg-green-500 transition-all duration-700 w-full"></div></div>
+                        </div>
+                        <div class="glass p-4 rounded-xl">
+                            <div class="text-[10px] text-slate-500 uppercase font-bold mb-2">ERS Energy</div>
+                            <div class="text-3xl font-black italic mb-1" id="ui-battery">100%</div>
+                            <div class="h-1 w-full bg-slate-800 rounded-full overflow-hidden"><div id="bar-battery" class="h-full bg-blue-500 transition-all duration-700 w-full"></div></div>
+                        </div>
+                    </div>
+                    <div class="glass p-4 rounded-xl">
+                        <div class="flex justify-between items-center mb-4 text-[10px] uppercase font-bold text-slate-500">
+                            <span>Car Integrity</span>
+                            <span id="ui-damage-text" class="text-green-500">NO DAMAGE</span>
+                        </div>
+                        <div class="h-2 w-full bg-slate-800 rounded-full overflow-hidden mb-4"><div id="bar-damage" class="h-full bg-green-500 transition-all w-0"></div></div>
+                        
+                        <div class="grid grid-cols-2 gap-4 border-t border-white/5 pt-4">
+                            <div>
+                                <div class="text-[9px] uppercase text-slate-500 mb-1">Fastest Lap</div>
+                                <div id="ui-best-lap" class="mono text-sm font-bold text-slate-300">--:---</div>
+                            </div>
+                            <div>
+                                <div class="text-[9px] uppercase text-slate-500 mb-1">Last Lap</div>
+                                <div id="ui-last-lap" class="mono text-sm font-bold text-slate-300">--:---</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Comms Tab -->
+                <div id="content-comms" class="tab-content hidden flex flex-col gap-4">
+                    <div class="glass p-4 rounded-xl space-y-4">
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="setStrategy('PUSH')" id="btn-push" class="strat-btn p-3 rounded-lg border border-white/5 bg-white/5 text-left">
+                                <div class="text-[9px] uppercase opacity-50">Aggressive</div>
+                                <div class="text-sm font-bold">PUSH</div>
+                            </button>
+                            <button onclick="setStrategy('BALANCED')" id="btn-balanced" class="strat-btn p-3 rounded-lg border border-white/5 bg-white/5 text-left">
+                                <div class="text-[9px] uppercase opacity-50">Standard</div>
+                                <div class="text-sm font-bold">BALANCED</div>
+                            </button>
+                            <button onclick="setStrategy('CONSERVE')" id="btn-conserve" class="strat-btn p-3 rounded-lg border border-white/5 bg-white/5 text-left">
+                                <div class="text-[9px] uppercase opacity-50">Save</div>
+                                <div class="text-sm font-bold">CONSERVE</div>
+                            </button>
+                            <button onclick="setStrategy('CHARGE')" id="btn-charge" class="strat-btn p-3 rounded-lg border border-white/5 bg-white/5 text-left">
+                                <div class="text-[9px] uppercase opacity-50">Battery</div>
+                                <div class="text-sm font-bold">CHARGE</div>
+                            </button>
+                        </div>
+                        <button id="box-button" onclick="togglePitMenu()" class="w-full bg-[var(--f1-red)] text-white font-black py-4 rounded-xl italic text-lg tracking-tighter shadow-lg shadow-red-900/40">BOX BOX BOX</button>
+                        
+                        <div id="pit-menu" class="hidden bg-black/80 p-4 rounded-xl border border-white/10 grid grid-cols-3 gap-2">
+                            <button onclick="orderPit('S')" class="p-2 border border-red-500 text-red-500 text-xs rounded font-bold">SOFT</button>
+                            <button onclick="orderPit('M')" class="p-2 border border-yellow-500 text-yellow-500 text-xs rounded font-bold">MED</button>
+                            <button onclick="orderPit('H')" class="p-2 border border-slate-200 text-slate-200 text-xs rounded font-bold">HARD</button>
+                        </div>
+                    </div>
+                    <div class="text-[10px] uppercase font-bold text-slate-500 ml-2">Radio & Race Events</div>
+                    <div id="radio-log" class="glass p-4 rounded-xl h-64 overflow-y-auto text-xs font-light space-y-2"></div>
+                </div>
+            </div>
+
+            <!-- ACTION BAR -->
+            <div class="fixed bottom-0 left-0 right-0 p-4 bg-black/90 backdrop-blur-md border-t border-white/10 z-50">
+                <div class="max-w-4xl mx-auto">
+                    <button id="main-action-btn" onclick="runLap()" class="w-full bg-white text-black font-black py-4 rounded-xl italic tracking-tighter hover:bg-slate-200 active:scale-95 transition-all text-lg shadow-lg">
+                        SEND LAP INSTRUCTIONS →
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PODIUM / SUMMARY SCREEN -->
+        <div id="podium-screen" class="hidden fixed inset-0 z-[100] bg-black/95 flex flex-col p-6 overflow-y-auto">
+            <div class="text-center mb-6">
+                <h2 id="podium-title" class="text-4xl font-black italic tracking-widest text-[var(--f1-red)] uppercase">RACE RESULT</h2>
+                <p id="podium-subtitle" class="text-slate-500 uppercase tracking-widest text-xs">Final Standings</p>
+            </div>
+
+            <!-- Race Trace Graph -->
+            <div class="glass p-4 rounded-xl mb-6">
+                <h3 class="text-[10px] font-bold text-slate-500 uppercase mb-4 tracking-widest">Position Trace</h3>
+                <div id="history-graph-container" class="w-full h-32 bg-black/20 rounded relative border-b border-white/5"></div>
+                <div class="flex justify-between text-[8px] text-slate-600 mt-2 uppercase">
+                    <span>Start</span>
+                    <span>Lap <span id="graph-lap-end">57</span></span>
+                </div>
+            </div>
+
+            <div id="podium-list" class="space-y-2 mb-8"></div>
+            
+            <div id="strategy-critique" class="glass p-6 rounded-xl text-center mb-8 border-l-4 border-blue-500">
+                <h3 class="font-bold text-lg mb-2">Race Engineer Summary</h3>
+                <p id="critique-text" class="text-sm italic text-slate-400 leading-relaxed"></p>
+            </div>
+            
+            <button onclick="location.reload()" class="w-full bg-white text-black font-black py-4 rounded-xl italic text-lg mb-12">START NEW RACE</button>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * CONFIGURATION v1.4
+         */
+        const CONFIG = {
+            GP_LAPS: 57,
+            SPRINT_LAPS: 19,
+            BASE_LAP_TIME: 92.0,
+            PIT_STOP_LOSS: 24.5,
+            OVERTAKE_REQUIRED_DELTA: 0.80,
+            DIRTY_AIR_PENALTY: 0.35,
+            DRS_ADVANTAGE: -0.70,
+            RAIN_CHANCE_PER_LAP: 0.03,
+            TIRE_DEGRADATION: { 'S': 5.2, 'M': 3.3, 'H': 2.0, 'I': 4.5, 'W': 5.5 },
+            STRATEGY_MODS: {
+                'PUSH': { pace: -1.0, wear: 2.1, battery: -24, damageRisk: 1.6 },
+                'BALANCED': { pace: 0.0, wear: 1.0, battery: 6, damageRisk: 1.0 },
+                'CONSERVE': { pace: 0.9, wear: 0.5, battery: 16, damageRisk: 0.8 },
+                'CHARGE': { pace: 2.1, wear: 0.4, battery: 38, damageRisk: 0.7 }
+            },
+            DRIVERS: [
+                { code: "ANT", team: "Mercedes", color: "#27F4D2", skill: 0.98 },
+                { code: "RUS", team: "Mercedes", color: "#27F4D2", skill: 0.97 },
+                { code: "LEC", team: "Ferrari", color: "#E8002D", skill: 0.98 },
+                { code: "HAM", team: "Ferrari", color: "#E8002D", skill: 0.99 },
+                { code: "NOR", team: "McLaren", color: "#FF8000", skill: 0.97 },
+                { code: "PIA", team: "McLaren", color: "#FF8000", skill: 0.96 },
+                { code: "VER", team: "Red Bull", color: "#00162B", skill: 1.00 },
+                { code: "BEA", team: "Haas", color: "#9C9FA2", skill: 0.92 },
+                { code: "GAS", team: "Alpine", color: "#00A1E8", skill: 0.93 },
+                { code: "LAW", team: "Racing Bulls", color: "#6692FF", skill: 0.91 },
+                { code: "BOR", team: "Audi", color: "#FF2D00", skill: 0.89 },
+                { code: "SAI", team: "Williams", color: "#1868DB", skill: 0.96 },
+                { code: "STR", team: "Aston Martin", color: "#229971", skill: 0.78 },
+                { code: "ALO", team: "Aston Martin", color: "#229971", skill: 0.96 }
+            ]
+        };
+
+        let state = {
+            currentLap: 1,
+            totalLaps: 57,
+            isGameOver: false,
+            flag: 'GREEN',
+            flagDuration: 0,
+            trackWetness: 0,
+            weatherForecast: [],
+            playerCode: '',
+            drivers: [],
+            activeTab: 'race',
+            tabs: ['track', 'race', 'car', 'comms'],
+            swipeStartX: 0,
+            fastestLap: { code: '--', time: 999 }
+        };
+
+        function formatTime(seconds) {
+            if (seconds >= 999) return "--:---";
+            const mins = Math.floor(seconds / 60);
+            const secs = (seconds % 60).toFixed(3);
+            return `${mins}:${secs.padStart(6, '0')}`;
+        }
+
+        function init() {
+            const container = document.getElementById('driver-selection');
+            CONFIG.DRIVERS.forEach(d => {
+                const btn = document.createElement('button');
+                btn.className = "glass p-4 rounded-xl text-left border-l-4 hover:bg-white/5 transition-all flex justify-between items-center";
+                btn.style.borderLeftColor = d.color;
+                btn.innerHTML = `<div><div class="text-[9px] text-slate-500 uppercase font-bold">${d.team}</div><div class="text-lg font-black italic">${d.code}</div></div><div class="text-[10px] opacity-40">Lv.${Math.round(d.skill*100)}</div>`;
+                btn.onclick = () => startGame(d.code);
+                container.appendChild(btn);
+            });
+            for(let i=0; i<10; i++) state.weatherForecast.push(0);
+            setupSwipeHandlers();
+        }
+
+        function setGameMode(mode) {
+            state.totalLaps = mode === 'SPRINT' ? CONFIG.SPRINT_LAPS : CONFIG.GP_LAPS;
+            document.getElementById('mode-gp').className = mode === 'GP' ? "px-6 py-2 rounded-full border-2 border-[var(--f1-red)] bg-[var(--f1-red)] text-white font-bold text-xs" : "px-6 py-2 rounded-full border-2 border-white/20 text-white font-bold text-xs transition-all";
+            document.getElementById('mode-sprint').className = mode === 'SPRINT' ? "px-6 py-2 rounded-full border-2 border-[var(--f1-red)] bg-[var(--f1-red)] text-white font-bold text-xs" : "px-6 py-2 rounded-full border-2 border-white/20 text-white font-bold text-xs transition-all";
+        }
+
+        function startGame(playerCode) {
+            state.playerCode = playerCode;
+            state.drivers = CONFIG.DRIVERS.map((d, index) => ({
+                ...d,
+                totalRaceTime: index * 1.6,
+                tireType: 'M',
+                tireHealth: 100,
+                tireAge: 0,
+                battery: 100,
+                damage: 0,
+                strategy: 'BALANCED',
+                isBoxing: false,
+                nextTire: 'M',
+                isDNF: false,
+                lastLapTime: 0,
+                bestLapTime: 999,
+                position: index + 1,
+                hasDRS: false,
+                history: [index + 1],
+                usedCompounds: ['M'],
+                overtakesMade: 0,
+                overtakenCount: 0
+            }));
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('game-ui').classList.remove('hidden');
+            switchTab('race');
+            updateUI();
+        }
+
+        function runLap() {
+            if (state.isGameOver) { showPodium(); return; }
+
+            updateWeather();
+            if (state.flagDuration > 0) {
+                state.flagDuration--;
+                if (state.flagDuration === 0) { state.flag = 'GREEN'; logRadio("RACE CONTROL", "Track Clear. GREEN FLAG."); }
+            }
+
+            state.drivers.forEach(d => {
+                if (d.isDNF) return;
+                if (d.code !== state.playerCode) processAIDecision(d);
+
+                let lapPerf = calculateLapTime(d);
+                d.lastLapTime = lapPerf.time;
+                d.totalRaceTime += lapPerf.time;
+                
+                if (d.lastLapTime < d.bestLapTime) d.bestLapTime = d.lastLapTime;
+                if (d.lastLapTime < state.fastestLap.time && state.flag === 'GREEN') {
+                    state.fastestLap = { code: d.code, time: d.lastLapTime };
+                }
+
+                d.tireHealth = Math.max(0, d.tireHealth - lapPerf.wear);
+                d.battery = Math.max(0, Math.min(100, d.battery + lapPerf.batteryChange));
+                d.damage = Math.min(100, d.damage + lapPerf.damageRisk);
+                d.tireAge++;
+
+                if (d.isBoxing) performPitStop(d);
+                checkIncident(d);
+            });
+
+            const player = state.drivers.find(d => d.code === state.playerCode);
+            if (player.isDNF) { showPodium('DNF'); return; }
+
+            processOvertakes();
+            if (state.flag === 'SC') bunchField();
+
+            state.drivers.forEach(d => d.history.push(d.position));
+
+            if (state.currentLap >= state.totalLaps) {
+                state.isGameOver = true;
+                const btn = document.getElementById('main-action-btn');
+                btn.innerText = "VIEW RACE RESULTS →";
+                btn.className = "w-full bg-red-600 text-white font-black py-4 rounded-xl italic tracking-tighter text-lg shadow-lg";
+            } else {
+                state.currentLap++;
+                generateNarrativeRadio(player);
+            }
+
+            updateUI();
+        }
+
+        function calculateLapTime(d) {
+            const strat = CONFIG.STRATEGY_MODS[d.strategy];
+            let pace = CONFIG.BASE_LAP_TIME + (1.0 - d.skill) * 2.5;
+            pace += (d.tireHealth < 40 ? Math.pow((40 - d.tireHealth) / 8, 1.8) * 0.6 : 0);
+            pace += strat.pace + (d.battery < 5 ? 2.2 : 0) + (d.damage / 10);
+            if (d.hasDRS && state.flag === 'GREEN') pace += CONFIG.DRS_ADVANTAGE;
+            if (state.flag === 'VSC') pace *= 1.45; else if (state.flag === 'SC') pace *= 1.85;
+            return { time: pace, wear: CONFIG.TIRE_DEGRADATION[d.tireType] * strat.wear, batteryChange: strat.battery, damageRisk: Math.random() < (0.022 * strat.damageRisk) ? Math.random() * 12 : 0 };
+        }
+
+        function processOvertakes() {
+            state.drivers.sort((a,b) => a.position - b.position);
+            for (let i = 1; i < state.drivers.length; i++) {
+                let b = state.drivers[i], a = state.drivers[i-1];
+                if (b.isDNF || a.isDNF || state.flag !== 'GREEN') continue;
+                if (b.totalRaceTime < a.totalRaceTime) {
+                    if ((a.lastLapTime - b.lastLapTime) > CONFIG.OVERTAKE_REQUIRED_DELTA || a.isBoxing) {
+                        b.position--; a.position++;
+                        b.overtakesMade++; a.overtakenCount++;
+                        if (b.code === state.playerCode) logRadio("EVENT", `You overtook ${a.code} for P${b.position}!`);
+                        if (a.code === state.playerCode) logRadio("EVENT", `${b.code} overtook you! Down to P${a.position}.`);
+                    } else { b.totalRaceTime = a.totalRaceTime + 0.35; }
+                }
+            }
+            state.drivers.sort((a,b) => a.position - b.position).forEach((d, i) => { d.hasDRS = i > 0 && (d.totalRaceTime - state.drivers[i-1].totalRaceTime < 1.0); });
+        }
+
+        function checkIncident(d) {
+            let chance = 0.0035;
+            if (d.code === 'STR') chance *= 4;
+            if (d.damage > 40) chance *= 3;
+            if (d.strategy === 'PUSH') chance *= 1.6;
+            if (Math.random() < chance) {
+                d.isDNF = true;
+                state.flag = Math.random() > 0.45 ? 'SC' : 'YELLOW';
+                state.flagDuration = 3 + Math.floor(Math.random() * 5);
+                addIncident(`${d.code} CRASHED at Sector ${Math.ceil(Math.random()*3)}`);
+                logRadio("RACE CONTROL", `${state.flag} Deployment. Clearance in ~${state.flagDuration}L`);
+            }
+        }
+
+        function performPitStop(d) {
+            d.totalRaceTime += CONFIG.PIT_STOP_LOSS; d.tireType = d.nextTire; d.tireHealth = 100; d.tireAge = 0; d.damage = Math.max(0, d.damage - 25); d.isBoxing = false;
+            if(!d.usedCompounds.includes(d.nextTire)) d.usedCompounds.push(d.nextTire);
+        }
+
+        function updateWeather() { state.weatherForecast.shift(); let last = state.weatherForecast[state.weatherForecast.length - 1]; state.weatherForecast.push(Math.max(0, Math.min(100, last + (Math.random() < CONFIG.RAIN_CHANCE_PER_LAP ? 45 : -10)))); state.trackWetness = state.weatherForecast[0]; }
+        function processAIDecision(d) { if (d.tireHealth < 22 && !d.isBoxing) { d.isBoxing = true; d.nextTire = (state.currentLap > state.totalLaps - 6) ? 'S' : 'H'; } }
+        function bunchField() { state.drivers.sort((a,b) => a.position - b.position); let t = state.drivers[0].totalRaceTime; state.drivers.forEach((d, i) => { if(!d.isDNF) d.totalRaceTime = t + (i * 0.45); }); }
+
+        function generateNarrativeRadio(player) {
+            if (state.flag !== 'GREEN') return;
+            const ahead = state.drivers.find(d => d.position === player.position - 1);
+            const behind = state.drivers.find(d => d.position === player.position + 1);
+            
+            if (ahead && (player.totalRaceTime - ahead.totalRaceTime < 1.5) && Math.random() > 0.7) {
+                logRadio("Engineer", `${ahead.code} ahead is struggling with rear tires. Keep the pressure.`);
+            } else if (behind && (behind.totalRaceTime - player.totalRaceTime < 1.0) && Math.random() > 0.7) {
+                logRadio("Engineer", `${behind.code} has DRS. Watch the mirrors into Turn 1.`);
+            } else if (player.tireHealth < 40 && Math.random() > 0.8) {
+                logRadio("Driver", "Tires are starting to go. Vibration is increasing.");
+            }
+        }
+
+        function switchTab(id) {
+            state.activeTab = id;
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+            document.querySelectorAll('button[id^="tab-"]').forEach(b => b.classList.remove('tab-active'));
+            document.getElementById(`content-${id}`).classList.remove('hidden');
+            document.getElementById(`tab-${id}`).classList.add('tab-active');
+        }
+
+        function setupSwipeHandlers() {
+            const area = document.getElementById('swipe-area');
+            area.addEventListener('touchstart', e => state.swipeStartX = e.touches[0].clientX);
+            area.addEventListener('touchend', e => { const diff = state.swipeStartX - e.changedTouches[0].clientX; if(Math.abs(diff)>70) handleSwipe(diff); });
+            area.addEventListener('mousedown', e => state.swipeStartX = e.clientX);
+            area.addEventListener('mouseup', e => { const diff = state.swipeStartX - e.clientX; if(Math.abs(diff)>70) handleSwipe(diff); });
+        }
+
+        function handleSwipe(diff) {
+            const idx = state.tabs.indexOf(state.activeTab);
+            let next = idx + (diff > 0 ? 1 : -1);
+            if (next >= 0 && next < state.tabs.length) switchTab(state.tabs[next]);
+        }
+
+        function updateUI() {
+            const fInd = document.getElementById('flag-indicator');
+            fInd.className = `w-3 h-3 rounded-full ${state.flag === 'SC' ? 'sc-active' : state.flag === 'YELLOW' ? 'bg-yellow-500' : 'bg-green-500'}`;
+            document.getElementById('flag-text').innerText = state.flag + (state.flagDuration > 0 ? ` (${state.flagDuration}L)` : '');
+            document.getElementById('lap-counter').innerText = `${String(state.currentLap).padStart(2,'0')}/${state.totalLaps}`;
+            document.getElementById('weather-icon').innerText = state.trackWetness > 50 ? '🌧️' : state.trackWetness > 15 ? '☁️' : '☀️';
+
+            const lb = document.getElementById('leaderboard'); lb.innerHTML = '';
+            state.drivers.sort((a,b) => a.position - b.position);
+            const leaderT = state.drivers[0].totalRaceTime;
+
+            state.drivers.forEach((d, i) => {
+                const row = document.createElement('div');
+                row.className = `grid grid-cols-12 p-3 text-[10px] items-center ${d.code === state.playerCode ? 'bg-white/10 ring-1 ring-white/20' : ''}`;
+                let gap = d.isDNF ? "DNF" : (i === 0 ? "LEADER" : `+${(d.totalRaceTime - leaderT).toFixed(3)}s`);
+                let interval = i === 0 || d.isDNF ? "--" : `+${(d.totalRaceTime - state.drivers[i-1].totalRaceTime).toFixed(3)}s`;
+                
+                row.innerHTML = `
+                    <div class="col-span-1 mono opacity-30">${i + 1}</div>
+                    <div class="col-span-3 flex items-center gap-1">
+                        <div class="w-1 h-3" style="background-color: ${d.color}"></div>
+                        <span class="font-bold">${d.code}</span>
+                    </div>
+                    <div class="col-span-2 text-right mono">${gap}</div>
+                    <div class="col-span-2 text-right mono opacity-60">${interval}</div>
+                    <div class="col-span-2 text-right mono ${state.fastestLap.code === d.code ? 'purple-lap' : ''}">${formatTime(d.lastLapTime).split(':')[1]}</div>
+                    <div class="col-span-2 text-right">
+                        <span class="tire-${d.tireType} px-1 border text-[8px] font-bold">${d.tireType}</span>
+                    </div>`;
+                lb.appendChild(row);
+                if (d.code === state.playerCode) updateTelemetry(d);
+            });
+
+            document.getElementById('weather-forecast').innerHTML = state.weatherForecast.slice(0, 6).map((v, i) => `<div class="text-center"><div class="text-[8px] opacity-30">L${state.currentLap + i}</div><div class="text-xs">${v > 50 ? '🌧️' : v > 15 ? '☁️' : '☀️'}</div></div>`).join('');
+        }
+
+        function updateTelemetry(d) {
+            document.getElementById('ui-tire-wear').innerText = `${Math.round(d.tireHealth)}%`;
+            document.getElementById('bar-tire-wear').style.width = `${d.tireHealth}%`;
+            document.getElementById('ui-battery').innerText = `${Math.round(d.battery)}%`;
+            document.getElementById('bar-battery').style.width = `${d.battery}%`;
+            document.getElementById('bar-damage').style.width = `${d.damage}%`;
+            document.getElementById('ui-damage-text').innerText = d.damage > 50 ? "CRITICAL" : d.damage > 10 ? "MINOR" : "NONE";
+            document.getElementById('ui-best-lap').innerText = formatTime(d.bestLapTime);
+            document.getElementById('ui-last-lap').innerText = formatTime(d.lastLapTime);
+            document.querySelectorAll('.strat-btn').forEach(b => b.className = b.id === `btn-${d.strategy.toLowerCase()}` ? 'strat-btn p-3 rounded-lg border border-white/40 bg-white/20 text-left' : 'strat-btn p-3 rounded-lg border border-white/5 bg-white/5 text-left');
+        }
+
+        function showPodium(reason = 'FINISH') {
+            const player = state.drivers.find(d => d.code === state.playerCode);
+            document.getElementById('podium-screen').classList.remove('hidden');
+            document.getElementById('podium-title').innerText = reason === 'DNF' ? "RACE RETIRED" : "RACE RESULT";
+            document.getElementById('graph-lap-end').innerText = state.currentLap;
+
+            // Render graph AFTER removing hidden class so width is calculated
+            setTimeout(() => renderHistoryGraph(player), 100);
+            
+            const list = document.getElementById('podium-list'); list.innerHTML = '';
+            state.drivers.sort((a,b) => a.position - b.position).forEach((d, i) => {
+                const item = document.createElement('div');
+                item.className = `flex justify-between items-center glass p-3 rounded-lg ${d.code === state.playerCode ? 'border-l-4 border-white' : ''}`;
+                item.innerHTML = `<div class="flex items-center gap-4"><span class="mono font-bold text-lg">${i+1}</span><div><div class="font-bold">${d.code}</div><div class="text-[10px] opacity-50">${d.team}</div></div></div><div class="text-right"><div class="mono text-xs">${d.isDNF ? 'DNF' : 'FIN'}</div></div>`;
+                list.appendChild(item);
+            });
+
+            generateCritique(player);
+        }
+
+        function generateCritique(player) {
+            let parts = [];
+            if (player.isDNF) {
+                parts.push("A devastating DNF. The telemetry was screaming about car integrity, but the pace commands were too aggressive.");
+            } else {
+                if (player.position === 1) parts.push("Absolute masterclass. You read the gaps perfectly and delivered P1.");
+                else if (player.position <= 3) parts.push(`A solid P${player.position} podium. Every strategy call mattered today.`);
+                else if (player.position <= 10) parts.push(`Points in the bag with P${player.position}. Consistent work on the pit wall.`);
+                else parts.push(`P${player.position} is a tough pill to swallow. We lacked the raw pace to bridge the gaps.`);
+
+                if (player.overtakesMade > 5) parts.push("Your driver was clinical in the braking zones, pulling off several high-risk overtakes.");
+                if (player.tireHealth < 15) parts.push("You pushed those tires to the absolute canvas. A gamble that nearly ended in disaster.");
+                if (player.usedCompounds.length < 2 && state.trackWetness < 10) parts.push("Tactical error: Failing to use two different dry compounds would result in a disqualification in a real F1 session.");
+            }
+            document.getElementById('critique-text').innerText = parts.join(" ");
+        }
+
+        function renderHistoryGraph(player) {
+            const container = document.getElementById('history-graph-container');
+            const width = container.clientWidth || 400;
+            const height = 128;
+            const points = player.history;
+            const lapCount = points.length;
+            const driverCount = CONFIG.DRIVERS.length;
+
+            let pathData = points.map((pos, i) => {
+                const x = (i / (lapCount - 1)) * width;
+                const y = height - ((driverCount - pos) / (driverCount - 1)) * height;
+                return `${x},${y}`;
+            }).join(' ');
+
+            container.innerHTML = `
+                <svg width="100%" height="100%" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+                    <polyline fill="none" stroke="var(--f1-accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="${pathData}" />
+                    ${points.map((pos, i) => {
+                        const x = (i / (lapCount - 1)) * width;
+                        const y = height - ((driverCount - pos) / (driverCount - 1)) * height;
+                        return `<circle cx="${x}" cy="${y}" r="2" fill="white" />`;
+                    }).join('')}
+                </svg>`;
+        }
+
+        window.setStrategy = (s) => { state.drivers.find(d => d.code === state.playerCode).strategy = s; logRadio("Engineer", `Strategy confirmed: ${s} mode.`); updateUI(); };
+        window.togglePitMenu = () => { if(state.drivers.find(d => d.code === state.playerCode).isBoxing) { state.drivers.find(d => d.code === state.playerCode).isBoxing = false; updateUI(); return; } document.getElementById('pit-menu').classList.toggle('hidden'); };
+        window.orderPit = (t) => { const p = state.drivers.find(d => d.code === state.playerCode); p.isBoxing = true; p.nextTire = t; document.getElementById('pit-menu').classList.add('hidden'); logRadio("Engineer", `Box confirm for ${t}.`); updateUI(); };
+        function logRadio(s, m) { const l = document.getElementById('radio-log'); const e = document.createElement('div'); e.innerHTML = `<span class="opacity-40 font-bold uppercase ${s==='EVENT'?'text-blue-400':''}">${s}:</span> ${m}`; l.prepend(e); }
+        function addIncident(m) { const l = document.getElementById('incident-log'); const e = document.createElement('div'); e.className = "border-l-2 border-yellow-500 pl-2 py-1 bg-white/5"; e.innerHTML = `<div class="font-bold text-[10px]">LAP ${state.currentLap}</div><div>${m}</div>`; l.prepend(e); }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
