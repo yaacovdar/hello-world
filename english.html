@@ -319,6 +319,56 @@
             font-weight: bold; cursor: pointer; opacity: 0.7; font-family: inherit;
         }
 
+        /* --- TOGGLE SWITCH --- */
+        .speech-toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            background: white;
+            padding: 12px 25px;
+            border-radius: 50px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            cursor: pointer;
+            border: 3px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .speech-toggle-container:hover { border-color: var(--primary); }
+
+        .toggle-switch {
+            position: relative;
+            width: 60px;
+            height: 30px;
+            background: #cbd5e1;
+            border-radius: 30px;
+            transition: background 0.3s ease;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .speech-toggle-container.active .toggle-switch { background: var(--success); }
+        .speech-toggle-container.active .toggle-switch::after { transform: translateX(30px); }
+
+        .toggle-label {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #64748b;
+        }
+
+        .speech-toggle-container.active .toggle-label { color: var(--text-dark); }
+
         #feedback-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(255,255,255,0.85); display: none;
@@ -352,7 +402,13 @@
 
     <div id="game-container">
         <div id="welcome-screen" class="screen active">
-            <h1 style="font-size: 4rem; color: var(--primary); text-align: center; transition: color var(--transition-speed) ease;">English Adventure! 🌟</h1>
+            <h1 style="font-size: 4rem; color: var(--primary); text-align: center; transition: color var(--transition-speed) ease; margin-bottom: 10px;">English Adventure! 🌟</h1>
+            
+            <div class="speech-toggle-container active" id="speech-toggle" data-action="toggle-speech">
+                <span class="toggle-label">🎤 Speak & Listen</span>
+                <div class="toggle-switch"></div>
+            </div>
+
             <p style="font-size: 1.5rem; margin-bottom: 30px; color: #777;">Ready to learn and play?</p>
             <div class="grid-menu" id="level-menu"></div>
             <button id="open-parental-btn" class="parental-btn" data-action="open-parental">⚙ Parental Dashboard</button>
@@ -661,13 +717,20 @@
 
         /** * EXERCISE GENERATOR */
         const ExerciseGenerator = {
-            standard(pool) {
+            standard(pool, speechEnabled = true) {
                 const target = pool[Math.floor(Math.random() * pool.length)];
-                // Standard pool of challenges for any word
-                const types = ['audioMatch', 'repeat', 'sayWord'];
-                // Only assign social if explicitly supported
-                let type = target.social ? 'social' : types[Math.floor(Math.random() * types.length)];
                 
+                // If speech is off, we only use 'audioMatch' (click based)
+                let types = speechEnabled ? ['audioMatch', 'repeat', 'sayWord'] : ['audioMatch'];
+                
+                // Social items are inherently speech based in current design
+                let type = (speechEnabled && target.social) ? 'social' : types[Math.floor(Math.random() * types.length)];
+                
+                // If we got a social item but speech is off, pick a new non-social target or just force audioMatch
+                if (!speechEnabled && target.social) {
+                    return this.standard(pool.filter(p => !p.social), false);
+                }
+
                 const options = [target]; 
                 const others = pool.filter(w => w.word !== target.word).sort(() => Math.random() - 0.5);
                 while (options.length < 6 && others.length > 0) options.push(others.pop());
@@ -679,22 +742,31 @@
                     options: options.sort(() => Math.random() - 0.5) 
                 };
             },
-            countingMatch(pool) {
+            countingMatch(pool, speechEnabled = true) {
                 const target = pool[Math.floor(Math.random() * pool.length)];
                 const count = Math.floor(Math.random() * 4) + 2; 
+                
+                // If speech is off, counting is tricky. For now, we skip it or turn it into a standard click exercise.
+                // Better UX: Just return a standard one if speech is disabled.
+                if (!speechEnabled) return this.standard(pool, false);
+
                 return {
                     type: 'counting',
                     target,
                     count,
-                    targetLabel: count.toString(), // Correct answer is the count digit
+                    targetLabel: count.toString(),
                     feedbackLabel: `${count} ${target.word}${count > 1 ? 's' : ''}`,
                     micTarget: count.toString()
                 };
             },
-            adjectiveRepeat(pool, mode) {
+            adjectiveRepeat(pool, mode, speechEnabled = true) {
                 const word = pool[Math.floor(Math.random() * pool.length)];
                 const attr = mode === "size" ? (Math.random() > 0.5 ? "big" : "small") : (word.color || "Red");
                 const label = `${attr} ${word.word}`;
+
+                // If speech is off, adjectiveRepeat is skipped
+                if (!speechEnabled) return this.standard(pool, false);
+
                 return { type: 'adjectiveRepeat', target: word, targetLabel: label, phrase: label, attr, scale: attr === "big" ? 1.4 : 0.7 };
             },
             sizeMatch(pool) {
@@ -708,11 +780,14 @@
                 });
                 return { type: 'sizeMatch', target: word, targetLabel: `${size} ${word.word}`, size, options: options.sort(() => Math.random() - 0.5) };
             },
-            getRandomChallenge(pool, lvl, sub) {
+            getRandomChallenge(pool, lvl, sub, speechEnabled = true) {
                 const r = Math.random();
-                if (lvl === 1 && sub === 3) return r > 0.6 ? this.sizeMatch(pool) : this.adjectiveRepeat(pool, "size");
-                if (r > 0.8) return this.countingMatch(pool);
-                return this.standard(pool);
+                if (lvl === 1 && sub === 3) {
+                    if (r > 0.6) return this.sizeMatch(pool);
+                    return this.adjectiveRepeat(pool, "size", speechEnabled);
+                }
+                if (r > 0.8) return this.countingMatch(pool, speechEnabled);
+                return this.standard(pool, speechEnabled);
             }
         };
 
@@ -720,7 +795,8 @@
         const state = { 
             view: 'welcome', level: null, sublevel: null, 
             questionIndex: 0, questions: [], stars: [],
-            voice: null, repeatTimer: null, isProcessingSpeech: false, isAnswering: false 
+            voice: null, repeatTimer: null, isProcessingSpeech: false, isAnswering: false,
+            speechEnabled: true 
         };
 
         function updateState(updates) { 
@@ -784,6 +860,10 @@
                 info.textContent = q.target.word; info.style.display = 'block';
                 q.options.forEach(o => root.appendChild(UIFactory.createOption(o, { isCorrect: o.word === q.target.word })));
                 return { prompt, isSpeech: false, micTarget: "" };
+            },
+            'audioMatch': (q, root, info, qText) => {
+                // Alias for standard multiple choice
+                return ChallengeRenderers.standard(q, root, info, qText);
             }
         };
 
@@ -869,6 +949,14 @@
             document.body.className = state.level ? `theme-lvl-${state.level}` : '';
             document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === `${state.view}-screen`));
             document.getElementById('app-header').style.display = (['game', 'sublevel', 'debug', 'loading'].includes(state.view)) ? 'flex' : 'none';
+            
+            // Update Toggle UI
+            const toggle = document.getElementById('speech-toggle');
+            if (toggle) {
+                toggle.classList.toggle('active', state.speechEnabled);
+                toggle.querySelector('.toggle-label').textContent = state.speechEnabled ? '🎤 Speak & Listen' : '🖱 Tap Only';
+            }
+
             if (lvlC && state.view === 'sublevel') {
                 document.getElementById('level-title').textContent = `Level ${state.level}: ${DATA[state.level].title}`;
                 const m = document.getElementById('sublevel-menu'); m.innerHTML = '';
@@ -884,10 +972,11 @@
             'go-home': () => updateState({ view: 'welcome', level: null }),
             'open-parental': () => updateState({ view: 'debug' }),
             'select-level': (el) => updateState({ view: 'sublevel', level: parseInt(el.dataset.lvl) }),
+            'toggle-speech': () => updateState({ speechEnabled: !state.speechEnabled }),
             'select-sublevel': async (el) => {
                 const lvl = state.level, sub = parseInt(el.dataset.sub); updateState({ view: 'loading' });
                 const pool = []; for (let i = 1; i <= lvl; i++) pool.push(...DATA[i].words);
-                const q = []; for (let i = 0; i < CONFIG.settings.questionsPerLesson; i++) q.push(ExerciseGenerator.getRandomChallenge(pool, lvl, sub));
+                const q = []; for (let i = 0; i < CONFIG.settings.questionsPerLesson; i++) q.push(ExerciseGenerator.getRandomChallenge(pool, lvl, sub, state.speechEnabled));
                 await AssetService.precache(q);
                 updateState({ view: 'game', sublevel: sub, questionIndex: 0, questions: q, stars: Array(CONFIG.settings.questionsPerLesson).fill(false), isAnswering: false });
             },
@@ -895,7 +984,7 @@
             'mic': (el) => handleMic(el, el.dataset.target),
             'skip-challenge': () => {
                 const pool = []; for (let i = 1; i <= state.level; i++) pool.push(...DATA[i].words);
-                state.questions[state.questionIndex] = ExerciseGenerator.getRandomChallenge(pool, state.level, state.sublevel);
+                state.questions[state.questionIndex] = ExerciseGenerator.getRandomChallenge(pool, state.level, state.sublevel, state.speechEnabled);
                 renderQuestion();
             },
             'debug-speak': (el) => SpeechService.speak(el.dataset.word),
