@@ -502,7 +502,7 @@
         /** * DATA DEFINITIONS */
         const DATA = {
             1: { title: "Basics", words: [{ word: "Apple", emoji: "🍎", color: "red" }, { word: "Dog", emoji: "🐶", color: "brown" }, { word: "Cat", emoji: "🐱", color: "gray" }, { word: "Sun", emoji: "☀️", color: "yellow" }, { word: "Moon", emoji: "🌙", color: "white" }, { word: "Bird", emoji: "🐦", color: "blue" }, { word: "Water", emoji: "💧", color: "blue" }, { word: "Bread", emoji: "🍞", color: "brown" }, { word: "Milk", emoji: "🥛", color: "white" }, { word: "Hello", emoji: "👋", social: true, response: "Hello" }] },
-            2: { title: "Playground", words: [{ word: "Monkey bars", url: "https://images.unsplash.com/vector-1757332570676-facced078968?q=80&w=1160&auto=format&fit=crop" }, { word: "Rope bridge", url: "https://media.istockphoto.com/id/1006459800/photo/child-crossing-a-bridge-of-ropes.jpg?s=612x612&w=0&k=20&c=u6xBBbbU0qTmeE8Tt8RzB5TIVS8vwEEB2OJtY-NjWm8=" }, { word: "Climbing frame", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRod-c9zdPr5uwqEZxCBwHkzqHyB3rrMxPYPQ&s" }, { word: "Seesaw", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTj4Yw4wG2mxsr2p8D65wF5CBECXkjV-IVJqA&s" }, { word: "Sandpit", url: "https://upload.wikimedia.org/wikipedia/commons/7/74/Sandpit.jpg" }, { word: "Swing", emoji: "🛝" }, { word: "Jump", emoji: "🏃" }, { word: "Play", emoji: "🎈" }] },
+            2: { title: "Playground", words: [{ word: "Monkey bars", url: "https://images.unsplash.com/vector-1757332570676-facced078968?q=80&w=1160&auto=format&fit=crop" }, { word: "Rope bridge", url: "https://media.istockphoto.com/id/1006459800/photo/child-crossing-a-bridge-of-ropes.jpg?s=612x612&w=0&k=20&c=u6xBBbbU0qTmeE8Tt8RzB5TIVS8vwEEB2OJtY-NjWm8=" }, { word: "Climbing frame", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRod-c9zdPr5uwqEZxCBwHkzqHyB3rrMxPYPQ&s" }, { word: "Seesaw", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTj4Yw4wG2mxsr2p8D65wF5CBECXkjV-IVJqA&s" }, { word: "Sandpit", url: "https://upload.wikimedia.org/wikipedia/commons/7/74/Sandpit.jpg" }, { word: "Swing", emoji: "🛝" }, { word: "Jump", emoji: "🏃" }] },
             3: { title: "School", words: [{ word: "Protractor", url: "https://www.artdepot.co.il/16991-thickbox_default/%D7%9E%D7%93-%D7%96%D7%95%D7%95%D7%99%D7%AA-180-10-%D7%A1%D7%9E.jpg" }, { word: "Compass", url: "https://picassoart.co.il/wp-content/uploads/2024/09/%D7%A1%D7%98-%D7%9E%D7%97%D7%95%D7%92%D7%94-STAEDTLER-%D7%9E%D7%90%D7%A8%D7%99%D7%9A.webp" }, { word: "Whiteboard", url: "https://d3m9l0v76dty0.cloudfront.net/system/photos/6300072/large/beae27c0f2f7efd16d9d373de1173d5b.jpg" }, { word: "Exercise book", url: "https://www.holisticfit.co.il/wp-content/uploads/2019/11/book2.jpg" }, { word: "Gluestick", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTciAlKfgYbf97aiA4tmFwyT7Mlxdk2ADHqDw&s" }, { word: "Pencil case", emoji: "👝" }, { word: "Teacher", emoji: "👩‍🏫" }, { word: "School bag", emoji: "🎒" }] },
             4: { title: "Feelings", words: [{ word: "Proud", url: "https://storage.hidabroot.org/articles_new/371700_tumb_730X500.webp" }, { word: "Confident", url: "https://www.shaharcohen.co.il/wp-content/uploads/2018/09/%D7%91%D7%99%D7%98%D7%97%D7%95%D7%9F-%D7%A2%D7%A6%D7%9E%D7%99-2.jpg" }, { word: "Happy", emoji: "😊" }, { word: "Sad", emoji: "😢" }, { word: "Angry", emoji: "😠" }, { word: "Sleepy", emoji: "😴" }] },
             5: { title: "Actions", words: [{ word: "Line up", url: "https://i0.wp.com/blog.kolzchut.org.il/wp/wp-content/uploads/2021/04/53583181_l-1-scaled.jpg?fit=2560%2C2560&ssl=1" }, { word: "Hands up", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT-5yi4ilAnk2dURRe8sGy0x4SuoSZyydFQA&s" }, { word: "English", url: "https://www.gan-li.co.il/images/itempics/2232_030820221718501.jpg" }, { word: "Listen", emoji: "👂" }, { word: "Speak", emoji: "🗣️" }, { word: "Write", emoji: "✍️" }, { word: "Read", emoji: "📖" }, { word: "Finished", emoji: "✅" }] },
@@ -635,6 +635,7 @@
                     if (isVowel) {
                         text = text.replace(/\ba\s+{target}/gi, 'an {target}');
                     } else {
+                        text = text.replace(/\ba\s+{target}/gi, 'a {target}');
                         text = text.replace(/\ban\s+{target}/gi, 'a {target}');
                     }
                 }
@@ -719,14 +720,9 @@
         const ExerciseGenerator = {
             standard(pool, speechEnabled = true) {
                 const target = pool[Math.floor(Math.random() * pool.length)];
-                
-                // If speech is off, we only use 'audioMatch' (click based)
                 let types = speechEnabled ? ['audioMatch', 'repeat', 'sayWord'] : ['audioMatch'];
-                
-                // Social items are inherently speech based in current design
                 let type = (speechEnabled && target.social) ? 'social' : types[Math.floor(Math.random() * types.length)];
                 
-                // If we got a social item but speech is off, pick a new non-social target or just force audioMatch
                 if (!speechEnabled && target.social) {
                     return this.standard(pool.filter(p => !p.social), false);
                 }
@@ -745,9 +741,6 @@
             countingMatch(pool, speechEnabled = true) {
                 const target = pool[Math.floor(Math.random() * pool.length)];
                 const count = Math.floor(Math.random() * 4) + 2; 
-                
-                // If speech is off, counting is tricky. For now, we skip it or turn it into a standard click exercise.
-                // Better UX: Just return a standard one if speech is disabled.
                 if (!speechEnabled) return this.standard(pool, false);
 
                 return {
@@ -763,8 +756,6 @@
                 const word = pool[Math.floor(Math.random() * pool.length)];
                 const attr = mode === "size" ? (Math.random() > 0.5 ? "big" : "small") : (word.color || "Red");
                 const label = `${attr} ${word.word}`;
-
-                // If speech is off, adjectiveRepeat is skipped
                 if (!speechEnabled) return this.standard(pool, false);
 
                 return { type: 'adjectiveRepeat', target: word, targetLabel: label, phrase: label, attr, scale: attr === "big" ? 1.4 : 0.7 };
@@ -862,7 +853,6 @@
                 return { prompt, isSpeech: false, micTarget: "" };
             },
             'audioMatch': (q, root, info, qText) => {
-                // Alias for standard multiple choice
                 return ChallengeRenderers.standard(q, root, info, qText);
             }
         };
@@ -913,8 +903,6 @@
             if (correct) {
                 state.isAnswering = true; stopRepeatTimer();
                 const label = q.type === 'counting' ? q.feedbackLabel : q.targetLabel;
-                
-                // Use GrammarService to fix "a {count}" or "a apple" etc.
                 const rawTemplate = CONFIG.templates.feedback.correct[Math.floor(Math.random()*4)];
                 const feedback = GrammarService.fix(rawTemplate, label);
 
@@ -935,7 +923,6 @@
                 const label = q.type === 'counting' ? q.feedbackLabel : q.targetLabel;
                 const rawTemplate = CONFIG.templates.feedback.wrong[Math.floor(Math.random()*3)];
                 const feedback = GrammarService.fix(rawTemplate, label).replace(/{clicked}/g, clicked);
-                
                 SpeechService.speak(feedback, state.voice); 
                 document.getElementById('status-message').textContent = feedback;
             }
@@ -946,25 +933,44 @@
 
         /** * RENDERER */
         function render(viewC, lvlC, idxC) {
+            // Update global layout and header visibility
             document.body.className = state.level ? `theme-lvl-${state.level}` : '';
             document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === `${state.view}-screen`));
-            document.getElementById('app-header').style.display = (['game', 'sublevel', 'debug', 'loading'].includes(state.view)) ? 'flex' : 'none';
             
-            // Update Toggle UI
+            // Fix: Show header in game, loading, sublevel, debug AND success screen
+            const headerViews = ['game', 'sublevel', 'debug', 'loading', 'success'];
+            document.getElementById('app-header').style.display = (headerViews.includes(state.view)) ? 'flex' : 'none';
+
+            // Update Toggle Switch UI
             const toggle = document.getElementById('speech-toggle');
             if (toggle) {
                 toggle.classList.toggle('active', state.speechEnabled);
                 toggle.querySelector('.toggle-label').textContent = state.speechEnabled ? '🎤 Speak & Listen' : '🖱 Tap Only';
             }
 
+            // Update Progress Bar
+            const bar = document.getElementById('stars-bar');
+            if (bar) {
+                bar.innerHTML = '';
+                state.stars.forEach(f => {
+                    const s = document.createElement('span');
+                    s.className = `star ${f ? 'filled' : ''}`;
+                    s.innerHTML = '★';
+                    bar.appendChild(s);
+                });
+            }
+
+            // Screen Specific Rendering
             if (lvlC && state.view === 'sublevel') {
                 document.getElementById('level-title').textContent = `Level ${state.level}: ${DATA[state.level].title}`;
                 const m = document.getElementById('sublevel-menu'); m.innerHTML = '';
                 for (let i = 1; i <= (state.level === 1 ? 4 : 3); i++) m.appendChild(UIFactory.createCard({ type: 'sublevel', id: i, title: `Lesson ${state.level}.${i}`, classes: ['sublevel-card'] }));
             }
-            if (idxC || (viewC && state.view === 'game')) renderQuestion();
-            const bar = document.getElementById('stars-bar'); bar.innerHTML = '';
-            state.stars.forEach(f => { const s = document.createElement('span'); s.className = `star ${f ? 'filled' : ''}`; s.innerHTML = '★'; bar.appendChild(s); });
+            
+            if (idxC || (viewC && state.view === 'game')) {
+                renderQuestion();
+            }
+
             if (state.view !== 'game') stopRepeatTimer();
         }
 
@@ -989,7 +995,7 @@
             },
             'debug-speak': (el) => SpeechService.speak(el.dataset.word),
             'header-stop': () => { stopRepeatTimer(); SpeechService.abort(); updateState({ isProcessingSpeech: false }); },
-            'header-back': () => { SpeechService.abort(); stopRepeatTimer(); if (['sublevel', 'debug', 'loading'].includes(state.view)) updateState({ view: 'welcome', level: null }); else updateState({ view: 'sublevel' }); }
+            'header-back': () => { SpeechService.abort(); stopRepeatTimer(); if (['sublevel', 'debug', 'loading', 'success'].includes(state.view)) updateState({ view: 'welcome', level: null }); else updateState({ view: 'sublevel' }); }
         };
 
         window.onload = () => {
