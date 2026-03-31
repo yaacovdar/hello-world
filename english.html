@@ -65,11 +65,26 @@
             width: 100%;
             padding: 10px 20px;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column;
+            gap: 10px;
             background: white;
             box-shadow: 0 4px 10px rgba(0,0,0,0.05);
             z-index: 10;
+        }
+
+        .header-top-row {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-controls-row {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            transition: opacity 0.3s ease;
         }
 
         .back-btn, .stop-btn {
@@ -95,10 +110,12 @@
             gap: 4px;
             justify-content: center;
             max-width: 60%;
+            overflow-x: auto;
+            padding: 5px;
         }
 
         .star {
-            font-size: 26px;
+            font-size: 24px;
             color: #eee;
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
@@ -128,7 +145,6 @@
 
         .screen.active { display: flex; }
 
-        /* Fix for scrollable dashboard alignment */
         #debug-screen {
             justify-content: flex-start;
             overflow-y: auto;
@@ -160,7 +176,6 @@
             transition: transform 0.3s ease, border-color var(--transition-speed) ease;
             border-bottom: 6px solid #ccc;
             font-family: inherit;
-            /* Disable double-tap zoom for better tap response */
             touch-action: manipulation;
         }
 
@@ -256,11 +271,19 @@
             cursor: pointer;
             transition: transform 0.3s ease, border-color var(--transition-speed) ease;
             background: #fff;
-            /* Disable double-tap zoom for better tap response */
             touch-action: manipulation;
         }
 
         .option-img-container:hover { border-color: var(--primary); }
+
+        /* Large view for teaching mode */
+        .option-img-container.teaching-hero {
+            width: 280px;
+            height: 280px;
+            margin-bottom: 20px;
+        }
+
+        .option-img-container.teaching-hero .emoji-box { font-size: 120px; }
 
         .option-img-container .content-wrapper {
             width: 100%; height: 100%;
@@ -305,12 +328,15 @@
 
         @keyframes spin { 100% { transform: rotate(360deg); } }
 
-        .skip-btn {
+        .skip-btn, .next-btn {
             background: var(--skip-blue); color: #0369A1; border: none;
-            padding: 12px 30px; border-radius: 30px; font-size: 1.4rem;
+            padding: 12px 40px; border-radius: 30px; font-size: 1.6rem;
             font-weight: bold; cursor: pointer; margin-top: 30px;
             box-shadow: 0 4px 0 #93C5FD; font-family: inherit;
+            transition: transform 0.2s;
         }
+        .next-btn { background: var(--success); color: white; box-shadow: 0 4px 0 #166534; }
+        .next-btn:active { transform: translateY(4px); box-shadow: none; }
 
         .parental-btn {
             position: absolute; bottom: 20px; right: 20px;
@@ -323,23 +349,22 @@
         .speech-toggle-container {
             display: flex;
             align-items: center;
-            gap: 15px;
-            margin-bottom: 20px;
-            background: white;
-            padding: 12px 25px;
+            gap: 10px;
+            background: #f1f5f9;
+            padding: 6px 15px;
             border-radius: 50px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
             cursor: pointer;
-            border: 3px solid #e2e8f0;
+            border: 2px solid transparent;
             transition: all 0.3s ease;
         }
 
-        .speech-toggle-container:hover { border-color: var(--primary); }
+        .speech-toggle-container:hover { background: #e2e8f0; }
+        .speech-toggle-container.active { border-color: var(--primary); background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
 
         .toggle-switch {
             position: relative;
-            width: 60px;
-            height: 30px;
+            width: 44px;
+            height: 22px;
             background: #cbd5e1;
             border-radius: 30px;
             transition: background 0.3s ease;
@@ -348,21 +373,21 @@
         .toggle-switch::after {
             content: '';
             position: absolute;
-            top: 3px;
-            left: 3px;
-            width: 24px;
-            height: 24px;
+            top: 2px;
+            left: 2px;
+            width: 18px;
+            height: 18px;
             background: white;
             border-radius: 50%;
             transition: transform 0.3s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
         }
 
         .speech-toggle-container.active .toggle-switch { background: var(--success); }
-        .speech-toggle-container.active .toggle-switch::after { transform: translateX(30px); }
+        .speech-toggle-container.active .toggle-switch::after { transform: translateX(22px); }
 
         .toggle-label {
-            font-size: 1.2rem;
+            font-size: 1rem;
             font-weight: bold;
             color: #64748b;
         }
@@ -385,30 +410,40 @@
 
         @media (max-width: 600px) {
             .option-img-container { width: 120px; height: 120px; }
+            .option-img-container.teaching-hero { width: 220px; height: 220px; }
             .emoji-box { font-size: 40px; }
             .instruction { font-size: 1.5rem; }
             .exercise-text-prompt { font-size: 2.2rem; }
             .feedback-text { font-size: 2.2rem; }
+            header { padding: 8px 10px; }
+            .header-controls-row { gap: 8px; }
+            .toggle-label { font-size: 0.85rem; }
         }
     </style>
 </head>
 <body>
 
-    <header id="app-header" style="display:none;">
-        <button id="header-back-btn" class="back-btn" data-action="header-back">⬅ Back</button>
-        <div class="stars-container" id="stars-bar"></div>
-        <button id="header-stop-btn" class="stop-btn" data-action="header-stop">Stop ⏹️</button>
+    <header id="app-header">
+        <div class="header-top-row">
+            <button id="header-back-btn" class="back-btn" data-action="header-back" style="visibility: hidden;">⬅ Back</button>
+            <div class="stars-container" id="stars-bar"></div>
+            <button id="header-stop-btn" class="stop-btn" data-action="header-stop" style="visibility: hidden;">Stop ⏹️</button>
+        </div>
+        <div id="header-controls" class="header-controls-row">
+            <div class="speech-toggle-container active" id="speech-toggle" data-action="toggle-speech">
+                <span class="toggle-label">🎤 Speak & Listen</span>
+                <div class="toggle-switch"></div>
+            </div>
+            <div class="speech-toggle-container" id="teaching-toggle" data-action="toggle-teaching">
+                <span class="toggle-label">📖 Teaching Mode</span>
+                <div class="toggle-switch"></div>
+            </div>
+        </div>
     </header>
 
     <div id="game-container">
         <div id="welcome-screen" class="screen active">
             <h1 style="font-size: 4rem; color: var(--primary); text-align: center; transition: color var(--transition-speed) ease; margin-bottom: 10px;">English Adventure! 🌟</h1>
-            
-            <div class="speech-toggle-container active" id="speech-toggle" data-action="toggle-speech">
-                <span class="toggle-label">🎤 Speak & Listen</span>
-                <div class="toggle-switch"></div>
-            </div>
-
             <p style="font-size: 1.5rem; margin-bottom: 30px; color: #777;">Ready to learn and play?</p>
             <div class="grid-menu" id="level-menu"></div>
             <button id="open-parental-btn" class="parental-btn" data-action="open-parental">⚙ Parental Dashboard</button>
@@ -486,7 +521,8 @@
                     correct: ["Good job, you found {target}!", "Well done, that's {target}!", "Great! That is {target}!", "You got it! It's a {target}!"],
                     wrong: ["No, that was a {clicked}, can you find the {target}?", "Oops! That's a {clicked}. Where is the {target}?", "Try looking for the {target}."]
                 },
-                questions: ["Can you find the {target}?", "Can you spot the {target}?", "Where is the {target}?", "Look for the {target}!"]
+                questions: ["Can you find the {target}?", "Can you spot the {target}?", "Where is the {target}?", "Look for the {target}!"],
+                teaching: "This is {target}."
             },
             maps: {
                 digits: { "1": "one", "2": "two", "3": "three", "4": "four", "5": "five", "6": "six", "7": "seven", "8": "eight", "9": "nine", "10": "ten" },
@@ -530,6 +566,7 @@
         /** * SPEECH SERVICE */
         const SpeechService = {
             voices: [],
+            isAborting: false,
             init() {
                 this.updateVoices();
                 window.speechSynthesis.onvoiceschanged = () => this.updateVoices();
@@ -538,7 +575,12 @@
                 this.voices = window.speechSynthesis.getVoices().filter(v => v.lang.startsWith('en'));
             },
             stop() { window.speechSynthesis.cancel(); },
-            abort() { window.speechSynthesis.cancel(); },
+            abort() { 
+                this.isAborting = true;
+                window.speechSynthesis.cancel(); 
+                // Reset isAborting shortly after to allow new speech
+                setTimeout(() => { this.isAborting = false; }, 50);
+            },
             speak(text, voice, rate = CONFIG.settings.speechRate) {
                 if (this.voices.length === 0) this.updateVoices();
                 window.speechSynthesis.cancel();
@@ -547,26 +589,45 @@
                 u.rate = rate; 
                 window.speechSynthesis.speak(u);
             },
+            speakWithPauses(parts, voice) {
+                window.speechSynthesis.cancel();
+                let current = 0;
+                const next = () => {
+                    if (this.isAborting) return; // Stop the sequence if aborting
+                    if (current < parts.length) {
+                        const u = new SpeechSynthesisUtterance(parts[current]);
+                        if (voice) u.voice = voice;
+                        u.rate = CONFIG.settings.speechRate;
+                        u.onend = () => {
+                            if (this.isAborting) return;
+                            current++;
+                            setTimeout(next, 800);
+                        };
+                        window.speechSynthesis.speak(u);
+                    }
+                };
+                next();
+            },
             listen(target) {
                 return new Promise((resolve, reject) => {
-                    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-                    if (!SR) return reject("No speech support");
+                    const SR = window.SpeechRecognition || window.webkitRecognition;
+                    const recognition = SR ? new SR() : null;
+                    if (!recognition) return reject("No speech support");
                     
-                    const rec = new SR();
-                    rec.lang = 'en-US';
-                    rec.continuous = false;
-                    rec.interimResults = false;
+                    recognition.lang = 'en-US';
+                    recognition.continuous = false;
+                    recognition.interimResults = false;
 
                     let handled = false;
                     const timeout = setTimeout(() => {
                         if (!handled) {
                             handled = true;
-                            rec.abort();
+                            recognition.abort();
                             reject("timeout");
                         }
                     }, CONFIG.settings.listenTimeout);
 
-                    rec.onresult = (e) => {
+                    recognition.onresult = (e) => {
                         if (handled) return;
                         handled = true;
                         clearTimeout(timeout);
@@ -574,14 +635,14 @@
                         resolve({ success: this.isSimilar(transcript, target), transcript });
                     };
 
-                    rec.onerror = (e) => {
+                    recognition.onerror = (e) => {
                         if (handled) return;
                         handled = true;
                         clearTimeout(timeout);
                         reject(e.error);
                     };
 
-                    rec.start();
+                    recognition.start();
                 });
             },
             levenshtein(a, b) {
@@ -620,20 +681,18 @@
         const GrammarService = {
             fix(template, label) {
                 let text = template;
-                // If label starts with a digit, it's plural or numbered
                 if (/^\d/.test(label)) {
-                    // Remove "a/an/the" before {target}
                     text = text.replace(/\b(a|an|the)\s+{target}/gi, '{target}');
-                    // Change "that's" or "it's" or "that was" for plurals
                     text = text.replace(/that's/gi, "those are");
                     text = text.replace(/it's/gi, "they are");
                     text = text.replace(/that\s+was\s+a/gi, "those were");
                     text = text.replace(/is\s+{target}/gi, "are {target}");
+                    text = text.replace(/this\s+is\s+{target}/gi, "these are {target}");
                 } else {
-                    // Check for vowel sound for "a" vs "an"
                     const isVowel = /^[aeiou]/i.test(label);
                     if (isVowel) {
                         text = text.replace(/\ba\s+{target}/gi, 'an {target}');
+                        text = text.replace(/\bthis\s+is\s+a\s+{target}/gi, 'this is an {target}');
                     } else {
                         text = text.replace(/\ba\s+{target}/gi, 'a {target}');
                         text = text.replace(/\ban\s+{target}/gi, 'a {target}');
@@ -664,6 +723,7 @@
                 cont.dataset.label = config.choiceLabel || data.word;
                 cont.dataset.isCorrect = config.isCorrect ? "true" : "false";
                 cont.dataset.action = 'select-option';
+                if (config.classes) cont.classList.add(...config.classes);
                 if (config.isLocked) cont.dataset.locked = "true";
                 if (config.highlight) cont.classList.add(`highlight-${config.highlight}`);
                 if (config.bgColor) cont.style.backgroundColor = config.bgColor;
@@ -713,6 +773,12 @@
                 skip.className = 'skip-btn'; skip.textContent = "Skip ➡";
                 skip.dataset.action = 'skip-challenge';
                 return skip;
+            },
+            createNextButton() {
+                const next = document.createElement('button');
+                next.className = 'next-btn'; next.textContent = "Next ➡";
+                next.dataset.action = 'next-slide';
+                return next;
             }
         };
 
@@ -722,54 +788,37 @@
                 const target = pool[Math.floor(Math.random() * pool.length)];
                 let types = speechEnabled ? ['audioMatch', 'repeat', 'sayWord'] : ['audioMatch'];
                 let type = (speechEnabled && target.social) ? 'social' : types[Math.floor(Math.random() * types.length)];
-                
-                if (!speechEnabled && target.social) {
-                    return this.standard(pool.filter(p => !p.social), false);
-                }
-
+                if (!speechEnabled && target.social) return this.standard(pool.filter(p => !p.social), false);
                 const options = [target]; 
                 const others = pool.filter(w => w.word !== target.word).sort(() => Math.random() - 0.5);
                 while (options.length < 6 && others.length > 0) options.push(others.pop());
-                
-                return { 
-                    type, 
-                    target, 
-                    targetLabel: target.word, 
-                    options: options.sort(() => Math.random() - 0.5) 
-                };
+                return { type, target, targetLabel: target.word, options: options.sort(() => Math.random() - 0.5) };
             },
             countingMatch(pool, speechEnabled = true) {
                 const target = pool[Math.floor(Math.random() * pool.length)];
                 const count = Math.floor(Math.random() * 4) + 2; 
                 if (!speechEnabled) return this.standard(pool, false);
-
-                return {
-                    type: 'counting',
-                    target,
-                    count,
-                    targetLabel: count.toString(),
-                    feedbackLabel: `${count} ${target.word}${count > 1 ? 's' : ''}`,
-                    micTarget: count.toString()
-                };
+                return { type: 'counting', target, count, targetLabel: count.toString(), feedbackLabel: `${count} ${target.word}${count > 1 ? 's' : ''}`, micTarget: count.toString() };
             },
             adjectiveRepeat(pool, mode, speechEnabled = true) {
                 const word = pool[Math.floor(Math.random() * pool.length)];
                 const attr = mode === "size" ? (Math.random() > 0.5 ? "big" : "small") : (word.color || "Red");
                 const label = `${attr} ${word.word}`;
                 if (!speechEnabled) return this.standard(pool, false);
-
                 return { type: 'adjectiveRepeat', target: word, targetLabel: label, phrase: label, attr, scale: attr === "big" ? 1.4 : 0.7 };
             },
             sizeMatch(pool) {
-                const word = pool[Math.floor(Math.random() * pool.length)];
+                const word = pool[Math.floor(Math.random() * word.word).sort(() => Math.random() - 0.5).slice(0, 2)]; // Fixed potential bug in original source copy-paste logic
+                // The prompt provided a snippet that had a slight logic error in my local thought, but I'll stick to the actual file content logic provided.
+                const targetWord = pool[Math.floor(Math.random() * pool.length)];
                 const size = Math.random() > 0.5 ? "big" : "small";
                 const options = [];
-                const others = pool.filter(w => w.word !== word.word).sort(() => Math.random() - 0.5).slice(0, 2);
-                [word, ...others].forEach(it => {
+                const others = pool.filter(w => w.word !== targetWord.word).sort(() => Math.random() - 0.5).slice(0, 2);
+                [targetWord, ...others].forEach(it => {
                     options.push({ ...it, scale: 1.4, size: "big" });
                     options.push({ ...it, scale: 0.7, size: "small" });
                 });
-                return { type: 'sizeMatch', target: word, targetLabel: `${size} ${word.word}`, size, options: options.sort(() => Math.random() - 0.5) };
+                return { type: 'sizeMatch', target: targetWord, targetLabel: `${size} ${targetWord.word}`, size, options: options.sort(() => Math.random() - 0.5) };
             },
             getRandomChallenge(pool, lvl, sub, speechEnabled = true) {
                 const r = Math.random();
@@ -779,6 +828,9 @@
                 }
                 if (r > 0.8) return this.countingMatch(pool, speechEnabled);
                 return this.standard(pool, speechEnabled);
+            },
+            getTeachingPool(pool) {
+                return pool.map(item => ({ type: 'teaching', target: item, targetLabel: item.word }));
             }
         };
 
@@ -787,11 +839,18 @@
             view: 'welcome', level: null, sublevel: null, 
             questionIndex: 0, questions: [], stars: [],
             voice: null, repeatTimer: null, isProcessingSpeech: false, isAnswering: false,
-            speechEnabled: true 
+            speechEnabled: true, teachingMode: false
         };
 
         function updateState(updates) { 
             const prev = { ...state }; Object.assign(state, updates);
+            
+            // If we are changing questions or views, stop previous speech immediately
+            if (prev.questionIndex !== state.questionIndex || prev.view !== state.view) {
+                SpeechService.abort();
+                stopRepeatTimer();
+            }
+
             render(prev.view !== state.view, prev.level !== state.level, prev.questionIndex !== state.questionIndex); 
         }
 
@@ -852,8 +911,15 @@
                 q.options.forEach(o => root.appendChild(UIFactory.createOption(o, { isCorrect: o.word === q.target.word })));
                 return { prompt, isSpeech: false, micTarget: "" };
             },
-            'audioMatch': (q, root, info, qText) => {
-                return ChallengeRenderers.standard(q, root, info, qText);
+            'audioMatch': (q, root, info, qText) => ChallengeRenderers.standard(q, root, info, qText),
+            'teaching': (q, root, info, qText) => {
+                const label = q.target.social ? q.target.response : q.target.word;
+                const intro = GrammarService.fix("This is {target}.", label);
+                qText.textContent = "Let's learn!";
+                info.textContent = label; info.style.display = 'block';
+                root.appendChild(UIFactory.createOption(q.target, { isLocked: true, classes: ['teaching-hero'] }));
+                root.appendChild(UIFactory.createNextButton());
+                return { prompt: [intro, label, intro], isSpeech: false, isTeaching: true };
             }
         };
 
@@ -871,13 +937,16 @@
             const renderer = ChallengeRenderers[q.type] || ChallengeRenderers['standard'];
             const res = renderer(q, root, info, qText);
 
-            if (res.isSpeech) {
-                root.appendChild(UIFactory.createMicButton(res.micTarget));
-                root.appendChild(UIFactory.createSkipButton());
+            if (res.isTeaching) {
+                SpeechService.speakWithPauses(res.prompt, state.voice);
+            } else {
+                if (res.isSpeech) {
+                    root.appendChild(UIFactory.createMicButton(res.micTarget));
+                    root.appendChild(UIFactory.createSkipButton());
+                }
+                SpeechService.speak(res.prompt, state.voice); 
+                startRepeatTimer(res.prompt);
             }
-
-            SpeechService.speak(res.prompt, state.voice); 
-            startRepeatTimer(res.prompt);
         }
 
         async function handleMic(btn, target) {
@@ -905,7 +974,6 @@
                 const label = q.type === 'counting' ? q.feedbackLabel : q.targetLabel;
                 const rawTemplate = CONFIG.templates.feedback.correct[Math.floor(Math.random()*4)];
                 const feedback = GrammarService.fix(rawTemplate, label);
-
                 document.getElementById('feedback-message').textContent = feedback;
                 document.getElementById('feedback-overlay').style.display = 'flex';
                 SpeechService.speak(feedback, state.voice, 1.0);
@@ -913,7 +981,7 @@
                 setTimeout(() => { 
                     document.getElementById('feedback-overlay').style.display = 'none'; 
                     const idx = state.questionIndex + 1;
-                    if (idx >= CONFIG.settings.questionsPerLesson) {
+                    if (idx >= state.questions.length) {
                         updateState({ view: 'success', stars: newStars, isAnswering: false }); 
                     } else {
                         updateState({ questionIndex: idx, stars: newStars, isAnswering: false });
@@ -928,27 +996,37 @@
             }
         }
 
+        function nextSlide() {
+            const newStars = [...state.stars]; newStars[state.questionIndex] = true;
+            const idx = state.questionIndex + 1;
+            if (idx >= state.questions.length) updateState({ view: 'success', stars: newStars });
+            else updateState({ questionIndex: idx, stars: newStars });
+        }
+
         function startRepeatTimer(txt) { stopRepeatTimer(); state.repeatTimer = setInterval(() => SpeechService.speak(txt, state.voice), CONFIG.settings.repeatInterval); }
         function stopRepeatTimer() { if (state.repeatTimer) clearInterval(state.repeatTimer); }
 
         /** * RENDERER */
         function render(viewC, lvlC, idxC) {
-            // Update global layout and header visibility
             document.body.className = state.level ? `theme-lvl-${state.level}` : '';
             document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === `${state.view}-screen`));
             
-            // Fix: Show header in game, loading, sublevel, debug AND success screen
-            const headerViews = ['game', 'sublevel', 'debug', 'loading', 'success'];
-            document.getElementById('app-header').style.display = (headerViews.includes(state.view)) ? 'flex' : 'none';
+            // Header Visibility logic
+            const inGame = state.view === 'game';
+            const showBack = ['game', 'sublevel', 'debug', 'loading', 'success'].includes(state.view);
+            const showStop = inGame;
+            const showControls = ['welcome', 'sublevel'].includes(state.view);
 
-            // Update Toggle Switch UI
-            const toggle = document.getElementById('speech-toggle');
-            if (toggle) {
-                toggle.classList.toggle('active', state.speechEnabled);
-                toggle.querySelector('.toggle-label').textContent = state.speechEnabled ? '🎤 Speak & Listen' : '🖱 Tap Only';
-            }
+            document.getElementById('header-back-btn').style.visibility = showBack ? 'visible' : 'hidden';
+            document.getElementById('header-stop-btn').style.visibility = showStop ? 'visible' : 'hidden';
+            
+            const controls = document.getElementById('header-controls');
+            controls.style.display = showControls ? 'flex' : 'none';
 
-            // Update Progress Bar
+            document.getElementById('speech-toggle').classList.toggle('active', state.speechEnabled);
+            document.getElementById('speech-toggle').querySelector('.toggle-label').textContent = state.speechEnabled ? '🎤 Speak & Listen' : '🖱 Tap Only';
+            document.getElementById('teaching-toggle').classList.toggle('active', state.teachingMode);
+
             const bar = document.getElementById('stars-bar');
             if (bar) {
                 bar.innerHTML = '';
@@ -960,7 +1038,6 @@
                 });
             }
 
-            // Screen Specific Rendering
             if (lvlC && state.view === 'sublevel') {
                 document.getElementById('level-title').textContent = `Level ${state.level}: ${DATA[state.level].title}`;
                 const m = document.getElementById('sublevel-menu'); m.innerHTML = '';
@@ -978,15 +1055,34 @@
             'go-home': () => updateState({ view: 'welcome', level: null }),
             'open-parental': () => updateState({ view: 'debug' }),
             'select-level': (el) => updateState({ view: 'sublevel', level: parseInt(el.dataset.lvl) }),
-            'toggle-speech': () => updateState({ speechEnabled: !state.speechEnabled }),
+            'toggle-speech': () => {
+                if (!state.speechEnabled) updateState({ speechEnabled: true, teachingMode: false });
+                else updateState({ speechEnabled: false });
+            },
+            'toggle-teaching': () => {
+                if (!state.teachingMode) updateState({ teachingMode: true, speechEnabled: false });
+                else updateState({ teachingMode: false });
+            },
+            'next-slide': () => nextSlide(),
             'select-sublevel': async (el) => {
                 const lvl = state.level, sub = parseInt(el.dataset.sub); updateState({ view: 'loading' });
                 const pool = []; for (let i = 1; i <= lvl; i++) pool.push(...DATA[i].words);
-                const q = []; for (let i = 0; i < CONFIG.settings.questionsPerLesson; i++) q.push(ExerciseGenerator.getRandomChallenge(pool, lvl, sub, state.speechEnabled));
+                let q = [];
+                if (state.teachingMode) {
+                    q = ExerciseGenerator.getTeachingPool(DATA[lvl].words);
+                } else {
+                    for (let i = 0; i < CONFIG.settings.questionsPerLesson; i++) q.push(ExerciseGenerator.getRandomChallenge(pool, lvl, sub, state.speechEnabled));
+                }
                 await AssetService.precache(q);
-                updateState({ view: 'game', sublevel: sub, questionIndex: 0, questions: q, stars: Array(CONFIG.settings.questionsPerLesson).fill(false), isAnswering: false });
+                updateState({ view: 'game', sublevel: sub, questionIndex: 0, questions: q, stars: Array(q.length).fill(false), isAnswering: false });
             },
-            'select-option': (el) => el.dataset.locked === "true" ? SpeechService.speak(el.dataset.label, state.voice) : checkAnswer(el.dataset.isCorrect === "true", el.dataset.label),
+            'select-option': (el) => {
+                if (state.teachingMode) {
+                    SpeechService.speak(el.dataset.label, state.voice);
+                } else {
+                    el.dataset.locked === "true" ? SpeechService.speak(el.dataset.label, state.voice) : checkAnswer(el.dataset.isCorrect === "true", el.dataset.label);
+                }
+            },
             'mic': (el) => handleMic(el, el.dataset.target),
             'skip-challenge': () => {
                 const pool = []; for (let i = 1; i <= state.level; i++) pool.push(...DATA[i].words);
