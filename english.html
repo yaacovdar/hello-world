@@ -22,13 +22,14 @@
         }
 
         /* --- THEMES --- */
-        body.theme-lvl-1 { --primary: #4FACFE; --bg-color: #F0F9FF; }
-        body.theme-lvl-2 { --primary: #4ADE80; --bg-color: #F0FDF4; }
-        body.theme-lvl-3 { --primary: #A855F7; --bg-color: #FAF5FF; }
-        body.theme-lvl-4 { --primary: #FB923C; --bg-color: #FFF7ED; }
-        body.theme-lvl-5 { --primary: #6366F1; --bg-color: #EEF2FF; }
-        body.theme-lvl-6 { --primary: #F472B6; --bg-color: #FDF2F8; }
-        body.theme-lvl-7 { --primary: #854D0E; --bg-color: #FEFCE8; }
+        body.theme-lvl-1 { --primary: #4FACFE; --bg-color: #F0F9FF; } /* Basics */
+        body.theme-lvl-2 { --primary: #F472B6; --bg-color: #FDF2F8; } /* Colours */
+        body.theme-lvl-3 { --primary: #854D0E; --bg-color: #FEFCE8; } /* Animals */
+        body.theme-lvl-4 { --primary: #A855F7; --bg-color: #FAF5FF; } /* Adjectives */
+        body.theme-lvl-5 { --primary: #4ADE80; --bg-color: #F0FDF4; } /* Playground */
+        body.theme-lvl-6 { --primary: #00F2FE; --bg-color: #ECFEFF; } /* School */
+        body.theme-lvl-7 { --primary: #FB923C; --bg-color: #FFF7ED; } /* Feelings */
+        body.theme-lvl-8 { --primary: #6366F1; --bg-color: #EEF2FF; } /* Actions */
 
         * {
             box-sizing: border-box;
@@ -538,12 +539,13 @@
         /** * DATA DEFINITIONS */
         const DATA = {
             1: { title: "Basics", words: [{ word: "Apple", emoji: "🍎", color: "red" }, { word: "Dog", emoji: "🐶", color: "brown" }, { word: "Cat", emoji: "🐱", color: "gray" }, { word: "Sun", emoji: "☀️", color: "yellow" }, { word: "Moon", emoji: "🌙", color: "white" }, { word: "Bird", emoji: "🐦", color: "blue" }, { word: "Water", emoji: "💧", color: "blue" }, { word: "Bread", emoji: "🍞", color: "brown" }, { word: "Milk", emoji: "🥛", color: "white" }, { word: "Hello", emoji: "👋", social: true, response: "Hello" }] },
-            2: { title: "Playground", words: [{ word: "Monkey bars", url: "https://images.unsplash.com/vector-1757332570676-facced078968?q=80&w=1160&auto=format&fit=crop" }, { word: "Rope bridge", url: "https://media.istockphoto.com/id/1006459800/photo/child-crossing-a-bridge-of-ropes.jpg?s=612x612&w=0&k=20&c=u6xBBbbU0qTmeE8Tt8RzB5TIVS8vwEEB2OJtY-NjWm8=" }, { word: "Climbing frame", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRod-c9zdPr5uwqEZxCBwHkzqHyB3rrMxPYPQ&s" }, { word: "Seesaw", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTj4Yw4wG2mxsr2p8D65wF5CBECXkjV-IVJqA&s" }, { word: "Sandpit", url: "https://upload.wikimedia.org/wikipedia/commons/7/74/Sandpit.jpg" }, { word: "Swing", emoji: "🛝" }, { word: "Jump", emoji: "🏃" }] },
-            3: { title: "School", words: [{ word: "Protractor", url: "https://www.artdepot.co.il/16991-thickbox_default/%D7%9E%D7%93-%D7%96%D7%95%D7%95%D7%99%D7%AA-180-10-%D7%A1%D7%9E.jpg" }, { word: "Compass", url: "https://picassoart.co.il/wp-content/uploads/2024/09/%D7%A1%D7%98-%D7%9E%D7%97%D7%95%D7%92%D7%94-STAEDTLER-%D7%9E%D7%90%D7%A8%D7%99%D7%9A.webp" }, { word: "Whiteboard", url: "https://d3m9l0v76dty0.cloudfront.net/system/photos/6300072/large/beae27c0f2f7efd16d9d373de1173d5b.jpg" }, { word: "Exercise book", url: "https://www.holisticfit.co.il/wp-content/uploads/2019/11/book2.jpg" }, { word: "Gluestick", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTciAlKfgYbf97aiA4tmFwyT7Mlxdk2ADHqDw&s" }, { word: "Pencil case", emoji: "👝" }, { word: "Teacher", emoji: "👩‍🏫" }, { word: "School bag", emoji: "🎒" }] },
-            4: { title: "Feelings", words: [{ word: "Proud", url: "https://storage.hidabroot.org/articles_new/371700_tumb_730X500.webp" }, { word: "Confident", url: "https://www.shaharcohen.co.il/wp-content/uploads/2018/09/%D7%91%D7%99%D7%98%D7%97%D7%95%D7%9F-%D7%A2%D7%A6%D7%9E%D7%99-2.jpg" }, { word: "Happy", emoji: "😊" }, { word: "Sad", emoji: "😢" }, { word: "Angry", emoji: "😠" }, { word: "Sleepy", emoji: "😴" }] },
-            5: { title: "Actions", words: [{ word: "Line up", url: "https://i0.wp.com/blog.kolzchut.org.il/wp/wp-content/uploads/2021/04/53583181_l-1-scaled.jpg?fit=2560%2C2560&ssl=1" }, { word: "Hands up", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT-5yi4ilAnk2dURRe8sGy0x4SuoSZyydFQA&s" }, { word: "English", url: "https://www.gan-li.co.il/images/itempics/2232_030820221718501.jpg" }, { word: "Listen", emoji: "👂" }, { word: "Speak", emoji: "🗣️" }, { word: "Write", emoji: "✍️" }, { word: "Read", emoji: "📖" }, { word: "Finished", emoji: "✅" }] },
-            6: { title: "Colours", words: [{ word: "Purple", emoji: "🟪" }, { word: "Orange", emoji: "🟧" }, { word: "Pink", emoji: "🩷" }, { word: "Black", emoji: "⬛" }, { word: "Yellow", emoji: "🟨" }, { word: "Blue", emoji: "🟦" }, { word: "Brown", emoji: "🟫" }, { word: "Red", emoji: "🟥" }, { word: "White", emoji: "⬜" }, { word: "Green", emoji: "🟩" }] },
-            7: { title: "Animals", words: [{ word: "Goat", emoji: "🐐" }, { word: "Panda", emoji: "🐼" }, { word: "Pig", emoji: "🐷" }, { word: "Lion", emoji: "🦁" }, { word: "Hippo", emoji: "🦛" }, { word: "Shark", emoji: "🦈" }, { word: "Tiger", emoji: "🐅" }, { word: "Elephant", emoji: "🐘" }, { word: "Monkey", emoji: "🐒" }, { word: "Giraffe", emoji: "🦒" }, { word: "Cow", emoji: "🐄" }] }
+            2: { title: "Colours", words: [{ word: "Purple", emoji: "🟪", isColor: true }, { word: "Orange", emoji: "🟧", isColor: true }, { word: "Pink", emoji: "🩷", isColor: true }, { word: "Black", emoji: "⬛", isColor: true }, { word: "Yellow", emoji: "🟨", isColor: true }, { word: "Blue", emoji: "🟦", isColor: true }, { word: "Brown", emoji: "🟫", isColor: true }, { word: "Red", emoji: "🟥", isColor: true }, { word: "White", emoji: "⬜", isColor: true }, { word: "Green", emoji: "🟩", isColor: true }] },
+            3: { title: "Animals", words: [{ word: "Zebra", emoji: "🦓" }, { word: "Goat", emoji: "🐐" }, { word: "Panda", emoji: "🐼" }, { word: "Pig", emoji: "🐷" }, { word: "Lion", emoji: "🦁" }, { word: "Hippo", emoji: "🦛" }, { word: "Shark", emoji: "🦈" }, { word: "Tiger", emoji: "🐅" }, { word: "Elephant", emoji: "🐘" }, { word: "Monkey", emoji: "🐒" }, { word: "Giraffe", emoji: "🦒" }, { word: "Cow", emoji: "🐄" }] },
+            4: { title: "Adjectives", words: [{ word: "Big", emoji: "🐘", isAdjectiveToken: true }, { word: "Small", emoji: "🐭", isAdjectiveToken: true }] },
+            5: { title: "Playground", words: [{ word: "Monkey bars", url: "https://images.unsplash.com/vector-1757332570676-facced078968?q=80&w=1160&auto=format&fit=crop" }, { word: "Rope bridge", url: "https://media.istockphoto.com/id/1006459800/photo/child-crossing-a-bridge-of-ropes.jpg?s=612x612&w=0&k=20&c=u6xBBbbU0qTmeE8Tt8RzB5TIVS8vwEEB2OJtY-NjWm8=" }, { word: "Climbing frame", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRod-c9zdPr5uwqEZxCBwHkzqHyB3rrMxPYPQ&s" }, { word: "Seesaw", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTj4Yw4wG2mxsr2p8D65wF5CBECXkjV-IVJqA&s" }, { word: "Sandpit", url: "https://upload.wikimedia.org/wikipedia/commons/7/74/Sandpit.jpg" }, { word: "Swing", emoji: "🛝" }, { word: "Jump", emoji: "🏃" }] },
+            6: { title: "School", words: [{ word: "Protractor", url: "https://www.artdepot.co.il/16991-thickbox_default/%D7%9E%D7%93-%D7%96%D7%95%D7%95%D7%99%D7%AA-180-10-%D7%A1%D7%9E.jpg" }, { word: "Compass", url: "https://picassoart.co.il/wp-content/uploads/2024/09/%D7%A1%D7%98-%D7%9E%D7%97%D7%95%D7%92%D7%94-STAEDTLER-%D7%9E%D7%90%D7%A8%D7%99%D7%9A.webp" }, { word: "Whiteboard", url: "https://d3m9l0v76dty0.cloudfront.net/system/photos/6300072/large/beae27c0f2f7efd16d9d373de1173d5b.jpg" }, { word: "Exercise book", url: "https://www.holisticfit.co.il/wp-content/uploads/2019/11/book2.jpg" }, { word: "Gluestick", url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTciAlKfgYbf97aiA4tmFwyT7Mlxdk2ADHqDw&s" }, { word: "Pencil case", emoji: "👝" }, { word: "Teacher", emoji: "👩‍🏫" }, { word: "School bag", emoji: "🎒" }] },
+            7: { title: "Feelings", words: [{ word: "Proud", url: "https://storage.hidabroot.org/articles_new/371700_tumb_730X500.webp" }, { word: "Confident", url: "https://www.shaharcohen.co.il/wp-content/uploads/2018/09/%D7%91%D7%99%D7%98%D7%97%D7%95%D7%9F-%D7%A2%D7%A6%D7%9E%D7%99-2.jpg" }, { word: "Happy", emoji: "😊" }, { word: "Sad", emoji: "😢" }, { word: "Angry", emoji: "😠" }, { word: "Sleepy", emoji: "😴" }] },
+            8: { title: "Actions", words: [{ word: "Line up", url: "https://i0.wp.com/blog.kolzchut.org.il/wp/wp-content/uploads/2021/04/53583181_l-1-scaled.jpg?fit=2560%2C2560&ssl=1" }, { word: "Hands up", url: "https://decker.com/wp-content/uploads/2018/10/Raise-Hands-TW.png" }, { word: "English", url: "https://www.gan-li.co.il/images/itempics/2232_030820221718501.jpg" }, { word: "Listen", emoji: "👂" }, { word: "Speak", emoji: "🗣️" }, { word: "Write", emoji: "✍️" }, { word: "Read", emoji: "📖" }, { word: "Finished", emoji: "✅" }] }
         };
 
         /** * ASSET SERVICE */
@@ -578,7 +580,6 @@
             abort() { 
                 this.isAborting = true;
                 window.speechSynthesis.cancel(); 
-                // Reset isAborting shortly after to allow new speech
                 setTimeout(() => { this.isAborting = false; }, 50);
             },
             speak(text, voice, rate = CONFIG.settings.speechRate) {
@@ -593,7 +594,7 @@
                 window.speechSynthesis.cancel();
                 let current = 0;
                 const next = () => {
-                    if (this.isAborting) return; // Stop the sequence if aborting
+                    if (this.isAborting) return;
                     if (current < parts.length) {
                         const u = new SpeechSynthesisUtterance(parts[current]);
                         if (voice) u.voice = voice;
@@ -726,7 +727,10 @@
                 if (config.classes) cont.classList.add(...config.classes);
                 if (config.isLocked) cont.dataset.locked = "true";
                 if (config.highlight) cont.classList.add(`highlight-${config.highlight}`);
+                
                 if (config.bgColor) cont.style.backgroundColor = config.bgColor;
+                else if (config.colorAttr) cont.style.backgroundColor = config.colorAttr.toLowerCase();
+
                 const wrap = cont.querySelector('.content-wrapper');
                 if (config.scale) wrap.style.transform = `scale(${config.scale})`;
                 if (data.url) {
@@ -801,35 +805,126 @@
                 return { type: 'counting', target, count, targetLabel: count.toString(), feedbackLabel: `${count} ${target.word}${count > 1 ? 's' : ''}`, micTarget: count.toString() };
             },
             adjectiveRepeat(pool, mode, speechEnabled = true) {
-                const word = pool[Math.floor(Math.random() * pool.length)];
-                const attr = mode === "size" ? (Math.random() > 0.5 ? "big" : "small") : (word.color || "Red");
-                const label = `${attr} ${word.word}`;
+                // Important: Only use objects (nouns), not color blocks or size tokens
+                const objects = pool.filter(w => !w.isColor && !w.isAdjectiveToken);
+                const word = objects[Math.floor(Math.random() * objects.length)];
+                
+                let attrSize = Math.random() > 0.5 ? "big" : "small";
+                let attrColor = CONFIG.maps.colors[Math.floor(Math.random() * CONFIG.maps.colors.length)];
+                
+                let label = "";
+                let scale = 1.0;
+                let color = "";
+
+                if (mode === "size") {
+                    label = `${attrSize} ${word.word}`;
+                    scale = attrSize === "big" ? 1.4 : 0.7;
+                } else if (mode === "color") {
+                    label = `${attrColor} ${word.word}`;
+                    color = attrColor;
+                } else if (mode === "combined") {
+                    label = `${attrSize} ${attrColor} ${word.word}`;
+                    scale = attrSize === "big" ? 1.4 : 0.7;
+                    color = attrColor;
+                }
+
                 if (!speechEnabled) return this.standard(pool, false);
-                return { type: 'adjectiveRepeat', target: word, targetLabel: label, phrase: label, attr, scale: attr === "big" ? 1.4 : 0.7 };
+                return { type: 'adjectiveRepeat', target: word, targetLabel: label, phrase: label, scale, colorAttr: color };
             },
-            sizeMatch(pool) {
-                const word = pool[Math.floor(Math.random() * word.word).sort(() => Math.random() - 0.5).slice(0, 2)]; // Fixed potential bug in original source copy-paste logic
-                // The prompt provided a snippet that had a slight logic error in my local thought, but I'll stick to the actual file content logic provided.
-                const targetWord = pool[Math.floor(Math.random() * pool.length)];
-                const size = Math.random() > 0.5 ? "big" : "small";
+            adjectiveMatch(pool, mode) {
+                // Ensure distractors are nouns, not standalone colors or adjective symbols
+                const objects = pool.filter(w => !w.isColor && !w.isAdjectiveToken);
+                const targetWord = objects[Math.floor(Math.random() * objects.length)];
+                
+                let attrSize = Math.random() > 0.5 ? "big" : "small";
+                let attrColor = CONFIG.maps.colors[Math.floor(Math.random() * CONFIG.maps.colors.length)];
+                
+                let label = "";
+                let targetScale = 1.0;
+                let targetColor = "";
+
+                if (mode === "size") {
+                    label = `${attrSize} ${targetWord.word}`;
+                    targetScale = attrSize === "big" ? 1.4 : 0.7;
+                } else if (mode === "color") {
+                    label = `${attrColor} ${targetWord.word}`;
+                    targetColor = attrColor;
+                } else if (mode === "combined") {
+                    label = `${attrSize} ${attrColor} ${targetWord.word}`;
+                    targetScale = attrSize === "big" ? 1.4 : 0.7;
+                    targetColor = attrColor;
+                }
+
                 const options = [];
-                const others = pool.filter(w => w.word !== targetWord.word).sort(() => Math.random() - 0.5).slice(0, 2);
-                [targetWord, ...others].forEach(it => {
-                    options.push({ ...it, scale: 1.4, size: "big" });
-                    options.push({ ...it, scale: 0.7, size: "small" });
+                // 1. Add the correct target
+                options.push({ 
+                    ...targetWord, 
+                    scale: targetScale, 
+                    colorAttr: targetColor, 
+                    sizeAttr: attrSize,
+                    isCorrect: true, 
+                    choiceLabel: label 
                 });
-                return { type: 'sizeMatch', target: targetWord, targetLabel: `${size} ${targetWord.word}`, size, options: options.sort(() => Math.random() - 0.5) };
+
+                // 2. Add distractor objects (ensure no standalone color cards)
+                const poolOthers = objects.filter(o => o.word !== targetWord.word).sort(() => Math.random() - 0.5);
+                
+                // Add opposite size of target as first distractor
+                if (mode === "size" || mode === "combined") {
+                    options.push({ 
+                        ...targetWord, 
+                        scale: targetScale > 1 ? 0.7 : 1.4, 
+                        colorAttr: targetColor, 
+                        sizeAttr: targetScale > 1 ? "small" : "big",
+                        isCorrect: false, 
+                        choiceLabel: `${targetScale > 1 ? "small" : "big"} ${targetColor ? targetColor + ' ' : ''}${targetWord.word}` 
+                    });
+                }
+
+                // Fill rest with other objects and random attributes
+                while (options.length < 6 && poolOthers.length > 0) {
+                    const it = poolOthers.pop();
+                    const s = Math.random() > 0.5 ? 1.4 : 0.7;
+                    const c = CONFIG.maps.colors[Math.floor(Math.random() * CONFIG.maps.colors.length)];
+                    const curSizeLabel = s > 1 ? "big" : "small";
+                    
+                    options.push({ 
+                        ...it, 
+                        scale: s, 
+                        colorAttr: (mode === "color" || mode === "combined") ? c : "", 
+                        sizeAttr: curSizeLabel,
+                        isCorrect: false, 
+                        choiceLabel: `${curSizeLabel} ${ (mode !== "size") ? c + ' ' : ''}${it.word}` 
+                    });
+                }
+
+                return { 
+                    type: 'adjectiveMatch', 
+                    target: targetWord, 
+                    targetLabel: label, 
+                    options: options.slice(0, 6).sort(() => Math.random() - 0.5)
+                };
             },
             getRandomChallenge(pool, lvl, sub, speechEnabled = true) {
-                const r = Math.random();
-                if (lvl === 1 && sub === 3) {
-                    if (r > 0.6) return this.sizeMatch(pool);
-                    return this.adjectiveRepeat(pool, "size", speechEnabled);
+                if (lvl === 4) {
+                    const r = Math.random();
+                    if (sub === 1) return r > 0.5 ? this.adjectiveRepeat(pool, "size", speechEnabled) : this.adjectiveMatch(pool, "size");
+                    if (sub === 2) return r > 0.5 ? this.adjectiveRepeat(pool, "color", speechEnabled) : this.adjectiveMatch(pool, "color");
+                    return r > 0.5 ? this.adjectiveRepeat(pool, "combined", speechEnabled) : this.adjectiveMatch(pool, "combined");
                 }
+                const r = Math.random();
                 if (r > 0.8) return this.countingMatch(pool, speechEnabled);
                 return this.standard(pool, speechEnabled);
             },
-            getTeachingPool(pool) {
+            getTeachingPool(pool, lvl) {
+                if (lvl === 4) {
+                    return [
+                        { type: 'teaching', target: { word: "Elephant", emoji: "🐘" }, targetLabel: "big Elephant", scale: 1.4 },
+                        { type: 'teaching', target: { word: "Mouse", emoji: "🐭" }, targetLabel: "small Mouse", scale: 0.7 },
+                        { type: 'teaching', target: { word: "Dog", emoji: "🐶" }, targetLabel: "Purple Dog", colorAttr: "Purple" },
+                        { type: 'teaching', target: { word: "Cat", emoji: "🐱" }, targetLabel: "small Yellow Cat", scale: 0.7, colorAttr: "Yellow" }
+                    ];
+                }
                 return pool.map(item => ({ type: 'teaching', target: item, targetLabel: item.word }));
             }
         };
@@ -844,13 +939,10 @@
 
         function updateState(updates) { 
             const prev = { ...state }; Object.assign(state, updates);
-            
-            // If we are changing questions or views, stop previous speech immediately
             if (prev.questionIndex !== state.questionIndex || prev.view !== state.view) {
                 SpeechService.abort();
                 stopRepeatTimer();
             }
-
             render(prev.view !== state.view, prev.level !== state.level, prev.questionIndex !== state.questionIndex); 
         }
 
@@ -887,13 +979,15 @@
                 root.appendChild(UIFactory.createOption(q.target, { isCorrect: true, isLocked: true, showLabel: false }));
                 return { prompt, isSpeech: true, micTarget: q.target.word };
             },
-            'sizeMatch': (q, root, info, qText) => {
-                const prompt = `Where is the ${q.size} ${q.target.word}?`;
+            'adjectiveMatch': (q, root, info, qText) => {
+                const prompt = `Where is the ${q.targetLabel}?`;
                 qText.textContent = "Look and listen!";
                 info.textContent = q.targetLabel; info.style.display = 'block';
                 q.options.forEach(o => root.appendChild(UIFactory.createOption(o, { 
-                    scale: o.scale, choiceLabel: `${o.size} ${o.word}`, 
-                    isCorrect: (o.word === q.target.word && o.size === q.size)
+                    scale: o.scale, 
+                    colorAttr: o.colorAttr,
+                    isCorrect: o.isCorrect,
+                    choiceLabel: o.choiceLabel 
                 })));
                 return { prompt, isSpeech: false, micTarget: "" };
             },
@@ -901,7 +995,7 @@
                 const prompt = `Repeat: ${q.phrase}`;
                 qText.textContent = "Say the phrase!";
                 info.textContent = q.phrase; info.style.display = 'block';
-                root.appendChild(UIFactory.createOption(q.target, { scale: q.scale, isLocked: true }));
+                root.appendChild(UIFactory.createOption(q.target, { scale: q.scale, colorAttr: q.colorAttr, isLocked: true }));
                 return { prompt, isSpeech: true, micTarget: q.phrase };
             },
             'standard': (q, root, info, qText) => {
@@ -913,11 +1007,17 @@
             },
             'audioMatch': (q, root, info, qText) => ChallengeRenderers.standard(q, root, info, qText),
             'teaching': (q, root, info, qText) => {
-                const label = q.target.social ? q.target.response : q.target.word;
+                const label = q.targetLabel || (q.target.social ? q.target.response : q.target.word);
                 const intro = GrammarService.fix("This is {target}.", label);
                 qText.textContent = "Let's learn!";
                 info.textContent = label; info.style.display = 'block';
-                root.appendChild(UIFactory.createOption(q.target, { isLocked: true, classes: ['teaching-hero'] }));
+                root.appendChild(UIFactory.createOption(q.target, { 
+                    isLocked: true, 
+                    classes: ['teaching-hero'], 
+                    scale: q.scale, 
+                    colorAttr: q.colorAttr,
+                    labelOverride: label
+                }));
                 root.appendChild(UIFactory.createNextButton());
                 return { prompt: [intro, label, intro], isSpeech: false, isTeaching: true };
             }
@@ -1006,12 +1106,10 @@
         function startRepeatTimer(txt) { stopRepeatTimer(); state.repeatTimer = setInterval(() => SpeechService.speak(txt, state.voice), CONFIG.settings.repeatInterval); }
         function stopRepeatTimer() { if (state.repeatTimer) clearInterval(state.repeatTimer); }
 
-        /** * RENDERER */
         function render(viewC, lvlC, idxC) {
             document.body.className = state.level ? `theme-lvl-${state.level}` : '';
             document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === `${state.view}-screen`));
             
-            // Header Visibility logic
             const inGame = state.view === 'game';
             const showBack = ['game', 'sublevel', 'debug', 'loading', 'success'].includes(state.view);
             const showStop = inGame;
@@ -1041,7 +1139,8 @@
             if (lvlC && state.view === 'sublevel') {
                 document.getElementById('level-title').textContent = `Level ${state.level}: ${DATA[state.level].title}`;
                 const m = document.getElementById('sublevel-menu'); m.innerHTML = '';
-                for (let i = 1; i <= (state.level === 1 ? 4 : 3); i++) m.appendChild(UIFactory.createCard({ type: 'sublevel', id: i, title: `Lesson ${state.level}.${i}`, classes: ['sublevel-card'] }));
+                let lessons = (state.level === 1 || state.level === 4) ? 4 : 3;
+                for (let i = 1; i <= lessons; i++) m.appendChild(UIFactory.createCard({ type: 'sublevel', id: i, title: `Lesson ${state.level}.${i}`, classes: ['sublevel-card'] }));
             }
             
             if (idxC || (viewC && state.view === 'game')) {
@@ -1066,10 +1165,11 @@
             'next-slide': () => nextSlide(),
             'select-sublevel': async (el) => {
                 const lvl = state.level, sub = parseInt(el.dataset.sub); updateState({ view: 'loading' });
+                // Include nouns from previous lessons for adjective context
                 const pool = []; for (let i = 1; i <= lvl; i++) pool.push(...DATA[i].words);
                 let q = [];
                 if (state.teachingMode) {
-                    q = ExerciseGenerator.getTeachingPool(DATA[lvl].words);
+                    q = ExerciseGenerator.getTeachingPool(pool, lvl);
                 } else {
                     for (let i = 0; i < CONFIG.settings.questionsPerLesson; i++) q.push(ExerciseGenerator.getRandomChallenge(pool, lvl, sub, state.speechEnabled));
                 }
