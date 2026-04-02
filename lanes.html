@@ -1214,7 +1214,7 @@
                 const gateW = lw * v.GATE_WIDTH_SCALE;
                 const off = (lw - gateW) / 2;
                 if (e.role === ROLES.GROWTH) {
-                    this._drawGateShell(ctx, x + off - pad, e.y, gateW + (pad * 2), e.height, v.GATE_SHELL_RADIUS, theme.COLORS.GATE_BLUE, theme.COLORS.GATE_BLUE_STROKE);
+                    this._drawGateShell(ctx, x + off - v.GATE_PADDING, e.y, gateW + (v.GATE_PADDING * 2), e.height, v.GATE_SHELL_RADIUS, theme.COLORS.GATE_BLUE, theme.COLORS.GATE_BLUE_STROKE);
                     ctx.fillStyle = theme.COLORS.WHITE;
                     ctx.font = theme.FONTS.GATE;
                     if (e.isPercentage) {
