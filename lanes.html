@@ -314,8 +314,8 @@
 
     <script>
         /**
-         * CENTRAL GAME CONFIGURATION
-         * Centralized Magic Numbers for easy balancing.
+         * CENTRALIZED GAME CONFIGURATION
+         * Structured into Mechanics vs Visuals/Theme.
          */
         const CONFIG = {
             GAME: {
@@ -323,146 +323,177 @@
                 RECORD_BANNER_DURATION: 5000,
                 SUPERPOWER_RARITY_DIST: 900,
                 SHIFT_ALERT_DURATION: 2000,
-            },
-            THEME: {
-                FONTS: {
-                    LOCKED: 'bold 26px serif',
-                    GATE: '26px serif',
-                    CHAOS_EMOJI: '45px serif',
-                    ENEMY_PHALANX: '24px serif',
-                    SWARM_ENEMY: '16px serif',
-                    ELITE_BASE_SIZE: 48,
-                    PLAYER: '24px serif',
-                    ANN_BASE_SIZE: 120
-                },
-                COLORS: {
-                    BACKGROUND: '#0f172a',
-                    GRID: 'rgba(255,255,255,0.05)',
-                    BULLET: '#facc15',
-                    LOCKED_GATE_BG: 'rgba(71, 85, 105, 0.9)',
-                    LOCKED_GATE_STROKE: '#94a3b8',
-                    ACTIVE_GATE_BAR: '#60a5fa',
-                    BAR_BG: 'rgba(0,0,0,0.5)',
-                    BAR_BG_SOLID: 'rgba(0,0,0,0.6)',
-                    HEALTH_ENEMY: '#ef4444',
-                    HEALTH_PLAYER: '#22c55e',
-                    TEXT_WHITE: '#ffffff',
-                    AQUA_AURA: 'rgba(96, 165, 250, 0.15)',
-                    AQUA_SHADOW: 'rgba(96, 165, 250, 0.8)',
-                    PURPLE_BURST: '#d8b4fe'
-                },
-                STYLES: {
-                    GRID_DASH: [15, 15]
-                },
-                EMOJI_TIGHTNESS: 0.75
-            },
-            PLAYER: {
-                START_SCORE: 10,
-                SWARM_COUNT: 50,
-                MAX_VISIBLE_RUNNERS: 25,
-                SCORE_PER_RUNNER: 5,
-                COLLISION_HEIGHT: 40,
-                Y_OFFSET: 150,
-                LERP_FACTOR: 15,
-                HEALTH_BAR_WIDTH: 100,
-                HEALTH_BAR_HEIGHT: 10,
-                FIRE_RATE: 0.05,
-                DAMAGE: {
-                    BASE_COEFF: 0.72,
-                    BASE_FLAT: 21
-                },
-                SWARM_ANIMATION: {
-                    TIME_FACTOR: 5.55,
-                    JITTER_MAGNITUDE: 4,
-                    X_OFFSET: -12
-                }
-            },
-            SUPERPOWERS: {
-                AQUA: {
-                    DURATION: 15,
-                    DAMAGE_MULT: 1.25,
-                    BLINK_THRESHOLD: 1.0,
-                    HAZARD_HEALTH: 25
-                },
-                ANNIHILATE: {
-                    VISUAL_DURATION: 0.8,
-                    PARTICLE_COUNT: 20,
-                    FLASH_OPACITY: 1.0
-                },
-                GROWTHBURST: {
-                    CHARGES: 4,
-                    MULT: 4,
-                    BURST_COOLDOWN_DIST: 100,
-                    PARTICLE_COUNT: 30
-                }
+                INITIAL_OFFSET_JITTER: 0.5,
+                MAX_DT: 0.1, // Prevent physics explosion on heavy lag
             },
             PHYSICS: {
                 INITIAL_SPEED: 3.5,
                 MAX_SPEED: 14,
                 SPEED_SCALING: 3500,
                 BULLET_SPEED: 32,
-                PARTICLE_DECAY_RATE: 2.4, // Custom rate logic
                 FPS_BASELINE: 60,
                 DIST_PER_SPEED: 5,
             },
+            PLAYER: {
+                START_SCORE: 10,
+                MAX_VISIBLE_RUNNERS: 25,
+                SWARM_COUNT: 50,
+                SCORE_PER_RUNNER: 5,
+                LERP_FACTOR: 15,
+                Y_OFFSET: 150,
+                FIRE_RATE: 0.05,
+                COLLISION: {
+                    HEIGHT: 40,
+                    WIDTH_CLIP: 0.15, // Unused logic helper
+                },
+                DAMAGE: {
+                    COEFF: 0.72,
+                    FLAT: 21,
+                },
+                SWARM_ANIM: {
+                    TIME_FACTOR: 5.55,
+                    JITTER: 4,
+                    X_OFFSET: -12,
+                }
+            },
             ENTITIES: {
                 GATE_HEIGHT: 80,
-                PHALANX_COUNT: 10,
-                PHALANX_SPACING: 60,
-                HEALTH_BAR_MAGNITUDE: 0.55,
-                HEALTH_BAR_HEIGHT: 8,
+                SPAWN_JITTER: 0.3,
+                PHALANX: {
+                    COUNT: 10,
+                    SPACING: 60,
+                },
                 CHANCE: {
                     PHALANX: 0.2,
                     PERCENTAGE_GATE: 0.4,
                     SWARM: 0.5,
                     ELITE_BASE: 0.12,
+                    ELITE_SCALING: 10000,
                     CHAOS_NEG: 0.5,
                 },
                 DIFFICULTY: {
                     BASE_PROB: 0.4,
                     MAX_PROB: 0.85,
-                    SCALING_FACTOR: 1.5,
+                    SCALING: 1.5,
+                },
+                INTERVALS: {
+                    EVOLUTION: 5500,
+                    GROWTH: 700,
+                    CHAOS: 1800,
                 },
                 HEALTH: {
-                    EVOLUTION_MULT: 1.75,
-                    EVOLUTION_UNLOCKED_RESET: 0.8,
-                    SUPERPOWER_MULT: 2.5,
-                    ENEMY_BASE_MULT: 0.45,
-                    ENEMY_BASE_FLAT: 12,
+                    EVO_MULT: 1.75,
+                    EVO_RESET: 0.8,
+                    SUPER_MULT: 2.5,
+                    ENEMY_COEFF: 0.45,
+                    ENEMY_FLAT: 12,
                     ELITE_MULT: 2,
                     PHALANX_MULT: 0.08,
-                    ENEMY_DEATH_PARTICLES: 12
+                    ELITE_KILL_BONUS: 2.5,
+                    ENEMY_KILL_BONUS: 1.012,
                 },
                 SWARM_ENEMY: {
+                    POPULATION: 15,
                     TIME_FACTOR: 6.67,
                     JITTER: 3,
-                    POPULATION: 15
+                },
+                LOGIC: {
+                    GROWTH_PERC_COEFF: 0.012,
+                    CHAOS_NEG_COEFF: 0.2,
+                    CHAOS_NEG_FLAT: 10,
+                    CHAOS_DIV_VAL: 2,
+                }
+            },
+            SUPERPOWERS: {
+                AQUA: {
+                    DURATION: 15,
+                    DAMAGE_MULT: 1.25,
+                    BLINK_TIME: 1.0,
+                    HAZARD_HEALTH: 25,
+                },
+                ANNIHILATE: {
+                    VISUAL_TIME: 0.8,
+                    PARTICLES: 20,
+                    FLASH: 1.0,
+                },
+                GROWTHBURST: {
+                    CHARGES: 4,
+                    MULT: 4,
+                    COOLDOWN: 100,
+                    PARTICLES: 30,
+                }
+            },
+            THEME: {
+                VISUALS: {
+                    GATE_WIDTH_SCALE: 0.6,
+                    GATE_SHELL_RADIUS: 25,
+                    GATE_PADDING: 10,
+                    GATE_BAR_HEIGHT: 8,
+                    GATE_BAR_PADDING: 10,
+                    HAZARD_BAR_HEIGHT: 6,
+                    BULLET_RADIUS: 4,
+                    PARTICLE_RADIUS: 3,
+                    PARTICLE_DECAY: 2.4,
+                    ANN_SCALE_START: 0.5,
+                    ANN_SCALE_MULT: 1.5,
+                    AQUA_SHADOW_BLUR: 15,
+                    AQUA_AURA_W: 60,
+                    AQUA_AURA_H: 45,
+                    AQUA_AURA_Y: 15,
+                    HEALTH_BAR_W: 100,
+                    HEALTH_BAR_H: 10,
+                    HEALTH_BAR_Y: 35,
+                    HEALTH_BAR_RADIUS: 5,
+                    ENEMY_BAR_H: 8,
+                    ENEMY_BAR_Y: 15,
+                    ENEMY_BAR_MAG: 0.55,
+                    ENEMY_BAR_RADIUS: 4,
+                    EMOJI_TIGHTNESS: 0.75,
+                },
+                FONTS: {
+                    LOCKED: 'bold 26px serif',
+                    GATE: '26px serif',
+                    CHAOS: '45px serif',
+                    PHALANX: '24px serif',
+                    SWARM_ENEMY: '16px serif',
+                    ELITE_BASE: 48,
+                    PLAYER: '24px serif',
+                    ANN_BASE: 120
+                },
+                COLORS: {
+                    BG: '#0f172a',
+                    GRID: 'rgba(255,255,255,0.05)',
+                    BULLET: '#facc15',
+                    GATE_LOCKED_BG: 'rgba(71, 85, 105, 0.9)',
+                    GATE_LOCKED_STROKE: '#94a3b8',
+                    GATE_ACTIVE_BAR: '#60a5fa',
+                    BAR_BG: 'rgba(0,0,0,0.5)',
+                    BAR_BG_SOLID: 'rgba(0,0,0,0.6)',
+                    HEALTH_ENEMY: '#ef4444',
+                    HEALTH_PLAYER: '#22c55e',
+                    WHITE: '#ffffff',
+                    AQUA_AURA: 'rgba(96, 165, 250, 0.15)',
+                    AQUA_SHADOW: 'rgba(96, 165, 250, 0.8)',
+                    PURPLE_BURST: '#d8b4fe',
+                    GATE_BLUE: 'rgba(37, 99, 235, 0.9)',
+                    GATE_BLUE_STROKE: '#60a5fa',
+                    GATE_PURPLE: 'rgba(147, 51, 234, 0.9)',
+                    GATE_PURPLE_STROKE: '#d8b4fe',
+                },
+                STYLES: {
+                    GRID_DASH: [15, 15]
                 }
             },
             THEMES: {
                 classic: {
-                    PLAYER: '🏃',
-                    ENEMY: '👹',
-                    ELITE: '😈',
-                    POWERUP: '⚡',
-                    BATTERY: '🔋',
-                    HAZARD: '🔥',
-                    LOCKED: '🔒',
-                    ANNIHILATE: '☢️',
-                    GROWTHBURST: '🌯',
-                    AQUA: '💦'
+                    PLAYER: '🏃', ENEMY: '👹', ELITE: '😈', POWERUP: '⚡',
+                    BATTERY: '🔋', HAZARD: '🔥', LOCKED: '🔒', ANNIHILATE: '☢️',
+                    GROWTHBURST: '🌯', AQUA: '💦'
                 },
                 silly: {
-                    PLAYER: '🤪',
-                    ENEMY: '🤡',
-                    ELITE: '👽',
-                    POWERUP: '🎉',
-                    BATTERY: '🍭',
-                    HAZARD: '💩',
-                    LOCKED: '🤐',
-                    ANNIHILATE: '🎆',
-                    GROWTHBURST: '🎈',
-                    AQUA: '🌊'
+                    PLAYER: '🤪', ENEMY: '🤡', ELITE: '👽', POWERUP: '🎉',
+                    BATTERY: '🍭', HAZARD: '💩', LOCKED: '🤐', ANNIHILATE: '🎆',
+                    GROWTHBURST: '🎈', AQUA: '🌊'
                 }
             }
         };
@@ -482,11 +513,8 @@
                 const defaults = { classic: 0, challenge: 0, silly: 0 };
                 try {
                     const saved = localStorage.getItem(this.STORAGE_KEY);
-                    // Merge existing save with defaults to prevent missing keys
                     return saved ? { ...defaults, ...JSON.parse(saved) } : defaults;
-                } catch (e) {
-                    return defaults;
-                }
+                } catch (e) { return defaults; }
             }
             updateDistance(dist, mode) {
                 if (dist > this.data[mode]) {
@@ -497,9 +525,7 @@
                 return false;
             }
             persist() {
-                try {
-                    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.data));
-                } catch (e) {}
+                try { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.data)); } catch (e) {}
             }
             getRecords() { return this.data; }
         }
@@ -579,7 +605,7 @@
                 if (timer > 0) {
                     const icon = document.createElement('div');
                     icon.className = 'charge-icon aqua-icon';
-                    if (timer <= CONFIG.SUPERPOWERS.AQUA.BLINK_THRESHOLD) icon.classList.add('blink-fast');
+                    if (timer <= CONFIG.SUPERPOWERS.AQUA.BLINK_TIME) icon.classList.add('blink-fast');
                     icon.innerText = themeAssets.AQUA;
                     this.elements.aquaStatus.appendChild(icon);
                 }
@@ -617,7 +643,7 @@
                 this.val = val;
                 this.isPositive = isPositive;
                 this.isUnlocked = isUnlocked;
-                this.emoji = emoji; // Store instance emoji to prevent flicker
+                this.emoji = emoji; 
                 this.isPercentage = (role === ROLES.GROWTH && val > 1) || (op === 'x');
                 if (!isPositive) {
                     this.health = CONFIG.SUPERPOWERS.AQUA.HAZARD_HEALTH; 
@@ -631,7 +657,7 @@
                 const val = 1.3 + Math.random() * 2.7;
                 super(role, lane, y, 'x', val, true, false);
                 this.type = 'evolutionGate'; 
-                this.health = score * CONFIG.ENTITIES.HEALTH.EVOLUTION_MULT;
+                this.health = score * CONFIG.ENTITIES.HEALTH.EVO_MULT;
                 this.maxHealth = this.health;
             }
         }
@@ -641,7 +667,7 @@
                 super(role, lane, y, 'ULT', 0, true, false);
                 this.type = 'superpowerGate';
                 this.powerType = powerType;
-                this.health = score * CONFIG.ENTITIES.HEALTH.SUPERPOWER_MULT;
+                this.health = score * CONFIG.ENTITIES.HEALTH.SUPER_MULT;
                 this.maxHealth = this.health;
             }
         }
@@ -651,12 +677,14 @@
                 super(role, lane, y, 'enemy');
                 this.forceType = forceType;
                 this.phalanxXOffset = forceType === 'phalanx' ? (Math.random() - 0.5) * 20 : 0;
-                const eliteChance = CONFIG.ENTITIES.CHANCE.ELITE_BASE + (distance / 10000);
+                const eCfg = CONFIG.ENTITIES.CHANCE;
+                const eliteChance = eCfg.ELITE_BASE + (distance / eCfg.ELITE_SCALING);
                 this.isElite = forceType === 'phalanx' ? false : (Math.random() < eliteChance);
-                const baseH = Math.floor(score * CONFIG.ENTITIES.HEALTH.ENEMY_BASE_MULT) + CONFIG.ENTITIES.HEALTH.ENEMY_BASE_FLAT;
-                this.health = this.isElite ? baseH * CONFIG.ENTITIES.HEALTH.ELITE_MULT : (forceType === 'phalanx' ? score * CONFIG.ENTITIES.HEALTH.PHALANX_MULT : baseH);
+                const hCfg = CONFIG.ENTITIES.HEALTH;
+                const baseH = Math.floor(score * hCfg.ENEMY_COEFF) + hCfg.ENEMY_FLAT;
+                this.health = this.isElite ? baseH * hCfg.ELITE_MULT : (forceType === 'phalanx' ? score * hCfg.PHALANX_MULT : baseH);
                 this.maxHealth = this.health;
-                this.isSwarm = Math.random() < CONFIG.ENTITIES.CHANCE.SWARM && !this.isElite && !forceType;
+                this.isSwarm = Math.random() < eCfg.SWARM && !this.isElite && !forceType;
                 if (this.isSwarm) {
                     this.swarmOffsets = [];
                     for (let j = 0; j < CONFIG.ENTITIES.SWARM_ENEMY.POPULATION; j++) {
@@ -678,10 +706,10 @@
             }
             getMemberPosition(index, leaderX, leaderY, gameTime) {
                 const offset = this.offsets[index % this.offsets.length];
-                const anim = CONFIG.PLAYER.SWARM_ANIMATION;
+                const anim = CONFIG.PLAYER.SWARM_ANIM;
                 const timeFactor = gameTime * anim.TIME_FACTOR; 
-                const jitterX = Math.sin(timeFactor + index) * anim.JITTER_MAGNITUDE;
-                const jitterY = Math.cos(timeFactor + index) * anim.JITTER_MAGNITUDE;
+                const jitterX = Math.sin(timeFactor + index) * anim.JITTER;
+                const jitterY = Math.cos(timeFactor + index) * anim.JITTER;
                 return { x: leaderX + offset.x + jitterX + anim.X_OFFSET, y: leaderY + offset.y + jitterY };
             }
         }
@@ -690,8 +718,9 @@
             static createEntities(role, lane, score, distance, lastSuperDist, mode) {
                 const spawnY = -100;
                 if (role === ROLES.GROWTH) {
-                    const isPerc = Math.random() < CONFIG.ENTITIES.CHANCE.PERCENTAGE_GATE;
-                    const val = isPerc ? Math.ceil(score * 0.012) : 1;
+                    const eCfg = CONFIG.ENTITIES.CHANCE;
+                    const isPerc = Math.random() < eCfg.PERCENTAGE_GATE;
+                    const val = isPerc ? Math.ceil(score * CONFIG.ENTITIES.LOGIC.GROWTH_PERC_COEFF) : 1;
                     let emoji = null;
                     if (isPerc && mode === 'silly') {
                         emoji = Math.random() < 0.5 ? '🎉' : '🥳';
@@ -706,19 +735,21 @@
                     return [new EvolutionGate(role, lane, spawnY, score)];
                 } else {
                     const diff = CONFIG.ENTITIES.DIFFICULTY;
-                    const diffProb = Math.min(diff.MAX_PROB, diff.BASE_PROB + (distance / CONFIG.PHYSICS.SPEED_SCALING * diff.SCALING_FACTOR));
+                    const diffProb = Math.min(diff.MAX_PROB, diff.BASE_PROB + (distance / CONFIG.PHYSICS.SPEED_SCALING * diff.SCALING));
                     if (Math.random() < CONFIG.ENTITIES.CHANCE.PHALANX) { 
+                        const pCfg = CONFIG.ENTITIES.PHALANX;
                         const phalanx = [];
-                        for (let k = 0; k < CONFIG.ENTITIES.PHALANX_COUNT; k++) {
-                            phalanx.push(new Enemy(role, lane, spawnY - (k * CONFIG.ENTITIES.PHALANX_SPACING), score, distance, 'phalanx'));
+                        for (let k = 0; k < pCfg.COUNT; k++) {
+                            phalanx.push(new Enemy(role, lane, spawnY - (k * pCfg.SPACING), score, distance, 'phalanx'));
                         }
                         return phalanx;
                     } else {
                         if (Math.random() < diffProb) return [new Enemy(role, lane, spawnY, score, distance)];
                         else {
                             const isNeg = Math.random() < CONFIG.ENTITIES.CHANCE.CHAOS_NEG;
+                            const lCfg = CONFIG.ENTITIES.LOGIC;
                             const op = isNeg ? '-' : '/';
-                            const val = op === '-' ? Math.floor(score * 0.2) + 10 : 2;
+                            const val = op === '-' ? Math.floor(score * lCfg.CHAOS_NEG_COEFF) + lCfg.CHAOS_NEG_FLAT : lCfg.CHAOS_DIV_VAL;
                             return [new Gate(role, lane, spawnY, op, val, false)];
                         }
                     }
@@ -733,7 +764,7 @@
                 this.saveManager = saveManager;
                 this.active = false;
                 this.paused = false;
-                this.mode = 'classic'; // classic, challenge, silly
+                this.mode = 'classic'; 
                 this.numLanes = 3;
                 this.score = 10;
                 this.peakScoreThisRun = 10;
@@ -747,7 +778,7 @@
                 this.particles = [];
                 this.bullets = [];
                 this.lastShiftDist = 0;
-                this.lastSpawns = [];
+                this.spawnTimers = []; 
                 this.bannerShownThisRun = false;
                 this.fireTimer = 0;
                 this.swarm = new Swarm();
@@ -777,11 +808,8 @@
                 this.annihilateVisualTimer = 0;
                 this.growthBurstRemaining = 0;
                 this.aquaTimer = 0;
-                
-                // Asset setup
                 this.assets = mode === 'silly' ? CONFIG.THEMES.silly : CONFIG.THEMES.classic;
 
-                // Lane Role Setup
                 if (mode === 'silly') {
                     this.laneRoles = [ROLES.CHAOS, ROLES.CHAOS, ROLES.GROWTH, ROLES.EVOLUTION, ROLES.EVOLUTION];
                 } else if (mode === 'challenge') {
@@ -790,13 +818,13 @@
                     this.laneRoles = [ROLES.GROWTH, ROLES.EVOLUTION, ROLES.CHAOS];
                 }
 
-                // Randomize initial positions
                 for (let i = this.laneRoles.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
                     [this.laneRoles[i], this.laneRoles[j]] = [this.laneRoles[j], this.laneRoles[i]];
                 }
                 
-                this.lastSpawns = new Array(this.numLanes).fill(0).map((_, i) => performance.now() + (i * 450));
+                this.spawnTimers = new Array(this.numLanes).fill(0).map(() => Math.random() * CONFIG.GAME.INITIAL_OFFSET_JITTER);
+                
                 this.bannerShownThisRun = false;
                 this.fireTimer = 0;
                 this.elapsedTime = 0;
@@ -827,12 +855,13 @@
                 const sp = CONFIG.SUPERPOWERS;
 
                 if (type === 'ANNIHILATE') {
-                    this.flashOpacity = sp.ANNIHILATE.FLASH_OPACITY;
-                    this.annihilateVisualTimer = sp.ANNIHILATE.VISUAL_DURATION; 
+                    const aCfg = sp.ANNIHILATE;
+                    this.flashOpacity = aCfg.FLASH;
+                    this.annihilateVisualTimer = aCfg.VISUAL_TIME; 
                     this.entities.forEach(e => {
                         if (e.type === 'enemy') {
                             e.isCollected = true;
-                            for (let i = 0; i < sp.ANNIHILATE.PARTICLE_COUNT; i++) {
+                            for (let i = 0; i < aCfg.PARTICLES; i++) {
                                 this.particles.push({ 
                                     x: e.lane * (this.canvas.width / this.numLanes) + (this.canvas.width / this.numLanes / 2), 
                                     y: e.y + 40, vx: (Math.random() - 0.5) * 14, vy: (Math.random() - 0.5) * 14, life: 1.2, color: '#fef08a' 
@@ -856,9 +885,9 @@
                 this.score *= sp.MULT;
                 this.growthBurstRemaining--;
                 this.ui.renderGrowthCharges(this.growthBurstRemaining, this.assets);
-                this.nextBurstDist = this.distance + sp.BURST_COOLDOWN_DIST;
+                this.nextBurstDist = this.distance + sp.COOLDOWN;
                 this.flashOpacity = 0.8;
-                for (let i = 0; i < sp.PARTICLE_COUNT; i++) {
+                for (let i = 0; i < sp.PARTICLES; i++) {
                     this.particles.push({ 
                         x: this.playerX, y: this.canvas.height - CONFIG.PLAYER.Y_OFFSET, 
                         vx: (Math.random() - 0.5) * 15, vy: (Math.random() - 0.5) * 15, 
@@ -914,7 +943,7 @@
                 if (this.aquaTimer > 0) {
                     const prevTimer = this.aquaTimer;
                     this.aquaTimer -= dt;
-                    const threshold = CONFIG.SUPERPOWERS.AQUA.BLINK_THRESHOLD;
+                    const threshold = CONFIG.SUPERPOWERS.AQUA.BLINK_TIME;
                     if (prevTimer > threshold && this.aquaTimer <= threshold) {
                         this.ui.renderAquaStatus(this.aquaTimer, this.assets);
                     } else if (this.aquaTimer <= 0) {
@@ -924,8 +953,7 @@
                 }
 
                 const rec = this.saveManager.getRecords();
-                const best = rec[this.mode];
-                if (!this.bannerShownThisRun && this.distance > best && best > 0) {
+                if (!this.bannerShownThisRun && this.distance > rec[this.mode] && rec[this.mode] > 0) {
                     this.bannerShownThisRun = true;
                     this.ui.triggerAlert('record');
                 }
@@ -935,22 +963,27 @@
                     this.lastShiftDist = this.distance;
                 }
                 this.playerX += (this.targetX - this.playerX) * (1 - Math.exp(-CONFIG.PLAYER.LERP_FACTOR * dt));
-                this.spawnManager();
+                
+                this.spawnManager(dt);
                 this.combatManager(dt);
                 this.entityManager(dt);
                 this.particleManager(dt);
                 this.ui.updateDistance(this.distance);
             }
 
-            spawnManager() {
-                const now = performance.now();
+            spawnManager(dt) {
+                const iCfg = CONFIG.ENTITIES.INTERVALS;
                 for (let i = 0; i < this.numLanes; i++) {
                     const role = this.laneRoles[i];
-                    const baseInterval = (role === ROLES.EVOLUTION ? 5500 : (role === ROLES.GROWTH ? 700 : 1800));
-                    const interval = baseInterval / ((this.speed * role.speedMult) / CONFIG.PHYSICS.INITIAL_SPEED);
-                    if (now - this.lastSpawns[i] > interval) {
+                    this.spawnTimers[i] += dt;
+                    const baseInt = (role === ROLES.EVOLUTION ? iCfg.EVOLUTION : (role === ROLES.GROWTH ? iCfg.GROWTH : iCfg.CHAOS)) / 1000;
+                    const interval = baseInt / ((this.speed * role.speedMult) / CONFIG.PHYSICS.INITIAL_SPEED);
+                    
+                    if (this.spawnTimers[i] >= interval) {
                         this.entities.push(...EntityFactory.createEntities(role, i, this.score, this.distance, this.lastSuperDist, this.mode));
-                        this.lastSpawns[i] = now;
+                        if (role !== ROLES.GROWTH) {
+                            this.spawnTimers[i] = (Math.random() - 0.5) * (interval * CONFIG.ENTITIES.SPAWN_JITTER);
+                        } else { this.spawnTimers[i] = 0; }
                     }
                 }
             }
@@ -969,8 +1002,8 @@
                 });
 
                 if (target) {
-                    const dmg = CONFIG.PLAYER.DAMAGE;
-                    let damage = ((this.score * dmg.BASE_COEFF) + dmg.BASE_FLAT) * dt;
+                    const dCfg = CONFIG.PLAYER.DAMAGE;
+                    let damage = ((this.score * dCfg.COEFF) + dCfg.FLAT) * dt;
                     if (this.aquaTimer > 0) damage *= CONFIG.SUPERPOWERS.AQUA.DAMAGE_MULT; 
                     
                     target.health -= damage;
@@ -989,7 +1022,7 @@
                                     y: target.y + 40, vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8, life: 1, color: '#ef4444' 
                                 });
                             }
-                            this.score *= target.isElite ? 2.5 : 1.012;
+                            this.score *= target.isElite ? h.ELITE_KILL_BONUS : h.ENEMY_KILL_BONUS;
                             this.entities = this.entities.filter(ent => ent !== target);
                         } else if (target.type === 'superpowerGate') {
                             this.triggerSuperpower(target.powerType);
@@ -997,7 +1030,7 @@
                         } else if (target.type === 'evolutionGate') {
                             if (!target.isUnlocked) {
                                 target.isUnlocked = true;
-                                target.health = target.maxHealth * h.EVOLUTION_UNLOCKED_RESET;
+                                target.health = target.maxHealth * h.EVO_RESET;
                                 target.maxHealth = target.health;
                             } else {
                                 this.score *= target.val;
@@ -1037,7 +1070,7 @@
                         this.entities.splice(i, 1);
                         continue;
                     }
-                    if (!e.isCollected && e.lane === this.currentLane && e.y + e.height > playerY && e.y < playerY + CONFIG.PLAYER.COLLISION_HEIGHT) {
+                    if (!e.isCollected && e.lane === this.currentLane && e.y + e.height > playerY && e.y < playerY + CONFIG.PLAYER.COLLISION.HEIGHT) {
                         if ((e.type === 'gate' || e.type === 'evolutionGate')) {
                             const skipHazard = !e.isPositive && this.aquaTimer > 0;
                             if (e.isUnlocked && !skipHazard) {
@@ -1061,11 +1094,12 @@
             }
 
             particleManager(dt) {
+                const dec = CONFIG.THEME.VISUALS.PARTICLE_DECAY;
                 for (let i = this.particles.length - 1; i >= 0; i--) {
                     const p = this.particles[i];
                     p.x += p.vx * dt * CONFIG.PHYSICS.FPS_BASELINE; 
                     p.y += p.vy * dt * CONFIG.PHYSICS.FPS_BASELINE; 
-                    p.life -= dt * (CONFIG.PHYSICS.PARTICLE_DECAY_RATE / p.life);
+                    p.life -= dt * (dec / p.life);
                     if (p.life <= 0) this.particles.splice(i, 1);
                 }
             }
@@ -1097,7 +1131,7 @@
                 const lw = this.canvas.width / engine.laneRoles.length;
 
                 ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-                ctx.fillStyle = theme.COLORS.BACKGROUND;
+                ctx.fillStyle = theme.COLORS.BG;
                 ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'alphabetic';
@@ -1117,26 +1151,20 @@
 
                 engine.entities.forEach(e => {
                     const s = this.STRATEGIES[e.type];
-                    if (s) {
-                        ctx.save();
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'alphabetic';
-                        s(ctx, e, lw, engine);
-                        ctx.restore();
-                    }
+                    if (s) { ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; s(ctx, e, lw, engine); ctx.restore(); }
                 });
 
                 ctx.fillStyle = theme.COLORS.BULLET;
                 engine.bullets.forEach(b => { 
                     ctx.beginPath(); 
-                    ctx.arc(b.x, b.y, 4, 0, Math.PI * 2); 
+                    ctx.arc(b.x, b.y, theme.VISUALS.BULLET_RADIUS, 0, Math.PI * 2); 
                     ctx.fill(); 
                 });
 
                 engine.particles.forEach(p => {
                     ctx.globalAlpha = Math.max(0, p.life);
                     ctx.fillStyle = p.color;
-                    ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(p.x, p.y, theme.VISUALS.PARTICLE_RADIUS, 0, Math.PI * 2); ctx.fill();
                 });
                 ctx.globalAlpha = 1;
 
@@ -1149,27 +1177,29 @@
 
                 if (engine.annihilateVisualTimer > 0) {
                     const ann = CONFIG.SUPERPOWERS.ANNIHILATE;
+                    const v = CONFIG.THEME.VISUALS;
                     ctx.save();
                     ctx.translate(this.canvas.width / 2, this.canvas.height / 2);
-                    const sc = 0.5 + (1 - engine.annihilateVisualTimer / ann.VISUAL_DURATION) * 1.5;
-                    ctx.font = `bold ${Math.floor(CONFIG.THEME.FONTS.ANN_BASE_SIZE * sc)}px serif`;
+                    const sc = v.ANN_SCALE_START + (1 - engine.annihilateVisualTimer / ann.VISUAL_TIME) * v.ANN_SCALE_MULT;
+                    ctx.font = `bold ${Math.floor(CONFIG.THEME.FONTS.ANN_BASE * sc)}px serif`;
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    ctx.globalAlpha = engine.annihilateVisualTimer / ann.VISUAL_DURATION;
+                    ctx.globalAlpha = engine.annihilateVisualTimer / ann.VISUAL_TIME;
                     ctx.fillText(engine.assets.ANNIHILATE, 0, 0);
                     ctx.restore();
                 }
             }
 
             _drawGateShell(ctx, x, y, width, height, radius, bgColor, strokeColor) {
+                const pad = CONFIG.THEME.VISUALS.GATE_PADDING;
                 ctx.beginPath();
-                ctx.roundRect(x + 10, y, width - 20, height, radius);
+                ctx.roundRect(x + pad, y, width - (pad * 2), height, radius);
                 ctx.fillStyle = bgColor; ctx.fill();
                 ctx.strokeStyle = strokeColor; ctx.lineWidth = 3; ctx.stroke();
             }
 
             _drawTightEmojis(ctx, emoji, count, centerX, centerY, fontSize) {
-                const spacing = fontSize * CONFIG.THEME.EMOJI_TIGHTNESS;
+                const spacing = fontSize * CONFIG.THEME.VISUALS.EMOJI_TIGHTNESS;
                 const totalWidth = (count - 1) * spacing;
                 const startX = centerX - (totalWidth / 2);
                 for (let i = 0; i < count; i++) {
@@ -1180,29 +1210,25 @@
             drawStandardGate(ctx, e, lw, engine) {
                 const x = e.lane * lw;
                 const theme = CONFIG.THEME;
+                const v = theme.VISUALS;
+                const gateW = lw * v.GATE_WIDTH_SCALE;
+                const off = (lw - gateW) / 2;
                 if (e.role === ROLES.GROWTH) {
-                    const gateW = lw * 0.6;
-                    const off = (lw - gateW) / 2;
-                    this._drawGateShell(ctx, x + off - 10, e.y, gateW + 20, e.height, 25, 'rgba(37, 99, 235, 0.9)', '#60a5fa');
-                    ctx.fillStyle = theme.COLORS.TEXT_WHITE;
+                    this._drawGateShell(ctx, x + off - pad, e.y, gateW + (pad * 2), e.height, v.GATE_SHELL_RADIUS, theme.COLORS.GATE_BLUE, theme.COLORS.GATE_BLUE_STROKE);
+                    ctx.fillStyle = theme.COLORS.WHITE;
                     ctx.font = theme.FONTS.GATE;
                     if (e.isPercentage) {
-                        const emoji = e.emoji || engine.assets.POWERUP;
-                        this._drawTightEmojis(ctx, emoji, 3, x + lw / 2, e.y + 53, 26);
-                    } else {
-                        ctx.fillText(engine.assets.POWERUP, x + lw / 2, e.y + 53);
-                    }
+                        this._drawTightEmojis(ctx, e.emoji || engine.assets.POWERUP, 3, x + lw / 2, e.y + 53, 26);
+                    } else { ctx.fillText(engine.assets.POWERUP, x + lw / 2, e.y + 53); }
                 } else { 
-                    ctx.fillStyle = theme.COLORS.TEXT_WHITE;
-                    ctx.font = theme.FONTS.CHAOS_EMOJI;
+                    ctx.fillStyle = theme.COLORS.WHITE;
+                    ctx.font = theme.FONTS.CHAOS;
                     ctx.fillText(engine.assets.HAZARD, x + lw / 2, e.y + 55);
                     if (engine.aquaTimer > 0) {
-                        const gateW = lw * 0.6;
-                        const off = (lw - gateW) / 2;
-                        const barW = gateW - 20, barH = 6, barX = x + off + 10, barY = e.y + 65;
+                        const barW = gateW - (v.GATE_PADDING * 2), barH = v.HAZARD_BAR_HEIGHT, barX = x + off + v.GATE_PADDING, barY = e.y + 65;
                         ctx.fillStyle = theme.COLORS.BAR_BG;
                         ctx.beginPath(); ctx.roundRect(barX, barY, barW, barH, 3); ctx.fill();
-                        ctx.fillStyle = '#60a5fa';
+                        ctx.fillStyle = theme.COLORS.GATE_ACTIVE_BAR;
                         ctx.beginPath(); ctx.roundRect(barX, barY, barW * (e.health / e.maxHealth), barH, 3); ctx.fill();
                     }
                 }
@@ -1211,20 +1237,19 @@
             drawEvolutionGate(ctx, e, lw, engine) {
                 const x = e.lane * lw;
                 const theme = CONFIG.THEME;
+                const v = theme.VISUALS;
                 const isL = !e.isUnlocked;
-                const gateW = lw * 0.6;
+                const gateW = lw * v.GATE_WIDTH_SCALE;
                 const off = (lw - gateW) / 2;
-                this._drawGateShell(ctx, x + off - 10, e.y, gateW + 20, e.height, 25, isL ? theme.COLORS.LOCKED_GATE_BG : 'rgba(37, 99, 235, 0.9)', isL ? theme.COLORS.LOCKED_GATE_STROKE : '#60a5fa');
-                ctx.fillStyle = theme.COLORS.TEXT_WHITE;
-                const barW = gateW - 20, barH = 8, barX = x + off + 10, barY = e.y + 58;
+                this._drawGateShell(ctx, x + off - v.GATE_PADDING, e.y, gateW + (v.GATE_PADDING * 2), e.height, v.GATE_SHELL_RADIUS, isL ? theme.COLORS.GATE_LOCKED_BG : theme.COLORS.GATE_BLUE, isL ? theme.COLORS.GATE_LOCKED_STROKE : theme.COLORS.GATE_BLUE_STROKE);
+                ctx.fillStyle = theme.COLORS.WHITE;
+                const barW = gateW - (v.GATE_BAR_PADDING * 2), barH = v.GATE_BAR_HEIGHT, barX = x + off + v.GATE_BAR_PADDING, barY = e.y + 58;
                 ctx.fillStyle = theme.COLORS.BAR_BG;
                 ctx.beginPath(); ctx.roundRect(barX, barY, barW, barH, 4); ctx.fill();
-                ctx.fillStyle = isL ? theme.COLORS.TEXT_WHITE : theme.COLORS.ACTIVE_GATE_BAR;
+                ctx.fillStyle = isL ? theme.COLORS.WHITE : theme.COLORS.GATE_ACTIVE_BAR;
                 ctx.beginPath(); ctx.roundRect(barX, barY, barW * (e.health / e.maxHealth), barH, 4); ctx.fill();
-                if (isL) {
-                    ctx.font = theme.FONTS.LOCKED;
-                    ctx.fillText(engine.assets.LOCKED, x + lw / 2, e.y + 48);
-                } else {
+                if (isL) { ctx.font = theme.FONTS.LOCKED; ctx.fillText(engine.assets.LOCKED, x + lw / 2, e.y + 48); } 
+                else {
                     ctx.font = theme.FONTS.GATE;
                     const count = e.val > 3 ? 3 : (e.val > 2 ? 2 : 1);
                     this._drawTightEmojis(ctx, engine.assets.BATTERY, count, x + lw / 2, e.y + 48, 26);
@@ -1234,27 +1259,28 @@
             drawSuperpowerGate(ctx, e, lw, engine) {
                 const x = e.lane * lw;
                 const theme = CONFIG.THEME;
-                const gateW = lw * 0.6;
+                const v = theme.VISUALS;
+                const gateW = lw * v.GATE_WIDTH_SCALE;
                 const off = (lw - gateW) / 2;
-                this._drawGateShell(ctx, x + off - 10, e.y, gateW + 20, e.height, 25, 'rgba(147, 51, 234, 0.9)', '#d8b4fe');
-                ctx.fillStyle = theme.COLORS.TEXT_WHITE;
-                ctx.font = theme.FONTS.LOCKED;
+                this._drawGateShell(ctx, x + off - v.GATE_PADDING, e.y, gateW + (v.GATE_PADDING * 2), e.height, v.GATE_SHELL_RADIUS, theme.COLORS.GATE_PURPLE, theme.COLORS.GATE_PURPLE_STROKE);
+                ctx.fillStyle = theme.COLORS.WHITE; ctx.font = theme.FONTS.LOCKED;
                 ctx.fillText(engine.assets[e.powerType], x + lw / 2, e.y + 48);
-                const barW = gateW - 20, barH = 8, barX = x + off + 10, barY = e.y + 58;
+                const barW = gateW - (v.GATE_BAR_PADDING * 2), barH = v.GATE_BAR_HEIGHT, barX = x + off + v.GATE_BAR_PADDING, barY = e.y + 58;
                 ctx.fillStyle = theme.COLORS.BAR_BG;
                 ctx.beginPath(); ctx.roundRect(barX, barY, barW, barH, 4); ctx.fill();
-                ctx.fillStyle = '#d8b4fe';
+                ctx.fillStyle = theme.COLORS.PURPLE_BURST;
                 ctx.beginPath(); ctx.roundRect(barX, barY, barW * (e.health / e.maxHealth), barH, 4); ctx.fill();
             }
 
             drawEnemy(ctx, e, lw, engine) {
                 const x = e.lane * lw;
                 const theme = CONFIG.THEME;
-                const barW = lw * CONFIG.ENTITIES.HEALTH_BAR_MAGNITUDE, barH = CONFIG.ENTITIES.HEALTH_BAR_HEIGHT, barX = x + lw/2 - barW/2, barY = e.y - 15;
+                const v = theme.VISUALS;
+                const barW = lw * v.ENEMY_BAR_MAG, barH = v.ENEMY_BAR_H, barX = x + lw/2 - barW/2, barY = e.y - v.ENEMY_BAR_Y;
                 ctx.fillStyle = theme.COLORS.BAR_BG;
-                ctx.beginPath(); ctx.roundRect(barX, barY, barW, barH, 4); ctx.fill();
+                ctx.beginPath(); ctx.roundRect(barX, barY, barW, barH, v.ENEMY_BAR_RADIUS); ctx.fill();
                 ctx.fillStyle = theme.COLORS.HEALTH_ENEMY;
-                ctx.beginPath(); ctx.roundRect(barX, barY, barW * (e.health / e.maxHealth), barH, 4); ctx.fill();
+                ctx.beginPath(); ctx.roundRect(barX, barY, barW * (e.health / e.maxHealth), barH, v.ENEMY_BAR_RADIUS); ctx.fill();
                 if (e.isSwarm) {
                     ctx.font = theme.FONTS.SWARM_ENEMY;
                     const anim = CONFIG.ENTITIES.SWARM_ENEMY;
@@ -1266,44 +1292,40 @@
                         ctx.fillText(engine.assets.ENEMY, x + lw/2 + o.x + jx, e.y + 40 + o.y + jy);
                     }
                 } else if (e.forceType === 'phalanx') {
-                    ctx.font = theme.FONTS.ENEMY_PHALANX;
+                    ctx.font = theme.FONTS.PHALANX;
                     ctx.fillText(engine.assets.ENEMY, x + lw/2 + e.phalanxXOffset, e.y + 45);
                 } else {
                     const sc = (0.6 + (Math.max(0, e.health) / e.maxHealth) * 0.6) * (e.isElite ? 1.4 : 1.1);
-                    ctx.font = `${Math.floor(theme.FONTS.ELITE_BASE_SIZE * sc)}px serif`; 
+                    ctx.font = `${Math.floor(theme.FONTS.ELITE_BASE * sc)}px serif`; 
                     ctx.fillText(e.isElite ? engine.assets.ELITE : engine.assets.ENEMY, x + lw/2, e.y + 55);
                 }
             }
 
             drawPlayer(ctx, engine) {
                 const theme = CONFIG.THEME;
+                const v = theme.VISUALS;
                 const pY = this.canvas.height - CONFIG.PLAYER.Y_OFFSET;
                 const sc = engine.swarm.getActiveCount(engine.score);
                 ctx.save();
-                ctx.font = theme.FONTS.PLAYER; 
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'alphabetic';
+                ctx.font = theme.FONTS.PLAYER; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
                 if (engine.aquaTimer > 0) {
-                    ctx.shadowBlur = 15;
+                    ctx.shadowBlur = v.AQUA_SHADOW_BLUR;
                     ctx.shadowColor = theme.COLORS.AQUA_SHADOW;
                     ctx.fillStyle = theme.COLORS.AQUA_AURA;
-                    ctx.beginPath();
-                    ctx.ellipse(engine.playerX, pY + 15, 60, 45, 0, 0, Math.PI * 2);
-                    ctx.fill();
+                    ctx.beginPath(); ctx.ellipse(engine.playerX, pY + v.AQUA_AURA_Y, v.AQUA_AURA_W, v.AQUA_AURA_H, 0, 0, Math.PI * 2); ctx.fill();
                     ctx.shadowBlur = 0;
                 }
-                ctx.fillStyle = theme.COLORS.TEXT_WHITE;
+                ctx.fillStyle = theme.COLORS.WHITE;
                 for (let i = 0; i < sc; i++) {
                     const pos = engine.swarm.getMemberPosition(i, engine.playerX, pY, engine.elapsedTime);
                     ctx.fillText(engine.assets.PLAYER, pos.x, pos.y);
                 }
                 ctx.restore();
-                const barW = CONFIG.PLAYER.HEALTH_BAR_WIDTH, barH = CONFIG.PLAYER.HEALTH_BAR_HEIGHT;
-                const barX = engine.playerX - barW / 2, barY = pY - 35;
+                const barW = v.HEALTH_BAR_W, barH = v.HEALTH_BAR_H, barX = engine.playerX - barW / 2, barY = pY - v.HEALTH_BAR_Y;
                 ctx.fillStyle = theme.COLORS.BAR_BG_SOLID;
-                ctx.beginPath(); ctx.roundRect(barX, barY, barW, barH, 5); ctx.fill();
+                ctx.beginPath(); ctx.roundRect(barX, barY, barW, barH, v.HEALTH_BAR_RADIUS); ctx.fill();
                 ctx.fillStyle = theme.COLORS.HEALTH_PLAYER;
-                ctx.beginPath(); ctx.roundRect(barX, barY, barW * (engine.score / engine.peakScoreThisRun), barH, 5); ctx.fill();
+                ctx.beginPath(); ctx.roundRect(barX, barY, barW * (engine.score / engine.peakScoreThisRun), barH, v.HEALTH_BAR_RADIUS); ctx.fill();
                 ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1; ctx.stroke();
             }
         }
@@ -1348,7 +1370,7 @@
 
         let lastTime = performance.now();
         function loop(timestamp) {
-            const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
+            const dt = Math.min((timestamp - lastTime) / 1000, CONFIG.GAME.MAX_DT);
             lastTime = timestamp;
             game.update(dt);
             renderer.draw(game);
