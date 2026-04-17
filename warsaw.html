@@ -65,6 +65,65 @@
             transition: background-color 0.2s;
         }
         
+        /* Flowchart Styles */
+        .diamond {
+            width: 180px;
+            height: 180px;
+            background: white;
+            border: 2px solid #3b82f6;
+            transform: rotate(45deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 40px auto;
+            position: relative;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+        .diamond-content {
+            transform: rotate(-45deg);
+            text-align: center;
+            padding: 10px;
+            font-weight: 700;
+            color: #1e293b;
+            line-height: 1.2;
+        }
+        .flow-line {
+            width: 2px;
+            background: #cbd5e1;
+            margin: 0 auto;
+            height: 40px;
+            position: relative;
+        }
+        .flow-line::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: -4px;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 8px solid #cbd5e1;
+        }
+        .result-box {
+            background: #f0fdf4;
+            border: 2px solid #22c55e;
+            border-radius: 12px;
+            padding: 16px;
+            max-width: 300px;
+            margin: 10px auto;
+            text-align: center;
+            font-weight: 600;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+        .decision-label {
+            font-size: 0.875rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 4px;
+            position: absolute;
+        }
+        .yes-label { background: #dcfce7; color: #166534; right: -40px; top: 50%; }
+        .no-label { background: #fee2e2; color: #991b1b; bottom: -25px; left: 50%; transform: translateX(-50%); }
+
         /* Custom Scrollbar */
         ::-webkit-scrollbar {
             width: 8px;
@@ -126,6 +185,13 @@
                 לוגיסטיקה ודיור
             </button>
 
+            <h2 class="hidden md:block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 mt-4">קבלת החלטות</h2>
+
+            <button id="btn-tab-flow" onclick="switchTab('tab-flow')" class="tab-btn bg-white text-slate-600 hover:bg-slate-50 border border-transparent hover:border-slate-200 flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all min-w-max md:min-w-0 shadow-sm md:shadow-none">
+                <i class="ph ph-tree-structure text-xl"></i>
+                תרשים זרימה
+            </button>
+
             <h2 class="hidden md:block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 mt-4">תוכניות מעבר</h2>
             
             <button id="btn-tab-plan1" onclick="switchTab('tab-plan1')" class="tab-btn bg-white text-slate-600 hover:bg-slate-50 border border-transparent hover:border-slate-200 flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all min-w-max md:min-w-0 shadow-sm md:shadow-none">
@@ -145,8 +211,89 @@
         </nav>
 
         <!-- Main Content Area -->
-        <main class="flex-1 p-4 md:p-8 overflow-y-auto relative">
+        <main class="flex-1 p-4 md:p-8 overflow-y-auto relative bg-slate-50/50">
             
+            <!-- TAB: Flowchart -->
+            <div id="tab-flow" class="tab-content hidden animate-fade-in pb-20">
+                <div class="mb-8 text-center md:text-right">
+                    <h2 class="text-3xl font-bold text-slate-800 mb-2">תרשים זרימה לקבלת החלטות</h2>
+                    <p class="text-slate-500 text-lg">איך נבחר את התוכנית המתאימה בהתאם להתקדמות האישורים?</p>
+                </div>
+
+                <div class="max-w-4xl mx-auto flex flex-col items-center">
+                    
+                    <!-- Diamond 1 -->
+                    <div class="diamond">
+                        <div class="diamond-content">האם יש אישור עבודה עד 1.5?</div>
+                        <div class="decision-label yes-label">כן</div>
+                        <div class="decision-label no-label">לא</div>
+                    </div>
+
+                    <div class="flex w-full justify-center gap-20">
+                        <!-- Path Yes -->
+                        <div class="flex flex-col items-center">
+                            <div class="h-10 w-px bg-green-300"></div>
+                            <div class="result-box bg-green-50 border-green-500">
+                                <div class="text-green-700 font-bold mb-1">תוכנית 1</div>
+                                <div class="text-sm">יעקב עובר ביוני,<br>הילדים עוברים באוגוסט</div>
+                                <button onclick="switchTab('tab-plan1')" class="mt-2 text-xs bg-green-600 text-white px-2 py-1 rounded">צפה בפרטים</button>
+                            </div>
+                        </div>
+
+                        <!-- Path No (Continues Down) -->
+                        <div class="flex flex-col items-center pt-20">
+                            <div class="diamond">
+                                <div class="diamond-content">האם מוכנים לעבור כולם יחד בתחילת יוני?</div>
+                                <div class="decision-label yes-label">כן</div>
+                                <div class="decision-label no-label">לא</div>
+                            </div>
+
+                            <div class="flex w-full justify-center gap-20">
+                                <!-- Path Yes -->
+                                <div class="flex flex-col items-center">
+                                    <div class="h-10 w-px bg-amber-300"></div>
+                                    <div class="result-box bg-amber-50 border-amber-500 text-amber-800">
+                                        <div class="font-bold mb-1">עוברים ביוני</div>
+                                        <div class="text-sm">אפשרות מאתגרת מאוד</div>
+                                    </div>
+                                </div>
+
+                                <!-- Path No (Continues Down) -->
+                                <div class="flex flex-col items-center pt-20">
+                                    <div class="diamond">
+                                        <div class="diamond-content">האם יש אישור עבודה עד 1.6?</div>
+                                        <div class="decision-label yes-label">כן</div>
+                                        <div class="decision-label no-label">לא</div>
+                                    </div>
+
+                                    <div class="flex w-full justify-center gap-10">
+                                        <!-- Path Yes -->
+                                        <div class="flex flex-col items-center">
+                                            <div class="h-10 w-px bg-blue-300"></div>
+                                            <div class="result-box bg-blue-50 border-blue-500">
+                                                <div class="text-blue-700 font-bold mb-1">תוכנית 2</div>
+                                                <div class="text-sm">יעקב עובר ביולי,<br>המשפחה מצטרפת באוגוסט</div>
+                                                <button onclick="switchTab('tab-plan2')" class="mt-2 text-xs bg-blue-600 text-white px-2 py-1 rounded">צפה בפרטים</button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Path No -->
+                                        <div class="flex flex-col items-center">
+                                            <div class="h-10 w-px bg-purple-300"></div>
+                                            <div class="result-box bg-purple-50 border-purple-500">
+                                                <div class="text-purple-700 font-bold mb-1">תוכנית 3</div>
+                                                <div class="text-sm">כולם עוברים ביחד ביולי</div>
+                                                <button onclick="switchTab('tab-plan3')" class="mt-2 text-xs bg-purple-600 text-white px-2 py-1 rounded">צפה בפרטים</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- TAB: Google Contract -->
             <div id="tab-google" class="tab-content animate-fade-in">
                 <div class="mb-8">
@@ -483,13 +630,13 @@
                     </div>
                     <div class="mt-2 text-slate-600 text-sm space-y-4">
                         <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                            <strong class="text-slate-800 block mb-1">גוגל:</strong> חוזה ב-8.6. התחלה רק בימי שני (מחצית ראשונה של החודש).
+                            <strong class="text-slate-800 block mb-1">גוגל:</strong> חוזה ב-8.6. התחלה רק בימי שני.
                         </div>
                         <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                            <strong class="text-slate-800 block mb-1">הגירה:</strong> ויזה (3 שבועות דרכון בשגרירות) או איחוד (הגעה עם ירדן).
+                            <strong class="text-slate-800 block mb-1">הגירה:</strong> ויזה (3 שבועות דרכון) או איחוד (ירדן איתי).
                         </div>
                         <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                            <strong class="text-slate-800 block mb-1">מסגרות:</strong> אלון (גן) עד 31.7, קרן ואורן עד 30.6. וורשה באוגוסט ריקה.
+                            <strong class="text-slate-800 block mb-1">מסגרות:</strong> אלון (31.7), קרן/אורן (30.6). וורשה באוגוסט ריקה.
                         </div>
                     </div>
                 </div>
