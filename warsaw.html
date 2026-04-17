@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מעבר לוורשה - תזמונים ואילוצים</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Rubik -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Rubik', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            900: '#1e3a8a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Rubik', sans-serif;
+            background-color: #f8fafc;
+        }
+        
+        /* Table Styles */
+        .plan-table th {
+            background-color: #f1f5f9;
+            color: #334155;
+            font-weight: 600;
+            text-align: right;
+            padding: 1rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .plan-table td {
+            padding: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            color: #475569;
+        }
+        .plan-table tbody tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        .plan-table tbody tr:hover {
+            background-color: #eff6ff;
+            transition: background-color 0.2s;
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+    </style>
+</head>
+<body class="text-slate-800 h-screen flex flex-col overflow-hidden">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm z-10 border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="bg-brand-100 text-brand-600 p-2 rounded-lg">
+                    <i class="ph ph-airplane-tilt text-2xl"></i>
+                </div>
+                <h1 class="text-xl md:text-2xl font-bold text-slate-800">מעבר לוורשה <span class="text-slate-400 font-normal">| תזמונים ואילוצים</span></h1>
+            </div>
+            <div class="hidden sm:block text-sm text-slate-500 font-medium">
+                <i class="ph ph-calendar-blank mr-1"></i> תכנון קיץ 2026
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Layout -->
+    <div class="flex-1 flex flex-col md:flex-row overflow-hidden max-w-7xl mx-auto w-full">
+        
+        <!-- Sidebar Navigation -->
+        <nav class="w-full md:w-64 bg-white md:bg-transparent flex-shrink-0 border-b md:border-b-0 md:border-l border-slate-200 p-4 overflow-x-auto md:overflow-y-auto hidden-scrollbar flex md:flex-col gap-2 z-10">
+            <h2 class="hidden md:block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">תפריט ניווט</h2>
+            
+            <button id="btn-tab-intro" onclick="switchTab('tab-intro')" class="tab-btn active bg-brand-600 text-white shadow-md flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all min-w-max md:min-w-0">
+                <i class="ph ph-list-checks text-xl"></i>
+                סקירת אילוצים
+            </button>
+            
+            <button id="btn-tab-plan1" onclick="switchTab('tab-plan1')" class="tab-btn bg-white text-slate-600 hover:bg-slate-50 border border-transparent hover:border-slate-200 flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all min-w-max md:min-w-0 shadow-sm md:shadow-none">
+                <i class="ph ph-number-circle-one text-xl"></i>
+                תוכנית 1: יעקב ביוני
+            </button>
+            
+            <button id="btn-tab-plan2" onclick="switchTab('tab-plan2')" class="tab-btn bg-white text-slate-600 hover:bg-slate-50 border border-transparent hover:border-slate-200 flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all min-w-max md:min-w-0 shadow-sm md:shadow-none">
+                <i class="ph ph-number-circle-two text-xl"></i>
+                תוכנית 2: יעקב ביולי
+            </button>
+            
+            <button id="btn-tab-plan3" onclick="switchTab('tab-plan3')" class="tab-btn bg-white text-slate-600 hover:bg-slate-50 border border-transparent hover:border-slate-200 flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all min-w-max md:min-w-0 shadow-sm md:shadow-none">
+                <i class="ph ph-number-circle-three text-xl"></i>
+                תוכנית 3: טסים ביחד
+            </button>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 p-4 md:p-8 overflow-y-auto relative">
+            
+            <!-- TAB: Intro & Constraints -->
+            <div id="tab-intro" class="tab-content animate-fade-in">
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-slate-800 mb-2">אילוצי זמנים ומסמכים</h2>
+                    <p class="text-slate-500 text-lg">נקודות המוצא והאילוצים המרכזיים שמנחים את התכנון שלנו.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <!-- Card 1: Work & Visas -->
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                        <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-4">
+                            <i class="ph ph-briefcase text-2xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold mb-4">עבודה וויזות</h3>
+                        <ul class="space-y-3 text-slate-600">
+                            <li class="flex items-start gap-2"><i class="ph ph-check-circle text-green-500 mt-1"></i> <span>חוזה התחלה מתוכנן ל-<strong>8.6</strong> (שמיני ליוני).</span></li>
+                            <li class="flex items-start gap-2"><i class="ph ph-warning text-amber-500 mt-1"></i> <span>חובה להגיע <strong>שבוע-שבועיים לפני</strong> ההתחלה (רישום, בדיקות רפואיות).</span></li>
+                            <li class="flex items-start gap-2"><i class="ph ph-info text-blue-500 mt-1"></i> <span>חוקי גוגל: תחילת עבודה רק בימי שני, <strong>בחצי הראשון של החודש</strong> (למשל 15.6 אפשרי, 22.6 לא).</span></li>
+                            <li class="flex items-start gap-2"><i class="ph ph-passport text-slate-500 mt-1"></i> <span><strong>ויזת עבודה:</strong> תלוי באישור עבודה -> שגרירות פולין -> הפקדת דרכון עד 3 שבועות.</span></li>
+                            <li class="flex items-start gap-2"><i class="ph ph-users text-slate-500 mt-1"></i> <span><strong>איחוד משפחות (אירופאי):</strong> הדרכון נשאר אצלי, צריך להגיע עם ירדן שבוע-שבועיים לפני.</span></li>
+                        </ul>
+                    </div>
+
+                    <!-- Card 2: Kids Frames -->
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                        <div class="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center mb-4">
+                            <i class="ph ph-student text-2xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold mb-4">מסגרות ילדים</h3>
+                        <ul class="space-y-3 text-slate-600">
+                            <li class="flex items-start gap-2"><i class="ph ph-calendar text-slate-400 mt-1"></i> <span><strong>אלון (גן):</strong> מתכונת מלאה עד 31.7.</span></li>
+                            <li class="flex items-start gap-2"><i class="ph ph-calendar text-slate-400 mt-1"></i> <span><strong>קרן (בי"ס):</strong> מתכונת מלאה עד 30.6. "בית הספר של הקיץ הגדול" (מסובסד, כיתה מלאה) עד 21.7.</span></li>
+                            <li class="flex items-start gap-2"><i class="ph ph-calendar text-slate-400 mt-1"></i> <span><strong>אורן (בי"ס):</strong> מתכונת מלאה עד 30.6.</span></li>
+                            <li class="flex items-start gap-2"><i class="ph ph-warning-circle text-amber-500 mt-1"></i> <span><strong>מסגרות בוורשה:</strong> אין מסגרות באוגוסט (גם לא קייטנות). כנראה יש קייטנות חב"ד ביולי.</span></li>
+                        </ul>
+                    </div>
+
+                    <!-- Card 3: Logistics -->
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                        <div class="w-12 h-12 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center mb-4">
+                            <i class="ph ph-package text-2xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold mb-4">לוגיסטיקה ודיור</h3>
+                        <ul class="space-y-3 text-slate-600">
+                            <li class="flex items-start gap-2"><i class="ph ph-house text-slate-400 mt-1"></i> <span><strong>השכרת הדירה שלנו:</strong> שוכרים פוטנציאליים מעוניינים להיכנס ב-1.6.</span></li>
+                            <li class="flex items-start gap-2"><i class="ph ph-boat text-slate-400 mt-1"></i> <span><strong>שילוח ימי:</strong> לוקח 4-10 שבועות. אפשרות ל-30 ימי אחסון ביעד.</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: Plan 1 -->
+            <div id="tab-plan1" class="tab-content hidden animate-fade-in h-full flex flex-col">
+                <div class="mb-6">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-bold mb-3">
+                        <i class="ph ph-check-circle"></i> תרחיש אופטימי
+                    </div>
+                    <h2 class="text-3xl font-bold text-slate-800 mb-2">תוכנית 1: מתפצלים וטסים מוקדם</h2>
+                    <p class="text-slate-600 text-lg bg-white p-4 rounded-xl border border-slate-100 shadow-sm inline-block">
+                        <strong>התרחיש:</strong> מתקבל אישור עבודה עד ה-1.5.<br>
+                        <strong>בפועל:</strong> יעקב טס בתחילת יוני, ירדן והילדים מצטרפים באוגוסט.
+                    </p>
+                </div>
+                
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex-1 flex flex-col">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right plan-table">
+                            <thead>
+                                <tr>
+                                    <th class="w-24">תאריך</th>
+                                    <th>מה עושים?</th>
+                                    <th>איפה יעקב?</th>
+                                    <th>איפה ירדן?</th>
+                                    <th>איפה הילדים?</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="font-bold text-slate-700">26.05</td>
+                                    <td>אריזה ומשלוח</td>
+                                    <td>שינקין</td>
+                                    <td>שינקין</td>
+                                    <td>שינקין</td>
+                                </tr>
+                                <tr>
+                                    <td class="font-bold text-slate-700">29.05</td>
+                                    <td>עוברים לשביל האור</td>
+                                    <td>שביל האור</td>
+                                    <td>שביל האור (עובדת)</td>
+                                    <td>שביל האור (מסגרות)</td>
+                                </tr>
+                                <tr>
+                                    <td class="font-bold text-brand-600 text-lg">01.06</td>
+                                    <td class="font-bold">יעקב טס</td>
+                                    <td class="bg-blue-50/50">וורשה (דירה זמנית)</td>
+                                    <td>שביל האור (עובדת)</td>
+                                    <td>שביל האור (מסגרות)</td>
+                                </tr>
+                                <tr>
+                                    <td class="font-bold text-brand-600 text-lg">01.08</td>
+                                    <td class="font-bold">כולם טסים</td>
+                                    <td class="bg-blue-50/50 font-medium">וורשה (בתקווה דירה קבועה)</td>
+                                    <td class="bg-blue-50/50 font-medium">וורשה (חופש)</td>
+                                    <td class="bg-blue-50/50 font-medium">וורשה (חופש)</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: Plan 2 -->
+            <div id="tab-plan2" class="tab-content hidden animate-fade-in h-full flex flex-col">
+                <div class="mb-6">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-bold mb-3">
+                        <i class="ph ph-hourglass-high"></i> עיכוב קל
+                    </div>
+                    <h2 class="text-3xl font-bold text-slate-800 mb-2">תוכנית 2: יעקב ביולי, היתר באוגוסט</h2>
+                    <p class="text-slate-600 text-lg bg-white p-4 rounded-xl border border-slate-100 shadow-sm inline-block">
+                        <strong>התרחיש:</strong> אישור עבודה מתקבל בין 1.5 ל-1.6. מחליטים על טיסה בנפרד (יעקב מקדים).<br>
+                        <strong>בפועל:</strong> יעקב טס ב-1.7, מתחיל לעבוד ב-13.7. המשפחה מצטרפת באוגוסט.
+                    </p>
+                </div>
+                
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex-1 flex flex-col">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right plan-table">
+                            <thead>
+                                <tr>
+                                    <th class="w-24">תאריך</th>
+                                    <th>מה עושים?</th>
+                                    <th>איפה יעקב?</th>
+                                    <th>איפה ירדן?</th>
+                                    <th>איפה הילדים?</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="font-bold text-slate-700">26.05</td>
+                                    <td>אריזה ומשלוח</td>
+                                    <td>שינקין</td>
+                                    <td>שינקין</td>
+                                    <td>שינקין</td>
+                                </tr>
+                                <tr>
+                                    <td class="font-bold text-slate-700">29.05</td>
+                                    <td>עוברים לשביל האור</td>
+                                    <td>שביל האור</td>
+                                    <td>שביל האור (עובדת)</td>
+                                    <td>שביל האור (מסגרות)</td>
+                                </tr>
+                                <tr>
+                                    <td class="font-bold text-brand-600 text-lg">01.07</td>
+                                    <td class="font-bold">יעקב טס</td>
+                                    <td class="bg-blue-50/50">וורשה (דירה זמנית)</td>
+                                    <td>שביל האור (עובדת)</td>
+                                    <td>שביל האור (מסגרות)</td>
+                                </tr>
+                                <tr>
+                                    <td class="font-bold text-brand-600 text-lg">13.07</td>
+                                    <td class="font-bold">יעקב מתחיל לעבוד</td>
+                                    <td class="bg-blue-50/50">וורשה (דירה זמנית)</td>
+                                    <td>שביל האור (עובדת)</td>
+                                    <td>שביל האור (מסגרות)</td>
+                                </tr>
+                                <tr>
+                                    <td class="font-bold text-brand-600 text-lg">01.08</td>
+                                    <td class="font-bold">כולם טסים</td>
+                                    <td class="bg-blue-50/50 font-medium">וורשה (בתקווה דירה קבועה)</td>
+                                    <td class="bg-blue-50/50 font-medium">וורשה (חופש)</td>
+                                    <td class="bg-blue-50/50 font-medium">וורשה (חופש)</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: Plan 3 -->
+            <div id="tab-plan3" class="tab-content hidden animate-fade-in h-full flex flex-col">
+                <div class="mb-6">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-bold mb-3">
+                        <i class="ph ph-users-three"></i> טסים יחד
+                    </div>
+                    <h2 class="text-3xl font-bold text-slate-800 mb-2">תוכנית 3: כולם טסים ביחד</h2>
+                    <p class="text-slate-600 text-lg bg-white p-4 rounded-xl border border-slate-100 shadow-sm inline-block">
+                        <strong>התרחיש:</strong> אישור העבודה מתעכב אחרי 1.6, או שמקבלים החלטה לוותר על פיצול ולטוס כולנו ביחד.<br>
+                        <strong>בפועל:</strong> טיסה משותפת לקראת סוף יולי. יעקב מתחיל לעבוד בתחילת אוגוסט.
+                    </p>
+                </div>
+                
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex-1 flex flex-col">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right plan-table">
+                            <thead>
+                                <tr>
+                                    <th class="w-24">תאריך</th>
+                                    <th>מה עושים?</th>
+                                    <th>איפה יעקב?</th>
+                                    <th>איפה ירדן?</th>
+                                    <th>איפה הילדים?</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="font-bold text-slate-700">26.05</td>
+                                    <td>אריזה ומשלוח</td>
+                                    <td>שינקין</td>
+                                    <td>שינקין</td>
+                                    <td>שינקין</td>
+                                </tr>
+                                <tr>
+                                    <td class="font-bold text-slate-700">29.05</td>
+                                    <td>עוברים לשביל האור</td>
+                                    <td>שביל האור</td>
+                                    <td>שביל האור (עובדת)</td>
+                                    <td>שביל האור (מסגרות)</td>
+                                </tr>
+                                <tr>
+                                    <td class="font-bold text-brand-600 text-lg">21.07<br><span class="text-xs font-normal text-slate-500">(או מוקדם/מאוחר יותר)</span></td>
+                                    <td class="font-bold">כולם טסים</td>
+                                    <td class="bg-purple-50/50 font-medium">וורשה (דירה זמנית)</td>
+                                    <td class="bg-purple-50/50 font-medium">וורשה</td>
+                                    <td class="bg-purple-50/50 font-medium">וורשה</td>
+                                </tr>
+                                <tr>
+                                    <td class="font-bold text-brand-600 text-lg">03.08</td>
+                                    <td class="font-bold">יעקב מתחיל לעבוד</td>
+                                    <td class="bg-purple-50/50 font-medium">וורשה</td>
+                                    <td class="bg-purple-50/50 font-medium">וורשה (חופש)</td>
+                                    <td class="bg-purple-50/50 font-medium">וורשה (חופש)</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Spacing for the floating button -->
+            <div class="h-24"></div>
+        </main>
+    </div>
+
+    <!-- Floating Action Button (FAB) -->
+    <button onclick="toggleModal()" class="fixed bottom-6 left-6 bg-slate-800 hover:bg-slate-700 text-white px-6 py-3 rounded-full shadow-lg shadow-slate-400/30 flex items-center gap-2 font-bold transition-transform hover:scale-105 z-40">
+        <i class="ph ph-info text-xl"></i>
+        תזכורת אילוצים
+    </button>
+
+    <!-- Constraints Modal (Hidden by default) -->
+    <div id="constraints-modal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <!-- Background Overlay -->
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onclick="toggleModal()"></div>
+
+        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+            <div class="relative transform overflow-hidden rounded-2xl bg-white text-right shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-2xl border border-slate-200">
+                <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                    <div class="flex justify-between items-center mb-5 pb-3 border-b border-slate-100">
+                        <h3 class="text-2xl font-bold text-slate-800 flex items-center gap-2" id="modal-title">
+                            <i class="ph ph-warning-circle text-brand-500"></i>
+                            תזכורת: האילוצים המרכזיים
+                        </h3>
+                        <button onclick="toggleModal()" class="text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 p-2 rounded-full transition-colors">
+                            <i class="ph ph-x text-lg"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="mt-2 text-slate-600 text-sm space-y-4">
+                        <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                            <strong class="text-slate-800 block mb-1">תאריכי עבודה מול גוגל:</strong>
+                            <ul class="list-disc list-inside space-y-1">
+                                <li>חוזה ב-8.6. יש להגיע שבוע-שבועיים קודם.</li>
+                                <li>התחלה רק בימי שני במחצית הראשונה של החודש (15.6 כן, 22.6 לא).</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                            <strong class="text-slate-800 block mb-1">ויזות:</strong>
+                            <ul class="list-disc list-inside space-y-1">
+                                <li><strong>ויזת עבודה:</strong> דרכון בשגרירות עד 3 שבועות אחרי קבלת אישור עבודה.</li>
+                                <li><strong>איחוד אירופאי:</strong> דרכון אצלי, מגיעים עם ירדן שבוע-שבועיים לפני.</li>
+                            </ul>
+                        </div>
+
+                        <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                            <strong class="text-slate-800 block mb-1">מסגרות בארץ:</strong>
+                            <ul class="list-disc list-inside space-y-1">
+                                <li>אלון (גן) עד 31.7.</li>
+                                <li>קרן (בי"ס) עד 30.6. "בית הספר של הקיץ הגדול" עד 21.7.</li>
+                                <li>אורן (בי"ס) עד 30.6.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-slate-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                    <button type="button" onclick="toggleModal()" class="inline-flex w-full justify-center rounded-xl bg-brand-600 px-4 py-2 font-medium text-white shadow-sm hover:bg-brand-700 sm:ml-3 sm:w-auto">
+                        הבנתי, חזור לטבלה
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript for Interactions -->
+    <script>
+        function switchTab(tabId) {
+            // 1. Hide all tab contents
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(content => {
+                content.classList.add('hidden');
+            });
+
+            // 2. Reset all buttons
+            const buttons = document.querySelectorAll('.tab-btn');
+            buttons.forEach(btn => {
+                btn.classList.remove('bg-brand-600', 'text-white', 'shadow-md', 'active');
+                btn.classList.add('bg-white', 'text-slate-600', 'hover:bg-slate-50');
+            });
+
+            // 3. Show selected tab
+            const selectedTab = document.getElementById(tabId);
+            if(selectedTab) {
+                selectedTab.classList.remove('hidden');
+            }
+
+            // 4. Highlight selected button
+            const selectedBtn = document.getElementById('btn-' + tabId);
+            if(selectedBtn) {
+                selectedBtn.classList.remove('bg-white', 'text-slate-600', 'hover:bg-slate-50');
+                selectedBtn.classList.add('bg-brand-600', 'text-white', 'shadow-md', 'active');
+            }
+        }
+
+        function toggleModal() {
+            const modal = document.getElementById('constraints-modal');
+            if (modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        // Initialize: ensure the correct initial tab is visible (already handled in HTML classes, but safe to call)
+        // switchTab('tab-intro');
+    </script>
+</body>
+</html>
